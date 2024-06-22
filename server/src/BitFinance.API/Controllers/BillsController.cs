@@ -1,4 +1,5 @@
 using System.Globalization;
+using BitFinance.API.Models;
 using BitFinance.API.Models.Request;
 using BitFinance.API.Models.Response;
 using BitFinance.API.Repositories;
@@ -83,7 +84,9 @@ public class BillsController : ControllerBase
 
             if (bill is null)
             {
-                return NotFound();
+                // return NotFound();
+                var result = new Result<GetBillResponse>(new Error("EX001", "Record not found"));
+                return NotFound(result);
             }
 
             var response = new GetBillResponse
