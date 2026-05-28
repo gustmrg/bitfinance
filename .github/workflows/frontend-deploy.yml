@@ -11,6 +11,9 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/frontend
 
     steps:
       - name: Checkout code
@@ -26,13 +29,13 @@ jobs:
 
       - name: Set up environment file
         run: |
-          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > apps/frontend/.env.production
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > .env.production
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build app
-        run: pnpm --dir apps/frontend run build
+        run: pnpm run build
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
@@ -75,4 +78,4 @@ jobs:
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
-            -r apps/frontend/dist/* "$SSH_USERNAME@$TARGET_HOST:/var/www/bitfinance/"
+            -r dist/* "$SSH_USERNAME@$TARGET_HOST:/var/www/bitfinance/"

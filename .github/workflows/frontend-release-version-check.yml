@@ -8,6 +8,9 @@ on:
 jobs:
   validate-package-version:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/frontend
 
     steps:
       - name: Checkout code
@@ -30,7 +33,7 @@ jobs:
           fi
 
           TAG_VERSION="${RELEASE_TAG#v}"
-          PACKAGE_VERSION="$(node -p "require('./apps/frontend/package.json').version")"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
 
           echo "Release tag: ${RELEASE_TAG}"
           echo "Tag version: ${TAG_VERSION}"

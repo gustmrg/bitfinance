@@ -43,7 +43,7 @@ BitFinance is a finance platform for tracking bills, expenses, organizations, an
 
 ### Installation
 
-1. Install dependencies from the monorepo root.
+1. Install dependencies from this directory.
 
    ```bash
    pnpm install
@@ -52,13 +52,13 @@ BitFinance is a finance platform for tracking bills, expenses, organizations, an
 2. Create a local environment file.
 
    ```bash
-   cp apps/frontend/.env.development.example apps/frontend/.env.local
+   cp .env.development.example .env.local
    ```
 
 3. Start the development server.
 
    ```bash
-   pnpm --dir apps/frontend dev
+   pnpm dev
    ```
 
 The app runs at `http://localhost:3000` and expects the backend API at `http://localhost:8080/api/v1` by default.
@@ -82,10 +82,10 @@ Use `.env.local` for personal overrides. Do not commit real `.env` files.
 ## Available Scripts
 
 ```bash
-pnpm --dir apps/frontend dev       # Start the Vite development server
-pnpm --dir apps/frontend build     # Type-check and create a production build
-pnpm --dir apps/frontend lint      # Run ESLint
-pnpm --dir apps/frontend preview   # Preview the production build locally
+pnpm dev       # Start the Vite development server
+pnpm build     # Type-check and create a production build
+pnpm lint      # Run ESLint
+pnpm preview   # Preview the production build locally
 ```
 
 ## API Organization
@@ -133,7 +133,7 @@ Authenticated pages are wrapped with `ProtectedRoute`.
 Create a production build with:
 
 ```bash
-pnpm --dir apps/frontend build
+pnpm build
 ```
 
 Production builds use `VITE_API_URL=/api/v1` by default, which supports same-origin API routing behind a reverse proxy.

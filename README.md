@@ -10,16 +10,17 @@ BitFinance is a finance platform for tracking bills, expenses, organizations, an
 
 ## Local Development
 
-Install frontend dependencies from the repository root:
+Install frontend dependencies from the frontend app directory:
 
 ```bash
+cd apps/frontend
 pnpm install
 ```
 
 Run the frontend:
 
 ```bash
-pnpm --dir apps/frontend dev
+pnpm dev
 ```
 
 Run the backend development stack:
