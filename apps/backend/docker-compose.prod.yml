@@ -1,0 +1,51 @@
+# Production overlay — use on top of the base:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --no-build
+services:
+  bitfinance-api:
+    image: gustmrg/bitfinance-backend:${IMAGE_TAG:-latest}
+    restart: always
+    environment:
+      - ConnectionStrings__Database=Host=bitfinance-db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+      - KeyVault__Url=${KEYVAULT_URL}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  bitfinance-db:
+    restart: always
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  bitfinance-cache:
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 100mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:

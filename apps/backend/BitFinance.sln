@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitFinance.API", "src\BitFinance.API\BitFinance.API.csproj", "{1E020C26-2D18-4BD1-BFA8-F6EA43474315}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitFinance.Business", "src\BitFinance.Business\BitFinance.Business.csproj", "{2CF72540-C71A-4C72-9BC8-F46C9DF7CDC7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitFinance.Data", "src\BitFinance.Data\BitFinance.Data.csproj", "{BFD7E9AA-30E6-41E6-B473-6B9E1159798F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C06744F5-B481-46DA-9B6E-0F4BF6FDF52E}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.yml = docker-compose.yml
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1E020C26-2D18-4BD1-BFA8-F6EA43474315}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E020C26-2D18-4BD1-BFA8-F6EA43474315}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E020C26-2D18-4BD1-BFA8-F6EA43474315}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E020C26-2D18-4BD1-BFA8-F6EA43474315}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CF72540-C71A-4C72-9BC8-F46C9DF7CDC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CF72540-C71A-4C72-9BC8-F46C9DF7CDC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CF72540-C71A-4C72-9BC8-F46C9DF7CDC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CF72540-C71A-4C72-9BC8-F46C9DF7CDC7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFD7E9AA-30E6-41E6-B473-6B9E1159798F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFD7E9AA-30E6-41E6-B473-6B9E1159798F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFD7E9AA-30E6-41E6-B473-6B9E1159798F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFD7E9AA-30E6-41E6-B473-6B9E1159798F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

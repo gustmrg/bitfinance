@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>14</LangVersion>
+        <AssemblyVersion>1.1.0</AssemblyVersion>
+        <UserSecretsId>a87c241e-7db2-4324-9feb-de5acb79da0e</UserSecretsId>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Asp.Versioning.Http" Version="8.1.0" />
+        <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
+        <PackageReference Include="AWSSDK.S3" Version="4.0.18.6" />
+        <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.4.0" />
+        <PackageReference Include="Azure.Identity" Version="1.15.0" />
+        <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.8.0" />
+        <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
+        <PackageReference Include="Npgsql" Version="10.0.0" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+        <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+        <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+        <PackageReference Include="Serilog.Sinks.Elasticsearch" Version="10.0.0" />
+        <PackageReference Include="Serilog.Sinks.MSSqlServer" Version="7.0.1" />
+        <PackageReference Include="Scalar.AspNetCore" Version="2.0.18" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\BitFinance.Business\BitFinance.Business.csproj" />
+      <ProjectReference Include="..\BitFinance.Data\BitFinance.Data.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="..\..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
+    </ItemGroup>
+
+</Project>

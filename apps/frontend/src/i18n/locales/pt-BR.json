@@ -1,0 +1,494 @@
+{
+  "home": {
+    "title": "Gerencie suas finanças de forma simples e inteligente",
+    "subtitle": "Assuma o controle do seu futuro financeiro com ferramentas poderosas para rastreamento de despesas, gerenciamento de contas e planejamento financeiro. Tudo o que você precisa em uma plataforma segura e intuitiva.",
+    "cta": "Comece agora",
+    "ctaSecondary": "Ver Demo",
+    "features": {
+      "title": "Tudo que você precisa para gerenciar suas finanças",
+      "subtitle": "Recursos poderosos projetados para tornar o gerenciamento financeiro sem esforço",
+      "expenseTracking": {
+        "title": "Rastreamento de Despesas",
+        "description": "Monitore seus gastos por categorias e identifique áreas de melhoria com análises detalhadas."
+      },
+      "billManagement": {
+        "title": "Gerenciamento de Contas",
+        "description": "Nunca perca um pagamento novamente com lembretes automáticos e rastreamento de datas de vencimento."
+      },
+      "financialInsights": {
+        "title": "Insights Financeiros",
+        "description": "Obtenha insights personalizados e recomendações para otimizar sua saúde financeira e economias."
+      },
+      "secureData": {
+        "title": "Segurança Bancária",
+        "description": "Seus dados financeiros são protegidos com criptografia e protocolos de segurança de nível empresarial."
+      }
+    },
+    "benefits": {
+      "title": "Junte-se a milhares de usuários assumindo o controle de suas finanças",
+      "stats": {
+        "users": "1.000+",
+        "usersLabel": "Usuários Ativos",
+        "billsTracked": "10.000+",
+        "billsLabel": "Contas Rastreadas",
+        "moneySaved": "$1M+",
+        "moneySavedLabel": "Dinheiro Economizado"
+      }
+    }
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "bills": "Contas",
+    "expenses": "Despesas",
+    "organization": "Organização",
+    "account": "Conta",
+    "more": "Mais",
+    "settings": "Configurações",
+    "select": "Selecione organização",
+    "sections": {
+      "management": "Gerenciamento",
+      "account": "Conta"
+    }
+  },
+  "labels": {
+    "description": "Descrição",
+    "amount": "Valor",
+    "amountDue": "Valor Devido",
+    "amountPaid": "Valor Pago",
+    "dueDate": "Data de Vencimento",
+    "paymentDate": "Data do Pagamento",
+    "category": "Categoria",
+    "status": "Status",
+    "reset": "Limpar",
+    "upcoming": "A Vencer",
+    "paid": "Paga",
+    "due": "Vencida",
+    "overdue": "Em Atraso",
+    "cancelled": "Cancelada",
+    "created": "Criada",
+    "pending": "Pendente",
+    "housing": "Moradia",
+    "utilities": "Serviços públicos",
+    "food": "Alimentação",
+    "transportation": "Transporte",
+    "healthcare": "Saúde",
+    "insurance": "Seguro",
+    "personal": "Pessoal",
+    "debt": "Dívidas",
+    "savings": "Investimentos",
+    "entertainment": "Entretenimento",
+    "education": "Educação",
+    "clothing": "Vestuário",
+    "miscellaneous": "Outros",
+    "pets": "Pets",
+    "subscriptions": "Assinaturas",
+    "taxes": "Taxas e Impostos",
+    "travel": "Viagem",
+    "gifts": "Presentes",
+    "selectCategory": "Selecione categoria",
+    "selectStatus": "Selecione um status",
+    "pickDate": "Escolha a data",
+    "edit": "Editar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Excluir",
+    "details": "Detalhes",
+    "notes": "Anotações",
+    "attachments": "Anexos",
+    "download": "Baixar",
+    "email": "E-mail",
+    "firstName": "Nome",
+    "lastName": "Sobrenome",
+    "password": "Senha",
+    "signUp": "Criar conta",
+    "signIn": "Entrar",
+    "signingIn": "Entrando...",
+    "signingUp": "Criando conta...",
+    "goToDashboard": "Ir para o Dashboard",
+    "createdBy": "Criado por",
+    "date": "Data",
+    "profile": "Perfil",
+    "settings": "Configurações",
+    "logout": "Sair",
+    "viewAll": "Ver tudo",
+    "dueIn": "Vence em",
+    "dueOn": "Vence em {{date}}",
+    "overdueSince": "Em atraso desde {{date}}",
+    "markAsPaid": "Marcar como Pago"
+  },
+  "dashboard": {
+    "subtitle": "Visão geral de suas finanças",
+    "metrics": {
+      "monthlyBudget": {
+        "title": "Orçamento Mensal",
+        "subtitle": "Limite planejado para o mês atual"
+      },
+      "spentThisMonth": {
+        "title": "Gasto no Mês",
+        "subtitle": "{{percentage}}% do orçamento utilizado"
+      },
+      "remainingBudget": {
+        "title": "Orçamento Restante",
+        "subtitleAvailable": "Disponível para gastar",
+        "subtitleDepleted": "Orçamento totalmente utilizado"
+      },
+      "upcomingBills": {
+        "title": "Contas a Vencer (7 dias)",
+        "subtitle": "{{count}} conta(s) vencendo em breve"
+      }
+    },
+    "upcomingBills": {
+      "title": "Contas a Vencer",
+      "description": "Gerencie suas contas a vencer",
+      "emptyHeader": "Nenhuma conta a vencer",
+      "empty": "Você está em dia com seus pagamentos!"
+    },
+    "recentExpenses": {
+      "title": "Despesas Recentes",
+      "subtitle": "Categorias de Maiores Gastos",
+      "description": "Acompanhe suas últimas despesas",
+      "emptyHeader": "Nenhuma despesa",
+      "empty": "Você ainda não adicionou nenhuma despesa neste período!",
+      "topCategoriesEmpty": "Nenhuma categoria de gastos para exibir."
+    }
+  },
+  "auth": {
+    "signUp": {
+      "title": "Crie sua conta",
+      "redirect": "Já possui uma conta?"
+    },
+    "signIn": {
+      "title": "Entrar na sua conta",
+      "redirect": "Não tem uma conta?",
+      "demoAccount": "Para fins de teste, você pode usar as seguintes credenciais para efetuar login:"
+    }
+  },
+  "bills": {
+    "title": "Contas",
+    "subtitle": "Gerencie suas contas e nunca mais perca um pagamento. Fique por dentro de suas contas e evite taxas por atraso com nosso sistema de gerenciamento de contas fácil de usar.",
+    "cta": "Adicionar Conta",
+    "loading": "Carregando contas...",
+    "emptyTitle": "Nenhuma conta",
+    "emptyDescription": "Você ainda não adicionou nenhuma conta. Comece a acompanhar suas contas adicionando uma agora!",
+    "filters": {
+      "statusPlaceholder": "Todos os status",
+      "statusSelected": "{{count}} selecionados",
+      "descriptionPlaceholder": "Buscar contas..."
+    },
+    "dialog": {
+      "add": {
+        "title": "Adicionar Nova Conta",
+        "description": "Adicione uma nova fatura às suas transações. Clique para adicionar quando terminar."
+      },
+      "edit": {
+        "title": "Alterar Conta",
+        "description": "Altere as informações da sua conta. Clique para confirmar quando terminar."
+      },
+      "details": {
+        "title": "Detalhes da Conta",
+        "description": "Aqui você pode visualizar informações detalhadas sobre a fatura selecionada, incluindo seu status, data de vencimento e quaisquer recibos associados."
+      },
+      "delete": {
+        "title": "Excluir Conta",
+        "description": "Tem certeza de que deseja excluir esta fatura? Todos os seus dados serão removidos permanentemente e esta ação não pode ser desfeita."
+      },
+      "markAsPaid": {
+        "title": "Marcar como Pago",
+        "description": "Confirme os detalhes do pagamento desta conta."
+      }
+    }
+  },
+  "expenses": {
+    "title": "Despesas",
+    "subtitle": "Acompanhe suas despesas e fique dentro do seu orçamento. Fique de olho em seus hábitos de gastos e tome decisões informadas sobre seu dinheiro.",
+    "cta": "Adicionar Despesa",
+    "loading": "Carregando despesas...",
+    "emptyTitle": "Nenhuma despesa",
+    "emptyDescription": "Você ainda não adicionou nenhuma despesa. Comece a acompanhar suas despesas adicionando uma agora!",
+    "dialog": {
+      "add": {
+        "title": "Adicionar Nova Despesa",
+        "description": "Adicione uma nova despesa às suas transações. Clique para adicionar quando terminar."
+      },
+      "edit": {
+        "title": "Editar Despesa",
+        "description": "Atualize a despesa selecionada e salve as alterações quando terminar."
+      },
+      "delete": {
+        "title": "Excluir Despesa",
+        "description": "Tem certeza de que deseja excluir esta despesa? Todos os seus dados serão removidos permanentemente e esta ação não pode ser desfeita."
+      }
+    },
+    "details": {
+      "title": "Detalhes da Despesa",
+      "subtitle": "Revise os detalhes da despesa e gerencie os anexos.",
+      "back": "Voltar para Despesas",
+      "upload": "Enviar Documentos",
+      "uploadDescription": "Envie vários arquivos para anexar a esta despesa.",
+      "fileCategory": "Categoria do Arquivo",
+      "selectFiles": "Selecionar Arquivos",
+      "selectedFiles": "Arquivos Selecionados",
+      "uploading": "Enviando...",
+      "uploadCount_one": "Enviar {{count}} arquivo",
+      "uploadCount_other": "Enviar {{count}} arquivos",
+      "notFound": "Despesa não encontrada",
+      "notFoundDescription": "Não foi possível encontrar esta despesa na organização atual."
+    }
+  },
+  "more": {
+    "title": "Mais",
+    "subtitle": "Acesse configurações, ferramentas da conta e recursos futuros.",
+    "comingSoon": "Em breve",
+    "items": {
+      "accountSettings": {
+        "title": "Configurações da Conta",
+        "description": "Perfil e preferências da conta."
+      },
+      "bills": {
+        "title": "Contas",
+        "description": "Gerencie contas recorrentes e datas de vencimento."
+      },
+      "expenses": {
+        "title": "Despesas",
+        "description": "Acompanhe os registros de despesas do dia a dia."
+      },
+      "organization": {
+        "title": "Organização",
+        "description": "Gerencie membros, convites e configurações do espaço de trabalho."
+      },
+      "createOrganization": {
+        "title": "Criar Organização",
+        "description": "Configure um novo espaço de trabalho."
+      },
+      "reports": {
+        "title": "Relatórios",
+        "description": "Visualize insights e resumos financeiros."
+      },
+      "budgets": {
+        "title": "Orçamentos",
+        "description": "Planeje orçamentos mensais e limites de gastos."
+      },
+      "notifications": {
+        "title": "Notificações",
+        "description": "Configure lembretes e regras de alerta."
+      },
+      "integrations": {
+        "title": "Integrações",
+        "description": "Conecte ferramentas e serviços externos."
+      },
+      "logout": {
+        "title": "Sair",
+        "description": "Encerrar sessão neste dispositivo."
+      }
+    }
+  },
+  "account": {
+    "title": "Conta",
+    "subtitle": "É assim como os outros verão você no site.",
+    "firstName": "Nome",
+    "firstNamePlaceholder": "João",
+    "firstNameDescription": "Digite seu nome.",
+    "lastName": "Sobrenome",
+    "lastNamePlaceholder": "Silva",
+    "lastNameDescription": "Digite seu sobrenome.",
+    "updateAccount": "Atualizar conta",
+    "updatingAccount": "Atualizando conta...",
+    "updateSuccess": "Perfil atualizado",
+    "updateSuccessDescription": "Você atualizou as informações da sua conta com sucesso.",
+    "avatar": {
+      "title": "Avatar",
+      "subtitle": "Gerencie a imagem de perfil exibida na navegação e nas telas da conta.",
+      "requirements": "Formatos aceitos: JPG e PNG com até 2 MB. Um avatar placeholder será exibido até o backend retornar avatarUrl em /identity/me.",
+      "upload": "Enviar avatar",
+      "uploading": "Enviando avatar...",
+      "remove": "Remover avatar",
+      "removing": "Removendo avatar...",
+      "uploadSuccess": "Avatar enviado",
+      "uploadSuccessDescription": "O upload do avatar foi aceito. A imagem real aparecerá quando o backend retornar avatarUrl em /identity/me.",
+      "removeSuccess": "Avatar removido",
+      "removeSuccessDescription": "Seu avatar foi removido com sucesso."
+    },
+    "preferences": {
+      "title": "Preferências",
+      "subtitle": "Personalize sua experiência.",
+      "language": "Idioma",
+      "languageDescription": "Selecione seu idioma preferido."
+    },
+    "security": {
+      "title": "Segurança",
+      "subtitle": "Gerencie a segurança da sessão em todos os seus dispositivos.",
+      "logoutAllTitle": "Sair de todos os dispositivos",
+      "logoutAllDescription": "Revogue todas as sessões ativas e exija novo login em todos os lugares, incluindo este dispositivo.",
+      "logoutAllAction": "Sair de todos os dispositivos",
+      "loggingOutAll": "Saindo de todos os dispositivos...",
+      "confirmTitle": "Sair de todos os dispositivos",
+      "confirmDescription": "Isso vai revogar todas as sessões ativas e encerrar sua sessão em todos os lugares. Você precisará entrar novamente em cada dispositivo.",
+      "logoutAllSuccess": "Sessões encerradas",
+      "logoutAllSuccessDescription": "Todas as sessões ativas foram revogadas com sucesso."
+    }
+  },
+  "organization": {
+    "title": "Organização",
+    "subtitle": "Gerencie as configurações do espaço de trabalho, membros e links de convite.",
+    "loading": "Carregando detalhes da organização...",
+    "unavailable": {
+      "title": "Organização não encontrada",
+      "description": "Não foi possível carregar os detalhes da organização selecionada."
+    },
+    "empty": {
+      "title": "Nenhuma organização selecionada",
+      "description": "Crie uma organização primeiro para gerenciar membros, convites e configurações do espaço de trabalho.",
+      "createAction": "Criar organização"
+    },
+    "create": {
+      "eyebrow": "Configuração do espaço de trabalho",
+      "title": "Crie a organização que vai concentrar seu time, contas e despesas.",
+      "description": "Comece com um espaço de trabalho limpo para uma empresa, cliente, projeto paralelo ou uso doméstico. Você poderá convidar membros e ajustar configurações logo depois.",
+      "formTitle": "Criar organização",
+      "formDescription": "Escolha um nome claro para identificar o espaço facilmente ao alternar entre organizações.",
+      "nameLabel": "Nome da organização",
+      "namePlaceholder": "Acme Inc.",
+      "nameDescription": "Você pode renomear isso depois na página de configurações da organização.",
+      "submit": "Criar organização e continuar",
+      "submitting": "Criando organização...",
+      "benefits": {
+        "workspace": "Mantenha os dados separados por espaço de trabalho desde o primeiro dia.",
+        "invites": "Convide integrantes com papéis definidos assim que o espaço estiver pronto.",
+        "settings": "Atualize membros, convites e nome depois nas configurações da organização."
+      }
+    },
+    "overview": {
+      "title": "Visão geral",
+      "description": "Metadados básicos da organização selecionada.",
+      "organizationName": "Nome da organização",
+      "createdAt": "Criada em",
+      "updatedAt": "Última atualização",
+      "members": "Membros"
+    },
+    "settings": {
+      "title": "Configurações",
+      "description": "Atualize o nome da organização usado em todo o espaço de trabalho.",
+      "nameLabel": "Nome da organização",
+      "namePlaceholder": "Acme Inc.",
+      "nameDescription": "Este nome é exibido no seletor de organização e nas telas da conta.",
+      "save": "Salvar alterações",
+      "saving": "Salvando...",
+      "success": "Organização atualizada",
+      "successDescription": "O nome da organização foi atualizado com sucesso."
+    },
+    "members": {
+      "title": "Membros",
+      "description": "Revise os membros atuais e prepare fluxos de gerenciamento de papéis.",
+      "empty": "Nenhum membro foi retornado para esta organização.",
+      "roleUnavailable": "Papel indisponível",
+      "manageRolesTitle": "O gerenciamento de papéis está parcialmente disponível",
+      "manageRolesDescription": "Hoje você já pode definir papéis ao criar convites. A edição de papéis para membros existentes ainda depende de suporte do backend para retornar e atualizar papéis."
+    },
+    "invite": {
+      "trigger": "Convidar membro",
+      "title": "Convidar membro",
+      "description": "Gere um link de entrada para um novo membro da organização e escolha o papel que ele deve receber.",
+      "eyebrow": "Configuração do convite",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "nome@empresa.com",
+      "emailDescription": "Vamos gerar um link de entrada que essa pessoa poderá usar depois de fazer login.",
+      "roleLabel": "Papel",
+      "submit": "Criar convite",
+      "creating": "Criando convite...",
+      "successTitle": "Convite pronto",
+      "successDescription": "Compartilhe o link de entrada ou o token bruto com o membro convidado.",
+      "readyBadge": "Pronto para compartilhar",
+      "shareDescription": "Use o link de entrada para um onboarding mais simples ou envie o token bruto se precisar de um caminho manual.",
+      "expiresAt": "Expira em",
+      "linkLabel": "Link de entrada",
+      "linkDescription": "Melhor opção para a maioria dos membros. O token é preservado automaticamente.",
+      "tokenLabel": "Token do convite",
+      "tokenDescription": "Útil quando você precisa colar o convite manualmente em outro sistema ou mensagem.",
+      "copyLink": "Copiar link",
+      "copyToken": "Copiar token",
+      "copiedLink": "Link copiado",
+      "copiedToken": "Token do convite copiado",
+      "securityNote": "Tokens de convite têm validade limitada. Se o membro não conseguir usar este convite antes do vencimento, gere um novo na página da organização.",
+      "benefits": {
+        "linkTitle": "Compartilhe um caminho direto",
+        "linkDescription": "Os membros podem fazer login e continuar direto para a organização sem digitar o token novamente.",
+        "roleTitle": "Defina o acesso antecipadamente",
+        "roleDescription": "Escolha agora o papel correto para que o membro entre no espaço com as permissões esperadas."
+      },
+      "roleDescriptions": {
+        "owner": "Controle total da organização, incluindo cobrança e configurações destrutivas.",
+        "admin": "Pode gerenciar membros e configurações do espaço, sem o nível de controle de cobrança do owner.",
+        "member": "Pode trabalhar dentro da organização com as permissões permitidas pelo plano."
+      },
+      "done": "Concluir"
+    },
+    "roles": {
+      "owner": "Proprietário",
+      "admin": "Administrador",
+      "member": "Membro"
+    },
+    "switcher": {
+      "manage": "Gerenciar organização",
+      "create": "Criar organização",
+      "empty": "Nenhuma organização disponível."
+    },
+    "join": {
+      "eyebrow": "Fluxo de convite",
+      "title": "Entrar na organização",
+      "subtitle": "Estamos validando seu convite e preparando seu espaço de trabalho.",
+      "redirectingTitle": "Redirecionando para o login",
+      "redirectingDescription": "Você precisa entrar antes de participar desta organização.",
+      "joiningTitle": "Entrando na organização",
+      "joiningDescription": "Aguarde enquanto adicionamos você à organização e trocamos seu espaço de trabalho.",
+      "successTitle": "Organização vinculada",
+      "successDescription": "Seu espaço de trabalho foi atualizado. Redirecionando para o dashboard...",
+      "successNote": "A organização recém-vinculada agora foi selecionada automaticamente para você começar a trabalhar imediatamente.",
+      "errorTitle": "Não foi possível entrar na organização",
+      "errorHelp": "Isso pode acontecer se o token for inválido, estiver expirado ou já tiver sido usado. Se necessário, peça um novo convite ao responsável pela organização.",
+      "missingToken": "Este link de convite está sem token.",
+      "genericError": "Não foi possível concluir este convite. Tente novamente.",
+      "pendingNote": "Mantenha esta página aberta enquanto terminamos as etapas de autenticação e troca do espaço de trabalho.",
+      "progressTitle": "O que acontece agora",
+      "benefits": {
+        "authenticate": "Confirmamos sua identidade antes de aceitar o convite.",
+        "access": "Depois da aceitação, sua conta é adicionada ao espaço de trabalho da organização.",
+        "switch": "Mudamos automaticamente você para a nova organização quando a entrada é concluída."
+      },
+      "steps": {
+        "authenticate": "Autenticar sua conta",
+        "accept": "Aceitar o convite",
+        "switch": "Trocar de espaço"
+      },
+      "goHome": "Ir para a página inicial",
+      "signIn": "Entrar",
+      "goDashboard": "Ir para o dashboard"
+    }
+  },
+  "footer": {
+    "developedBy": "Desenvolvido e mantido por",
+    "tagline": "Seu parceiro confiável na gestão financeira",
+    "quickLinks": {
+      "title": "Links Rápidos",
+      "features": "Recursos",
+      "pricing": "Preços",
+      "about": "Sobre",
+      "contact": "Contato"
+    },
+    "product": {
+      "title": "Produto",
+      "dashboard": "Dashboard",
+      "expenses": "Despesas",
+      "bills": "Contas",
+      "reports": "Relatórios"
+    },
+    "legal": {
+      "title": "Legal",
+      "privacy": "Política de Privacidade",
+      "terms": "Termos de Serviço",
+      "security": "Segurança"
+    },
+    "connect": "Conecte-se conosco",
+    "copyright": "© 2026 BitFinance. Todos os direitos reservados.",
+    "madeWith": "Feito com ❤️ por"
+  }
+}

@@ -1,0 +1,12 @@
+User-agent: *
+# Block private/authenticated sections
+Disallow: /bitfinance/dashboard/
+Disallow: /bitfinance/account/
+Disallow: /bitfinance/auth/sign-in
+Disallow: /bitfinance/auth/sign-up
+Disallow: /bitfinance/api/
+
+# Allow public content
+Allow: /bitfinance/
+
+Sitemap: https://gustavomiranda.dev/bitfinance/sitemap.xml

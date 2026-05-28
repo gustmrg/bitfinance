@@ -1,0 +1,78 @@
+name: Deploy App to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up environment file
+        run: |
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > apps/frontend/.env.production
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build app
+        run: pnpm --dir apps/frontend run build
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Deploy files
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST_IP: ${{ secrets.SSH_HOST }}
+          TAILSCALE_HOST: ${{ secrets.TAILSCALE_HOST }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+        run: |
+          set -euo pipefail
+
+          TARGET_HOST="${TAILSCALE_HOST:-$SSH_HOST_IP}"
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -p "$SSH_PORT" -H "$TARGET_HOST" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          KEY_FILE="$(mktemp)"
+          trap 'rm -f "$KEY_FILE"' EXIT
+          printf '%s' "$SSH_PRIVATE_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+
+          ssh -i "$KEY_FILE" \
+            -p "$SSH_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USERNAME@$TARGET_HOST" 'echo "SSH auth OK"'
+
+          scp -i "$KEY_FILE" \
+            -P "$SSH_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -r apps/frontend/dist/* "$SSH_USERNAME@$TARGET_HOST:/var/www/bitfinance/"
