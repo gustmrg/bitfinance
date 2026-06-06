@@ -7,6 +7,8 @@ namespace BitFinance.API.Extensions;
 
 public static class DatabaseExtensions
 {
+    private const int RequiredPasswordLength = 8;
+
     public static IServiceCollection AddDatabaseContext(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("Database");
@@ -16,6 +18,15 @@ public static class DatabaseExtensions
         
         services.AddDbContext<ApplicationDbContext>(options => 
             options.UseNpgsql(connectionString));
+
+        services.Configure<IdentityOptions>(options =>
+        {
+            options.Password.RequiredLength = RequiredPasswordLength;
+            options.Password.RequireDigit = true;
+            options.Password.RequireLowercase = true;
+            options.Password.RequireUppercase = true;
+            options.Password.RequireNonAlphanumeric = true;
+        });
 
         services.AddIdentityCore<User>()
             .AddRoles<IdentityRole>()
