@@ -1,5 +1,6 @@
-FROM mcr.microsoft.com/dotnet/runtime:10.0-alpine AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS base
 WORKDIR /app
+EXPOSE 8090
 
 RUN adduser -D -u 1000 appuser
 USER appuser

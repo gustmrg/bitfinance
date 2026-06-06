@@ -2,7 +2,7 @@
 
 ## Summary
 
-Extend the existing stdio MCP server beyond read/create tools so agents can update and delete bills/expenses, upload and manage bill/expense documents, and optionally cover organization workflows later.
+Extend the existing Streamable HTTP MCP server beyond read/create tools so agents can update and delete bills/expenses, upload and manage bill/expense documents, and optionally cover organization workflows later.
 
 The MCP server will keep calling the existing BitFinance API over HTTP. File upload tools will accept a local `filePath` that must be readable from the machine/container running the MCP server, then send multipart form-data to the backend.
 
@@ -137,7 +137,7 @@ Documentation:
 
 ## Assumptions
 
-- The MCP server remains a stdio process launched by an MCP-compatible agent/client.
+- The MCP server remains a Streamable HTTP service reached by an MCP-compatible agent/client.
 - The backend API remains unchanged for this phase.
 - File upload uses local filesystem paths because MCP tool calls do not provide native browser-style file uploads.
 - `organizationId` stays optional when `BITFINANCE_DEFAULT_ORGANIZATION_ID` is configured.

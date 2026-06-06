@@ -31,12 +31,16 @@ services:
   bitfinance-mcp-server:
     image: gustmrg/bitfinance-mcp-server:${MCP_IMAGE_TAG:-latest}
     restart: always
+    ports:
+      - "${MCP_BIND_ADDRESS}:${MCP_PORT:-8090}:8090"
     environment:
+      - ASPNETCORE_URLS=http://+:8090
       - BITFINANCE_API_BASE_URL=${MCP_API_BASE_URL:-http://bitfinance-api:8080}
       - BITFINANCE_AGENT_EMAIL=${MCP_AGENT_EMAIL}
       - BITFINANCE_AGENT_PASSWORD=${MCP_AGENT_PASSWORD}
       - BITFINANCE_DEFAULT_ORGANIZATION_ID=${MCP_DEFAULT_ORGANIZATION_ID:-}
       - BITFINANCE_API_VERSION=${MCP_API_VERSION:-1}
+      - BITFINANCE_MCP_BEARER_TOKEN=${MCP_BEARER_TOKEN}
     depends_on:
       - bitfinance-api
     networks:

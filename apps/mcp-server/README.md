@@ -2,23 +2,25 @@
 
 BitFinance is a finance platform for tracking bills, expenses, organizations, and financial activity. This package contains the MCP server integration.
 
-The MCP server uses stdio and is intended to run on the same machine or container as any MCP-compatible agent/client. It calls the BitFinance API over HTTP/HTTPS.
+The MCP server exposes a Streamable HTTP endpoint for MCP-compatible agents and clients. It calls the BitFinance API over HTTP/HTTPS.
 
-If your BitFinance API is not publicly exposed, a private network such as Tailscale is a good option, but it is not required. Any reachable API URL works.
+In production, run this server beside the BitFinance API and expose only the MCP endpoint over a private network such as Tailscale. The API can stay private inside Docker networking.
 
 ## Configuration
 
-Set these environment variables in the environment where your MCP client launches the server:
+Set these environment variables in the environment where the MCP server runs:
 
 ```bash
-export BITFINANCE_API_BASE_URL="https://<bitfinance-api-host>:<port>"
+export BITFINANCE_API_BASE_URL="http://bitfinance-api:8080"
 export BITFINANCE_AGENT_EMAIL="agent@example.com"
 export BITFINANCE_AGENT_PASSWORD="<agent-password>"
 export BITFINANCE_DEFAULT_ORGANIZATION_ID="<organization-guid>"
 export BITFINANCE_API_VERSION="1"
+export BITFINANCE_MCP_BEARER_TOKEN="<long-random-token>"
+export ASPNETCORE_URLS="http://+:8090"
 ```
 
-`BITFINANCE_API_VERSION` is optional and defaults to `1`.
+`BITFINANCE_API_VERSION` is optional and defaults to `1`. `BITFINANCE_MCP_BEARER_TOKEN` is required and protects the `/mcp` endpoint.
 
 ## Build
 
@@ -27,7 +29,7 @@ dotnet build src/BitFinance.MCP.csproj
 dotnet publish src/BitFinance.MCP.csproj -c Release
 ```
 
-For a Raspberry Pi running 64-bit Linux, publish a self-contained build when you do not want to install the .NET runtime separately:
+For a Linux host without the .NET runtime, publish a self-contained build:
 
 ```bash
 dotnet publish src/BitFinance.MCP.csproj -c Release -r linux-arm64 --self-contained true
@@ -42,11 +44,13 @@ export BITFINANCE_API_BASE_URL="https://<bitfinance-api-host>:<port>"
 export BITFINANCE_AGENT_EMAIL="agent@example.com"
 export BITFINANCE_AGENT_PASSWORD="<agent-password>"
 export BITFINANCE_DEFAULT_ORGANIZATION_ID="<organization-guid>"
+export BITFINANCE_MCP_BEARER_TOKEN="<long-random-token>"
+export ASPNETCORE_URLS="http://localhost:8090"
 
 dotnet run --project src/BitFinance.MCP.csproj
 ```
 
-This starts a stdio MCP server. It is meant to be launched by an MCP client, so running it directly will wait for MCP protocol messages on stdin.
+This starts a Streamable HTTP MCP server at `http://localhost:8090/mcp`. A health check is available at `http://localhost:8090/health`.
 
 After publishing, run the DLL directly:
 
@@ -54,35 +58,31 @@ After publishing, run the DLL directly:
 dotnet ./src/bin/Release/net10.0/BitFinance.MCP.dll
 ```
 
-## MCP stdio command
+## Hermes remote configuration
 
-Configure your MCP client to launch either the published executable or the DLL. Example DLL command:
+Configure Hermes to connect to the MCP endpoint over Tailscale:
 
-```bash
-dotnet /opt/bitfinance-mcp-server/BitFinance.MCP.dll
+```text
+URL: http://<vps-tailnet-name-or-ip>:8090/mcp
+Authorization: Bearer <long-random-token>
 ```
 
-The server writes logs to stderr so stdout remains available for MCP protocol messages.
-
-Example generic MCP server configuration:
+Example generic remote MCP configuration:
 
 ```json
 {
   "mcpServers": {
     "bitfinance": {
-      "command": "dotnet",
-      "args": ["/opt/bitfinance-mcp-server/BitFinance.MCP.dll"],
-      "env": {
-        "BITFINANCE_API_BASE_URL": "https://<bitfinance-api-host>:<port>",
-        "BITFINANCE_AGENT_EMAIL": "agent@example.com",
-        "BITFINANCE_AGENT_PASSWORD": "<agent-password>",
-        "BITFINANCE_DEFAULT_ORGANIZATION_ID": "<organization-guid>",
-        "BITFINANCE_API_VERSION": "1"
+      "url": "http://<vps-tailnet-name-or-ip>:8090/mcp",
+      "headers": {
+        "Authorization": "Bearer <long-random-token>"
       }
     }
   }
 }
 ```
+
+For production, bind the Docker port to the VPS Tailscale address and firewall port `8090` so only the Raspberry Pi tailnet IP can reach it. Do not publish the BitFinance API publicly for Hermes; keep `BITFINANCE_API_BASE_URL=http://bitfinance-api:8080` inside the MCP container.
 
 ## Tools
 
