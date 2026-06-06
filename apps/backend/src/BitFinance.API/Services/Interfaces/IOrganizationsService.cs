@@ -22,6 +22,13 @@ public interface IOrganizationsService
     Task<Organization?> GetByIdAsync(Guid organizationId);
 
     /// <summary>
+    /// Retrieves the configured budget for an organization.
+    /// </summary>
+    /// <param name="organizationId">The organization's ID.</param>
+    /// <returns>The <see cref="Budget"/> entity, or <c>null</c> if no budget is set.</returns>
+    Task<Budget?> GetBudgetAsync(Guid organizationId);
+
+    /// <summary>
     /// Creates a new organization and adds the specified user as the Owner.
     /// </summary>
     /// <param name="name">The organization name.</param>
@@ -36,4 +43,12 @@ public interface IOrganizationsService
     /// <param name="name">The new name for the organization.</param>
     /// <returns>The updated <see cref="Organization"/> entity, or <c>null</c> if not found.</returns>
     Task<Organization?> UpdateAsync(Guid organizationId, string name);
+
+    /// <summary>
+    /// Creates or updates the configured budget for an organization.
+    /// </summary>
+    /// <param name="organizationId">The organization's ID.</param>
+    /// <param name="amount">The monthly budget amount.</param>
+    /// <returns>The created or updated <see cref="Budget"/> entity.</returns>
+    Task<Budget> UpsertBudgetAsync(Guid organizationId, decimal amount);
 }

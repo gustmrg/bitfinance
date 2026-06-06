@@ -8,10 +8,14 @@ namespace BitFinance.API.Services;
 public class OrganizationsService : IOrganizationsService
 {
     private readonly IOrganizationsRepository _organizationsRepository;
+    private readonly IBudgetsRepository _budgetsRepository;
 
-    public OrganizationsService(IOrganizationsRepository organizationsRepository)
+    public OrganizationsService(
+        IOrganizationsRepository organizationsRepository,
+        IBudgetsRepository budgetsRepository)
     {
         _organizationsRepository = organizationsRepository;
+        _budgetsRepository = budgetsRepository;
     }
 
     public async Task<List<Organization>> GetAllByUserIdAsync(string userId)
@@ -22,6 +26,11 @@ public class OrganizationsService : IOrganizationsService
     public async Task<Organization?> GetByIdAsync(Guid organizationId)
     {
         return await _organizationsRepository.GetByIdAsync(organizationId);
+    }
+
+    public async Task<Budget?> GetBudgetAsync(Guid organizationId)
+    {
+        return await _budgetsRepository.GetByOrganizationIdAsync(organizationId);
     }
 
     public async Task<Organization> CreateAsync(string name, string ownerUserId)
@@ -57,5 +66,10 @@ public class OrganizationsService : IOrganizationsService
 
         await _organizationsRepository.UpdateAsync(organization);
         return organization;
+    }
+
+    public async Task<Budget> UpsertBudgetAsync(Guid organizationId, decimal amount)
+    {
+        return await _budgetsRepository.UpsertByOrganizationIdAsync(organizationId, amount);
     }
 }

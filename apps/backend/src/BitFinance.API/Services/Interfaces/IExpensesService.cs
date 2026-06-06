@@ -27,7 +27,16 @@ public interface IExpensesService
     /// </summary>
     /// <param name="organizationId">The ID of the organization.</param>
     /// <returns>A list of recent <see cref="Expense"/> entities.</returns>
-    Task<List<Expense>> GetRecentExpenses(Guid organizationId);
+    Task<List<Expense>> GetRecentExpenses(Guid organizationId, DateTime? from = null, DateTime? to = null);
+
+    /// <summary>
+    /// Retrieves the total amount spent for the specified organization and optional period.
+    /// </summary>
+    /// <param name="organizationId">The ID of the organization.</param>
+    /// <param name="from">Optional start date for occurred-at filtering.</param>
+    /// <param name="to">Optional end date for occurred-at filtering.</param>
+    /// <returns>The total expense amount.</returns>
+    Task<decimal> GetTotalAmountAsync(Guid organizationId, DateTime? from = null, DateTime? to = null);
 
     /// <summary>
     /// Creates a new expense record.

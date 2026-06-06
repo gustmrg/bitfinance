@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Building2, Plus, Users } from "lucide-react";
+import { Building2, Plus, Save, Users } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useOrganizationMutations } from "@/hooks/mutations/use-organization-mutations";
 import { useOrganizationQuery } from "@/hooks/queries/use-organization-query";
+import { formatCurrency } from "@/lib/format";
 
 import { OrganizationMembersList } from "./components/organization-members-list";
 
@@ -43,7 +44,25 @@ const updateOrganizationSchema = z.object({
   name: z.string().trim().min(1),
 });
 
+const budgetAmountPattern = /^\d+(\.\d{1,2})?$/;
+
+const updateBudgetSchema = z.object({
+  amount: z
+    .string()
+    .trim()
+    .min(1, "Budget amount is required.")
+    .refine(
+      (value) => budgetAmountPattern.test(value),
+      "Enter a valid amount with up to 2 decimal places."
+    )
+    .refine(
+      (value) => Number(value) <= 99999999.99,
+      "Budget amount is too large."
+    ),
+});
+
 type UpdateOrganizationFormValues = z.infer<typeof updateOrganizationSchema>;
+type UpdateBudgetFormValues = z.infer<typeof updateBudgetSchema>;
 
 function LazyInviteMemberAction({ organizationId }: { organizationId: string }) {
   const { t } = useTranslation();
@@ -85,13 +104,23 @@ export function OrganizationManagement() {
   const { t, i18n } = useTranslation();
   const selectedOrganization = useSelectedOrganization();
   const organizationQuery = useOrganizationQuery(selectedOrganization?.id ?? null);
-  const { isUpdatingOrganization, updateOrganizationAsync } =
-    useOrganizationMutations();
+  const {
+    isUpdatingOrganization,
+    isUpsertingBudget,
+    updateOrganizationAsync,
+    upsertBudgetAsync,
+  } = useOrganizationMutations();
 
   const form = useForm<UpdateOrganizationFormValues>({
     resolver: zodResolver(updateOrganizationSchema),
     defaultValues: {
       name: "",
+    },
+  });
+  const budgetForm = useForm<UpdateBudgetFormValues>({
+    resolver: zodResolver(updateBudgetSchema),
+    defaultValues: {
+      amount: "",
     },
   });
 
@@ -103,7 +132,13 @@ export function OrganizationManagement() {
     form.reset({
       name: organizationQuery.data.name,
     });
-  }, [form, organizationQuery.data]);
+    budgetForm.reset({
+      amount:
+        organizationQuery.data.budget?.amount !== undefined
+          ? organizationQuery.data.budget.amount.toFixed(2)
+          : "",
+    });
+  }, [budgetForm, form, organizationQuery.data]);
 
   async function onSubmit(data: UpdateOrganizationFormValues) {
     if (!selectedOrganization) {
@@ -118,6 +153,29 @@ export function OrganizationManagement() {
 
       toast.success(t("organization.settings.success"), {
         description: t("organization.settings.successDescription"),
+      });
+    } catch {
+      // Error toast is handled globally by Axios interceptors.
+    }
+  }
+
+  async function onBudgetSubmit(data: UpdateBudgetFormValues) {
+    if (!selectedOrganization) {
+      return;
+    }
+
+    try {
+      const budget = await upsertBudgetAsync({
+        organizationId: selectedOrganization.id,
+        amount: Number(data.amount),
+      });
+
+      budgetForm.reset({
+        amount: budget.amount.toFixed(2),
+      });
+
+      toast.success(t("organization.budget.success"), {
+        description: t("organization.budget.successDescription"),
       });
     } catch {
       // Error toast is handled globally by Axios interceptors.
@@ -155,6 +213,9 @@ export function OrganizationManagement() {
   const formattedUpdatedAt = organization?.updatedAt
     ? new Intl.DateTimeFormat(i18n.language).format(new Date(organization.updatedAt))
     : null;
+  const formattedBudget = organization?.budget
+    ? formatCurrency(organization.budget.amount, i18n.language)
+    : t("organization.overview.budgetUnset");
 
   return (
     <PageContainer className="max-w-5xl">
@@ -188,50 +249,115 @@ export function OrganizationManagement() {
       ) : (
         <>
           <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("organization.settings.title")}</CardTitle>
-                <CardDescription>
-                  {t("organization.settings.description")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t("organization.settings.nameLabel")}</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder={t(
-                                "organization.settings.namePlaceholder"
-                              )}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            {t("organization.settings.nameDescription")}
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button
-                      type="submit"
-                      disabled={!form.formState.isDirty || isUpdatingOrganization}
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t("organization.settings.title")}</CardTitle>
+                  <CardDescription>
+                    {t("organization.settings.description")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...form}>
+                    <form
+                      onSubmit={form.handleSubmit(onSubmit)}
+                      className="space-y-6"
                     >
-                      {isUpdatingOrganization
-                        ? t("organization.settings.saving")
-                        : t("organization.settings.save")}
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {t("organization.settings.nameLabel")}
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={t(
+                                  "organization.settings.namePlaceholder"
+                                )}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              {t("organization.settings.nameDescription")}
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <Button
+                        type="submit"
+                        disabled={!form.formState.isDirty || isUpdatingOrganization}
+                      >
+                        <Save className="h-4 w-4" />
+                        {isUpdatingOrganization
+                          ? t("organization.settings.saving")
+                          : t("organization.settings.save")}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t("organization.budget.title")}</CardTitle>
+                  <CardDescription>
+                    {t("organization.budget.description")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...budgetForm}>
+                    <form
+                      onSubmit={budgetForm.handleSubmit(onBudgetSubmit)}
+                      className="space-y-6"
+                    >
+                      <FormField
+                        control={budgetForm.control}
+                        name="amount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {t("organization.budget.amountLabel")}
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                inputMode="decimal"
+                                placeholder={t(
+                                  "organization.budget.amountPlaceholder"
+                                )}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              {t("organization.budget.amountDescription")}
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <Button
+                        type="submit"
+                        disabled={
+                          !budgetForm.formState.isDirty || isUpsertingBudget
+                        }
+                      >
+                        <Save className="h-4 w-4" />
+                        {isUpsertingBudget
+                          ? t("organization.budget.saving")
+                          : t("organization.budget.save")}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            </div>
 
             <Card>
               <CardHeader>
@@ -246,6 +372,13 @@ export function OrganizationManagement() {
                     {t("organization.overview.organizationName")}
                   </p>
                   <p className="font-medium">{organization.name}</p>
+                </div>
+                <Separator />
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">
+                    {t("organization.overview.monthlyBudget")}
+                  </p>
+                  <p className="font-medium">{formattedBudget}</p>
                 </div>
                 <Separator />
                 <div className="space-y-1">

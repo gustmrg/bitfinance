@@ -12,11 +12,23 @@ export interface OrganizationMember {
   role?: OrganizationRole | null;
 }
 
+export interface OrganizationBudgetDetails {
+  id: string;
+  amount: number;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface OrganizationBudget extends OrganizationBudgetDetails {
+  organizationId: string;
+}
+
 export interface OrganizationDetails {
   id: string;
   name: string;
   createdAt: string;
   updatedAt?: string | null;
+  budget: OrganizationBudgetDetails | null;
   members: OrganizationMember[];
 }
 
@@ -27,6 +39,11 @@ export interface CreateOrganizationRequest {
 export interface UpdateOrganizationRequest {
   organizationId: string;
   name: string;
+}
+
+export interface UpsertOrganizationBudgetRequest {
+  organizationId: string;
+  amount: number;
 }
 
 export interface CreateInvitationRequest {

@@ -5,6 +5,7 @@ using BitFinance.API.Models;
 using BitFinance.API.Models.Request;
 using BitFinance.API.Models.Response;
 using BitFinance.API.Services.Interfaces;
+using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -54,6 +55,7 @@ public class OrganizationsController : ControllerBase
     }
 
     [HttpGet("{organizationId:guid}")]
+    [OrganizationAuthorization]
     [EndpointSummary("Get organization details")]
     [EndpointDescription("Returns the details and member list of a specific organization.")]
     public async Task<IActionResult> GetOrganizationById(Guid organizationId)
@@ -68,6 +70,13 @@ public class OrganizationsController : ControllerBase
             Name = organization.Name,
             CreatedAt = organization.CreatedAt,
             UpdatedAt = organization.UpdatedAt,
+            Budget = organization.Budget is null
+                ? null
+                : new OrganizationBudgetResponse(
+                    organization.Budget.Id,
+                    organization.Budget.Amount,
+                    organization.Budget.CreatedAt,
+                    organization.Budget.UpdatedAt),
         };
 
         foreach (var membership in organization.Members)
@@ -98,6 +107,7 @@ public class OrganizationsController : ControllerBase
     }
 
     [HttpPatch("{organizationId:guid}")]
+    [OrganizationAuthorization]
     [EndpointSummary("Update an organization")]
     [EndpointDescription("Updates the details of a specific organization.")]
     public async Task<IActionResult> UpdateOrganization(Guid organizationId, [FromBody] UpdateOrganizationRequest request)
@@ -107,6 +117,41 @@ public class OrganizationsController : ControllerBase
         if (organization is null) return NotFound();
 
         return Ok(new OrganizationResponseModel(organization.Id, organization.Name));
+    }
+
+    [HttpGet("{organizationId:guid}/budget")]
+    [OrganizationAuthorization]
+    [EndpointSummary("Get organization budget")]
+    [EndpointDescription("Returns the configured budget for a specific organization.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BudgetResponse>> GetBudget(Guid organizationId)
+    {
+        var budget = await _organizationsService.GetBudgetAsync(organizationId);
+
+        if (budget is null) return NotFound();
+
+        return Ok(ToBudgetResponse(budget));
+    }
+
+    [HttpPut("{organizationId:guid}/budget")]
+    [OrganizationAuthorization]
+    [EndpointSummary("Upsert organization budget")]
+    [EndpointDescription("Creates or updates the configured budget for a specific organization.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<BudgetResponse>> UpsertBudget(
+        Guid organizationId,
+        [FromBody] UpsertOrganizationBudgetRequest request)
+    {
+        if (request.Amount < 0)
+        {
+            return BadRequest("Budget amount must be greater than or equal to zero.");
+        }
+
+        var budget = await _organizationsService.UpsertBudgetAsync(organizationId, request.Amount);
+
+        return Ok(ToBudgetResponse(budget));
     }
 
     [HttpPost("{organizationId:guid}/invite")]
@@ -164,5 +209,15 @@ public class OrganizationsController : ControllerBase
         }
 
         return Ok();
+    }
+
+    private static BudgetResponse ToBudgetResponse(Budget budget)
+    {
+        return new BudgetResponse(
+            budget.Id,
+            budget.OrganizationId,
+            budget.Amount,
+            budget.CreatedAt,
+            budget.UpdatedAt);
     }
 }

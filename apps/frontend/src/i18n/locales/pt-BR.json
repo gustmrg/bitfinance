@@ -121,14 +121,19 @@
     "metrics": {
       "monthlyBudget": {
         "title": "Orçamento Mensal",
-        "subtitle": "Limite planejado para o mês atual"
+        "subtitle": "Limite planejado para o mês atual",
+        "unsetValue": "-",
+        "unsetSubtitle": "Nenhum orçamento definido"
       },
       "spentThisMonth": {
         "title": "Gasto no Mês",
-        "subtitle": "{{percentage}}% do orçamento utilizado"
+        "subtitle": "{{percentage}}% do orçamento utilizado",
+        "subtitleNoBudget": "Orçamento não definido"
       },
       "remainingBudget": {
         "title": "Orçamento Restante",
+        "unsetValue": "-",
+        "subtitleUnset": "Defina um orçamento para acompanhar o valor restante",
         "subtitleAvailable": "Disponível para gastar",
         "subtitleDepleted": "Orçamento totalmente utilizado"
       },
@@ -361,6 +366,8 @@
       "title": "Visão geral",
       "description": "Metadados básicos da organização selecionada.",
       "organizationName": "Nome da organização",
+      "monthlyBudget": "Orçamento mensal",
+      "budgetUnset": "-",
       "createdAt": "Criada em",
       "updatedAt": "Última atualização",
       "members": "Membros"
@@ -375,6 +382,17 @@
       "saving": "Salvando...",
       "success": "Organização atualizada",
       "successDescription": "O nome da organização foi atualizado com sucesso."
+    },
+    "budget": {
+      "title": "Orçamento da organização",
+      "description": "Defina o orçamento mensal usado no resumo do dashboard.",
+      "amountLabel": "Orçamento mensal",
+      "amountPlaceholder": "0.00",
+      "amountDescription": "Use um valor não negativo com até duas casas decimais.",
+      "save": "Salvar orçamento",
+      "saving": "Salvando orçamento...",
+      "success": "Orçamento atualizado",
+      "successDescription": "O orçamento da organização foi salvo com sucesso."
     },
     "members": {
       "title": "Membros",

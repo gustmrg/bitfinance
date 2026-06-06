@@ -23,9 +23,14 @@ public class ExpensesService : IExpensesService
         throw new NotImplementedException();
     }
 
-    public async Task<List<Expense>> GetRecentExpenses(Guid organizationId)
+    public async Task<List<Expense>> GetRecentExpenses(Guid organizationId, DateTime? from = null, DateTime? to = null)
     {
-        return await _expensesRepository.GetRecentExpenses(organizationId);
+        return await _expensesRepository.GetRecentExpenses(organizationId, from, to);
+    }
+
+    public async Task<decimal> GetTotalAmountAsync(Guid organizationId, DateTime? from = null, DateTime? to = null)
+    {
+        return await _expensesRepository.GetTotalAmountAsync(organizationId, from, to);
     }
 
     public Guid CreateExpense(Expense expense)

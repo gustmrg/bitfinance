@@ -403,6 +403,35 @@ public class BillsController : ControllerBase
         return File(stream, contentType, fileName);
     }
 
+    [HttpGet("{billId:guid}/documents/{documentId:guid}/download-url")]
+    [EndpointSummary("Get bill document download URL")]
+    [EndpointDescription("Returns a temporary signed URL for downloading a specific document attached to a bill.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<DownloadDocumentUrlResponse>> GetDocumentDownloadUrl(
+        [FromRoute] Guid organizationId,
+        [FromRoute] Guid billId,
+        [FromRoute] Guid documentId)
+    {
+        try
+        {
+            var result = await _attachmentService.GetBillAttachmentDownloadUrlAsync(
+                organizationId,
+                billId,
+                documentId);
+
+            return Ok(new DownloadDocumentUrlResponse(
+                result.Url,
+                result.FileName,
+                result.ContentType,
+                result.ExpiresAt));
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
     [HttpDelete("{billId:guid}/documents/{documentId:guid}")]
     [EndpointSummary("Delete a bill document")]
     [EndpointDescription("Deletes a specific document attached to a bill.")]

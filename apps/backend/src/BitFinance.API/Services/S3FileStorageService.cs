@@ -91,6 +91,29 @@ public class S3FileStorageService : IFileStorageService
         return response.ResponseStream;
     }
 
+    public Task<FileDownloadUrlResult> CreateDownloadUrlAsync(
+        string storagePath,
+        string fileName,
+        string contentType,
+        TimeSpan expiresIn)
+    {
+        var expiresAt = DateTimeOffset.UtcNow.Add(expiresIn);
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = _settings.BucketName,
+            Key = storagePath,
+            Verb = HttpVerb.GET,
+            Expires = expiresAt.UtcDateTime,
+            ResponseHeaderOverrides = new ResponseHeaderOverrides
+            {
+                ContentType = contentType,
+                ContentDisposition = $"attachment; filename=\"{SanitizeContentDispositionFileName(fileName)}\""
+            }
+        };
+
+        return Task.FromResult(new FileDownloadUrlResult(_s3Client.GetPreSignedURL(request), expiresAt));
+    }
+
     public async Task<bool> DeleteFileAsync(string storagePath)
     {
         try
@@ -147,5 +170,10 @@ public class S3FileStorageService : IFileStorageService
         parts.Add(fileName);
 
         return string.Join("/", parts);
+    }
+
+    private static string SanitizeContentDispositionFileName(string fileName)
+    {
+        return Path.GetFileName(fileName).Replace("\"", string.Empty);
     }
 }

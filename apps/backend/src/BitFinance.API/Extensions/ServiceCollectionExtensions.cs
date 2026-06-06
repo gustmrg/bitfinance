@@ -21,6 +21,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<RefreshTokenCleanupService>();
 
         services.AddScoped<IBillsRepository, BillsRepository>();
+        services.AddScoped<IBudgetsRepository, BudgetsRepository>();
         services.AddScoped<IOrganizationsRepository, OrganizationsRepository>();
         services.AddScoped<IUsersRepository, UsersRepository>();
         services.AddScoped<IExpensesRepository, ExpensesRepository>();

@@ -23,6 +23,20 @@ public interface IFileStorageService
     Task<Stream> GetFileAsync(string storagePath);
 
     /// <summary>
+    /// Creates a temporary URL that can be used to download a stored file.
+    /// </summary>
+    /// <param name="storagePath">The storage path of the file.</param>
+    /// <param name="fileName">The file name to suggest to download clients.</param>
+    /// <param name="contentType">The content type to return to download clients.</param>
+    /// <param name="expiresIn">The amount of time the URL should remain valid.</param>
+    /// <returns>A <see cref="FileDownloadUrlResult"/> containing the URL and expiration time.</returns>
+    Task<FileDownloadUrlResult> CreateDownloadUrlAsync(
+        string storagePath,
+        string fileName,
+        string contentType,
+        TimeSpan expiresIn);
+
+    /// <summary>
     /// Deletes a file from storage.
     /// </summary>
     /// <param name="storagePath">The storage path of the file to delete.</param>
@@ -79,3 +93,5 @@ public class FileStorageResult
     /// </summary>
     public string? FileHash { get; set; }
 }
+
+public record FileDownloadUrlResult(string Url, DateTimeOffset ExpiresAt);

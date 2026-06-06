@@ -10,6 +10,8 @@ namespace BitFinance.API.Services;
 
 public class AttachmentService : IAttachmentService
 {
+    private static readonly TimeSpan BillDocumentDownloadUrlExpiration = TimeSpan.FromMinutes(15);
+
     private readonly IFileStorageService _storageService;
     private readonly IFileValidationService _fileValidationService;
     private readonly IAttachmentsRepository _attachmentsRepository;
@@ -148,6 +150,34 @@ public class AttachmentService : IAttachmentService
 
         var stream = await _storageService.GetFileAsync(attachment.StoragePath);
         return (stream, attachment.OriginalFileName, attachment.ContentType);
+    }
+
+    public async Task<AttachmentDownloadUrlResult> GetBillAttachmentDownloadUrlAsync(
+        Guid organizationId,
+        Guid billId,
+        Guid attachmentId)
+    {
+        var attachment = await _attachmentsRepository.GetByIdAsync(attachmentId)
+            ?? throw new KeyNotFoundException($"Attachment {attachmentId} not found");
+
+        if (attachment.OrganizationId != organizationId ||
+            attachment.BillId != billId ||
+            attachment.AttachmentType != AttachmentType.BillDocument)
+        {
+            throw new KeyNotFoundException($"Bill attachment {attachmentId} not found.");
+        }
+
+        var urlResult = await _storageService.CreateDownloadUrlAsync(
+            attachment.StoragePath,
+            attachment.OriginalFileName,
+            attachment.ContentType,
+            BillDocumentDownloadUrlExpiration);
+
+        return new AttachmentDownloadUrlResult(
+            urlResult.Url,
+            attachment.OriginalFileName,
+            attachment.ContentType,
+            urlResult.ExpiresAt);
     }
 
     public async Task<bool> DeleteAttachmentAsync(Guid attachmentId)

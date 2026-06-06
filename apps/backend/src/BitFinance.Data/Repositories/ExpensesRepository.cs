@@ -48,13 +48,17 @@ public class ExpensesRepository : IExpensesRepository
             .ToListAsync();
     }
 
-    public async Task<List<Expense>> GetRecentExpenses(Guid organizationId)
+    public async Task<List<Expense>> GetRecentExpenses(Guid organizationId, DateTime? startDate = null, DateTime? endDate = null)
     {
-        return await _dbContext.Set<Expense>()
-            .AsNoTracking()
-            .Where(b => b.OrganizationId == organizationId)
+        return await BuildDashboardExpensesQuery(organizationId, startDate, endDate)
             .OrderByDescending(e => e.OccurredAt)
             .ToListAsync();
+    }
+
+    public async Task<decimal> GetTotalAmountAsync(Guid organizationId, DateTime? startDate = null, DateTime? endDate = null)
+    {
+        return await BuildDashboardExpensesQuery(organizationId, startDate, endDate)
+            .SumAsync(e => e.Amount);
     }
 
     public async Task<Expense?> GetByIdAsync(Guid expenseId)
@@ -97,5 +101,24 @@ public class ExpensesRepository : IExpensesRepository
             .CountAsync(e => e.OrganizationId == organizationId
                           && e.CreatedAt >= monthStartUtc
                           && e.CreatedAt < monthEndUtc);
+    }
+
+    private IQueryable<Expense> BuildDashboardExpensesQuery(Guid organizationId, DateTime? startDate, DateTime? endDate)
+    {
+        var query = _dbContext.Set<Expense>()
+            .AsNoTracking()
+            .Where(expense => expense.OrganizationId == organizationId);
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(expense => expense.OccurredAt >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(expense => expense.OccurredAt <= endDate.Value);
+        }
+
+        return query;
     }
 }

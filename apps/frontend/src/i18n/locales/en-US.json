@@ -121,14 +121,19 @@
     "metrics": {
       "monthlyBudget": {
         "title": "Monthly Budget",
-        "subtitle": "Current month planned limit"
+        "subtitle": "Current month planned limit",
+        "unsetValue": "-",
+        "unsetSubtitle": "No budget set"
       },
       "spentThisMonth": {
         "title": "Spent This Month",
-        "subtitle": "{{percentage}}% of budget used"
+        "subtitle": "{{percentage}}% of budget used",
+        "subtitleNoBudget": "Budget not set"
       },
       "remainingBudget": {
         "title": "Remaining Budget",
+        "unsetValue": "-",
+        "subtitleUnset": "Set a budget to track remaining amount",
         "subtitleAvailable": "Available to spend",
         "subtitleDepleted": "Budget fully used"
       },
@@ -365,6 +370,8 @@
       "title": "Overview",
       "description": "Basic metadata for the selected organization.",
       "organizationName": "Organization name",
+      "monthlyBudget": "Monthly budget",
+      "budgetUnset": "-",
       "createdAt": "Created at",
       "updatedAt": "Last updated",
       "members": "Members"
@@ -379,6 +386,17 @@
       "saving": "Saving...",
       "success": "Organization updated",
       "successDescription": "The organization name has been updated successfully."
+    },
+    "budget": {
+      "title": "Organization budget",
+      "description": "Set the monthly budget used by the dashboard summary.",
+      "amountLabel": "Monthly budget",
+      "amountPlaceholder": "0.00",
+      "amountDescription": "Use a non-negative amount with up to two decimal places.",
+      "save": "Save budget",
+      "saving": "Saving budget...",
+      "success": "Budget updated",
+      "successDescription": "The organization budget has been saved successfully."
     },
     "members": {
       "title": "Members",

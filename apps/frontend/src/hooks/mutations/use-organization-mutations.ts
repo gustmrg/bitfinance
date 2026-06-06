@@ -6,6 +6,7 @@ import {
   type CreateOrganizationRequest,
   type OrganizationSummary,
   type UpdateOrganizationRequest,
+  type UpsertOrganizationBudgetRequest,
 } from "@/api/organizations";
 import { useSetSelectedOrganizationId } from "@/auth/auth-provider";
 import type { User } from "@/auth/types";
@@ -60,6 +61,19 @@ export function useOrganizationMutations() {
     },
   });
 
+  const upsertBudgetMutation = useMutation({
+    mutationFn: async (request: UpsertOrganizationBudgetRequest) =>
+      organizationsService.upsertBudgetAsync(request),
+    onSuccess: async (_budget, request) => {
+      await Promise.all([
+        invalidateOrganizationQueries(request.organizationId),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.dashboard.summary(request.organizationId),
+        }),
+      ]);
+    },
+  });
+
   const createInviteMutation = useMutation({
     mutationFn: async (request: CreateInvitationRequest) =>
       organizationsService.createInviteAsync(request),
@@ -101,8 +115,10 @@ export function useOrganizationMutations() {
     isCreatingInvite: createInviteMutation.isPending,
     isCreatingOrganization: createOrganizationMutation.isPending,
     isJoiningOrganization: joinOrganizationMutation.isPending,
+    isUpsertingBudget: upsertBudgetMutation.isPending,
     isUpdatingOrganization: updateOrganizationMutation.isPending,
     joinOrganizationAsync: joinOrganizationMutation.mutateAsync,
     updateOrganizationAsync: updateOrganizationMutation.mutateAsync,
+    upsertBudgetAsync: upsertBudgetMutation.mutateAsync,
   };
 }

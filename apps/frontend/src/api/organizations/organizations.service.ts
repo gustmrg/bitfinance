@@ -6,10 +6,12 @@ import type {
   CreateInvitationRequest,
   CreateInvitationResponse,
   CreateOrganizationRequest,
+  OrganizationBudget,
   OrganizationDetails,
   OrganizationRole,
   OrganizationSummary,
   UpdateOrganizationRequest,
+  UpsertOrganizationBudgetRequest,
 } from "./organizations.types";
 
 const authApi = privateAPI();
@@ -78,6 +80,35 @@ export const organizationsService = {
       return response.data;
     } catch (error) {
       throw normalizeError(error, "Failed to update organization.");
+    }
+  },
+
+  async getBudgetAsync(organizationId: string): Promise<OrganizationBudget> {
+    try {
+      const response = await authApi.get<OrganizationBudget>(
+        `/organizations/${organizationId}/budget`
+      );
+
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error, "Failed to fetch organization budget.");
+    }
+  },
+
+  async upsertBudgetAsync(
+    request: UpsertOrganizationBudgetRequest
+  ): Promise<OrganizationBudget> {
+    try {
+      const response = await authApi.put<OrganizationBudget>(
+        `/organizations/${request.organizationId}/budget`,
+        {
+          amount: request.amount,
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error, "Failed to update organization budget.");
     }
   },
 

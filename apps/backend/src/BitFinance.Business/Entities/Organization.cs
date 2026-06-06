@@ -61,6 +61,12 @@ public class Organization
     /// Pending and historical invitations for this organization.
     /// </summary>
     public ICollection<Invitation> Invitations { get; set; } = new List<Invitation>();
+
+    /// <summary>
+    /// Optional monthly budget configured for this organization.
+    /// </summary>
+    public Budget? Budget { get; set; }
+
     /// <summary>
     /// The bills associated with this organization.
     /// </summary>

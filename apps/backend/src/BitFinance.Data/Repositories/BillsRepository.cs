@@ -11,6 +11,14 @@ namespace BitFinance.Data.Repositories;
 
 public class BillsRepository : IBillsRepository
 {
+    private static readonly BillStatus[] PayableDashboardStatuses =
+    [
+        BillStatus.Created,
+        BillStatus.Due,
+        BillStatus.Overdue,
+        BillStatus.Upcoming
+    ];
+
     private readonly IConfiguration _configuration;
     private readonly ApplicationDbContext _dbContext;
     private readonly ICacheService _cache;
@@ -131,14 +139,30 @@ public class BillsRepository : IBillsRepository
         return bill;
     }
 
-    public async Task<List<Bill>> GetUpcomingBills(Guid organizationId)
+    public async Task<List<Bill>> GetUpcomingBills(Guid organizationId, DateTime? startDate = null, DateTime? endDate = null)
     {
-        return await _dbContext.Set<Bill>()
-            .AsNoTracking()
-            .Where(x => x.OrganizationId == organizationId &&
-                        (x.Status == BillStatus.Upcoming || x.Status == BillStatus.Due))
-            .OrderByDescending(x => x.DueDate)
+        return await BuildUpcomingBillsQuery(organizationId, startDate, endDate)
+            .OrderBy(x => x.DueDate)
             .ToListAsync();
+    }
+
+    public async Task<(decimal TotalAmount, int Count)> GetUpcomingBillsSummaryAsync(
+        Guid organizationId,
+        DateTime? startDate = null,
+        DateTime? endDate = null)
+    {
+        var summary = await BuildUpcomingBillsQuery(organizationId, startDate, endDate)
+            .GroupBy(_ => 1)
+            .Select(group => new
+            {
+                TotalAmount = group.Sum(bill => bill.AmountDue),
+                Count = group.Count()
+            })
+            .FirstOrDefaultAsync();
+
+        return summary is null
+            ? (0M, 0)
+            : (summary.TotalAmount, summary.Count);
     }
 
     public async Task UpdateRangeAsync(List<Bill> bills)
@@ -213,5 +237,26 @@ public class BillsRepository : IBillsRepository
     private bool IsCacheEnabled()
     {
         return Convert.ToBoolean(_configuration.GetSection("AppSettings:CacheEnabled").Value);
+    }
+
+    private IQueryable<Bill> BuildUpcomingBillsQuery(Guid organizationId, DateTime? startDate, DateTime? endDate)
+    {
+        var query = _dbContext.Set<Bill>()
+            .AsNoTracking()
+            .Where(x => x.OrganizationId == organizationId && PayableDashboardStatuses.Contains(x.Status));
+
+        if (startDate.HasValue)
+        {
+            var from = DateOnly.FromDateTime(startDate.Value);
+            query = query.Where(x => x.DueDate >= from);
+        }
+
+        if (endDate.HasValue)
+        {
+            var to = DateOnly.FromDateTime(endDate.Value);
+            query = query.Where(x => x.DueDate <= to);
+        }
+
+        return query;
     }
 }

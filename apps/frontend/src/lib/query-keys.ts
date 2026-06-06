@@ -46,6 +46,8 @@ export const queryKeys = {
   },
   dashboard: {
     all: ["dashboard"] as const,
+    summary: (organizationId: string) =>
+      [...queryKeys.dashboard.all, "summary", organizationId] as const,
     upcomingBills: (organizationId: string) =>
       [...queryKeys.dashboard.all, "upcoming-bills", organizationId] as const,
     recentExpenses: (organizationId: string) =>

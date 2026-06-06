@@ -17,5 +17,16 @@ public interface IAttachmentService
 
     Task<(Stream stream, string fileName, string contentType)> GetAttachmentAsync(Guid attachmentId);
 
+    Task<AttachmentDownloadUrlResult> GetBillAttachmentDownloadUrlAsync(
+        Guid organizationId,
+        Guid billId,
+        Guid attachmentId);
+
     Task<bool> DeleteAttachmentAsync(Guid attachmentId);
 }
+
+public record AttachmentDownloadUrlResult(
+    string Url,
+    string FileName,
+    string ContentType,
+    DateTimeOffset ExpiresAt);

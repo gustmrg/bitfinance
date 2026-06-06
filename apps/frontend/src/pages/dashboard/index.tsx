@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/lib/format";
 import {
+  useDashboardSummaryQuery,
   useRecentExpensesQuery,
   useUpcomingBillsQuery,
 } from "@/hooks/queries/use-dashboard-query";
@@ -50,63 +51,80 @@ export function Dashboard() {
     selectedOrganization?.id ?? null,
     dateFilters,
   );
+  const dashboardSummaryQuery = useDashboardSummaryQuery(
+    selectedOrganization?.id ?? null,
+    dateFilters,
+  );
 
   const handleDateFilterChange = (newDate: DateRange) => {
     setDateRange(newDate);
   };
 
-  // TODO: Replace with backend summary endpoint when available.
-  const mockedSummary = {
-    monthlyBudget: 4000,
-    spentThisMonth: 2486.35,
-    upcomingBillsAmount: 820,
-    upcomingBillsCount: 3,
+  const summary = dashboardSummaryQuery.data ?? {
+    monthlyBudget: null,
+    spentThisMonth: 0,
+    remainingBudget: null,
+    spentPercentage: null,
+    upcomingBillsAmount: 0,
+    upcomingBillsCount: 0,
   };
-
-  const remainingBudget = Math.max(
-    mockedSummary.monthlyBudget - mockedSummary.spentThisMonth,
-    0
-  );
-  const spentPercentage = Math.round(
-    (mockedSummary.spentThisMonth / mockedSummary.monthlyBudget) * 100
-  );
+  const monthlyBudget = summary.monthlyBudget;
+  const hasBudget = monthlyBudget !== null;
+  const spentPercentage = summary.spentPercentage ?? 0;
+  const remainingBudget = summary.remainingBudget;
 
   const metrics: DashboardMetric[] = [
     {
       title: t("dashboard.metrics.monthlyBudget.title"),
-      value: formatCurrency(mockedSummary.monthlyBudget),
-      subtitle: t("dashboard.metrics.monthlyBudget.subtitle"),
+      value: hasBudget
+        ? formatCurrency(monthlyBudget)
+        : t("dashboard.metrics.monthlyBudget.unsetValue"),
+      subtitle: hasBudget
+        ? t("dashboard.metrics.monthlyBudget.subtitle")
+        : t("dashboard.metrics.monthlyBudget.unsetSubtitle"),
       icon: Wallet,
       tone: "default",
     },
     {
       title: t("dashboard.metrics.spentThisMonth.title"),
-      value: formatCurrency(mockedSummary.spentThisMonth),
-      subtitle: t("dashboard.metrics.spentThisMonth.subtitle", {
-        percentage: spentPercentage,
-      }),
+      value: formatCurrency(summary.spentThisMonth),
+      subtitle: hasBudget
+        ? t("dashboard.metrics.spentThisMonth.subtitle", {
+            percentage: spentPercentage,
+          })
+        : t("dashboard.metrics.spentThisMonth.subtitleNoBudget"),
       icon: TrendingDown,
-      tone: spentPercentage >= 85 ? "warning" : "default",
-      progress: spentPercentage,
+      tone: hasBudget && spentPercentage >= 85 ? "warning" : "default",
+      progress: hasBudget ? Math.min(spentPercentage, 100) : undefined,
     },
     {
       title: t("dashboard.metrics.remainingBudget.title"),
-      value: formatCurrency(remainingBudget),
+      value:
+        remainingBudget !== null
+          ? formatCurrency(remainingBudget)
+          : t("dashboard.metrics.remainingBudget.unsetValue"),
       subtitle:
-        remainingBudget > 0
+        remainingBudget === null
+          ? t("dashboard.metrics.remainingBudget.subtitleUnset")
+          : remainingBudget > 0
           ? t("dashboard.metrics.remainingBudget.subtitleAvailable")
           : t("dashboard.metrics.remainingBudget.subtitleDepleted"),
       icon: PiggyBank,
-      tone: remainingBudget > 0 ? "success" : "warning",
+      tone:
+        remainingBudget === null
+          ? "default"
+          : remainingBudget > 0
+          ? "success"
+          : "warning",
     },
     {
       title: t("dashboard.metrics.upcomingBills.title"),
-      value: formatCurrency(mockedSummary.upcomingBillsAmount),
+      value: formatCurrency(summary.upcomingBillsAmount),
       subtitle: t("dashboard.metrics.upcomingBills.subtitle", {
-        count: mockedSummary.upcomingBillsCount,
+        count: summary.upcomingBillsCount,
       }),
       icon: CalendarClock,
-      tone: mockedSummary.upcomingBillsCount > 0 ? "warning" : "default",
+      tone: summary.upcomingBillsCount > 0 ? "warning" : "default",
     },
   ];
 

@@ -3,6 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import type { ExpenseResponseModel } from "@/api/dashboard/get-recent-expenses";
 import { getRecentExpenses } from "@/api/dashboard/get-recent-expenses";
 import {
+  getDashboardSummary,
+  type DashboardSummaryResponse,
+} from "@/api/dashboard/get-summary";
+import {
   getUpcomingBills,
   type UpcomingBillResponseModel,
 } from "@/api/dashboard/get-upcoming-bills";
@@ -31,6 +35,34 @@ export interface DashboardDateFilters {
   to?: Date;
 }
 
+export function useDashboardSummaryQuery(
+  organizationId: string | null,
+  filters?: DashboardDateFilters,
+) {
+  return useQuery({
+    queryKey: [
+      ...queryKeys.dashboard.summary(organizationId ?? ""),
+      filters?.from?.toISOString(),
+      filters?.to?.toISOString(),
+    ],
+    enabled: Boolean(organizationId),
+    queryFn: async (): Promise<DashboardSummaryResponse> => {
+      if (!organizationId) {
+        return {
+          monthlyBudget: null,
+          spentThisMonth: 0,
+          remainingBudget: null,
+          spentPercentage: null,
+          upcomingBillsAmount: 0,
+          upcomingBillsCount: 0,
+        };
+      }
+
+      return getDashboardSummary(organizationId, filters);
+    },
+  });
+}
+
 export function useUpcomingBillsQuery(
   organizationId: string | null,
   filters?: DashboardDateFilters,
@@ -48,7 +80,7 @@ export function useUpcomingBillsQuery(
       }
 
       const response = await getUpcomingBills(organizationId, filters);
-      return response.data.map(mapUpcomingBillResponse).reverse();
+      return response.data.map(mapUpcomingBillResponse);
     },
   });
 }

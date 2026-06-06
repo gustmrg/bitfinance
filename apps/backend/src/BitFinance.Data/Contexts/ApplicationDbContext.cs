@@ -11,6 +11,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     public DbSet<Bill> Bills => Set<Bill>();
     public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<Budget> Budgets => Set<Budget>();
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<OrganizationMember> OrganizationMembers => Set<OrganizationMember>();
     public DbSet<Invitation> Invitations => Set<Invitation>();

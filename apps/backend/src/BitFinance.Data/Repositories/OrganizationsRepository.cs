@@ -34,6 +34,7 @@ public class OrganizationsRepository : IOrganizationsRepository
     {
         return await _dbContext.Set<Organization>()
             .Where(x => x.Id == id)
+            .Include(x => x.Budget)
             .Include(x => x.Members)
                 .ThenInclude(m => m.User)
             .FirstOrDefaultAsync();
