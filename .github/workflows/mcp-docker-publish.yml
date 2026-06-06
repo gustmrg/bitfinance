@@ -1,19 +1,19 @@
-name: Backend Release
+name: MCP Server Release
 
 on:
   push:
     tags:
-      - "backend/v*"
+      - "mcp-server/v*"
   workflow_dispatch:
     inputs:
       version:
-        description: "Backend version to publish without the v prefix"
+        description: "MCP server version to publish without the v prefix"
         required: true
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: gustmrg/bitfinance-backend
-  PROJECT_FILE: apps/backend/src/BitFinance.API/BitFinance.API.csproj
+  IMAGE_NAME: gustmrg/bitfinance-mcp-server
+  PROJECT_FILE: apps/mcp-server/src/BitFinance.MCP.csproj
 
 permissions:
   contents: read
@@ -39,7 +39,7 @@ jobs:
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             VERSION="${INPUT_VERSION}"
           else
-            VERSION="${REF_NAME#backend/v}"
+            VERSION="${REF_NAME#mcp-server/v}"
           fi
 
           if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
@@ -66,7 +66,7 @@ jobs:
           echo "Project version: $PROJECT_VERSION"
 
           if [ "$RELEASE_VERSION" != "$PROJECT_VERSION" ]; then
-            echo "::error::Version mismatch: backend release '$RELEASE_VERSION' does not match project version '$PROJECT_VERSION'."
+            echo "::error::Version mismatch: MCP release '$RELEASE_VERSION' does not match project version '$PROJECT_VERSION'."
             exit 1
           fi
 
@@ -112,14 +112,12 @@ jobs:
         id: build
         uses: docker/build-push-action@v6
         with:
-          context: ./apps/backend/src
-          file: ./apps/backend/src/BitFinance.API/Dockerfile
+          context: ./apps/mcp-server
+          file: ./apps/mcp-server/Dockerfile
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=backend-${{ matrix.platform }}
-          cache-to: type=gha,scope=backend-${{ matrix.platform }},mode=max
-          build-args: |
-            BUILD_CONFIGURATION=Release
+          cache-from: type=gha,scope=mcp-${{ matrix.platform }}
+          cache-to: type=gha,scope=mcp-${{ matrix.platform }},mode=max
           outputs: type=image,"name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}",push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
@@ -132,7 +130,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: backend-digests-${{ matrix.artifact-suffix }}
+          name: mcp-digests-${{ matrix.artifact-suffix }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -151,7 +149,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ${{ runner.temp }}/digests
-          pattern: backend-digests-*
+          pattern: mcp-digests-*
           merge-multiple: true
 
       - name: Log in to Docker Hub
@@ -196,9 +194,9 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Deploy backend
+      - name: Deploy MCP server
         env:
-          IMAGE_TAG: ${{ needs.validate.outputs.version }}
+          MCP_IMAGE_TAG: ${{ needs.validate.outputs.version }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
           SSH_HOST_IP: ${{ secrets.SSH_HOST }}
           TAILSCALE_HOST: ${{ secrets.TAILSCALE_HOST }}
@@ -226,4 +224,4 @@ jobs:
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             "$SSH_USERNAME@$TARGET_HOST" \
-            "cd '$DEPLOY_PATH' && IMAGE_TAG='$IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml pull bitfinance-api && IMAGE_TAG='$IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build bitfinance-api"
+            "cd '$DEPLOY_PATH' && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml pull bitfinance-mcp-server && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build bitfinance-mcp-server"

@@ -1,0 +1,12 @@
+**/.git
+**/.gitignore
+**/.vscode
+**/.idea
+**/bin
+**/obj
+**/*.user
+**/*.suo
+**/*.rsuser
+Dockerfile
+README.md
+PLAN.md

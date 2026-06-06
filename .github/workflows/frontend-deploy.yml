@@ -1,9 +1,9 @@
-name: Deploy App to DigitalOcean
+name: Frontend Release
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "frontend/v*"
 
 permissions:
   contents: read
@@ -11,6 +11,7 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment: production
     defaults:
       run:
         working-directory: apps/frontend
@@ -19,13 +20,47 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set release version
+        id: version
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${REF_NAME#frontend/v}"
+
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Version must be semver without the v prefix. Received '$VERSION'."
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.9
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: pnpm
+          cache-dependency-path: apps/frontend/pnpm-lock.yaml
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Validate package.json version
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+
+          echo "Release version: $RELEASE_VERSION"
+          echo "package.json version: $PACKAGE_VERSION"
+
+          if [ "$RELEASE_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "::error::Version mismatch: frontend release '$RELEASE_VERSION' does not match package.json version '$PACKAGE_VERSION'."
+            exit 1
+          fi
 
       - name: Set up environment file
         run: |

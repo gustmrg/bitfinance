@@ -27,6 +27,25 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  bitfinance-mcp-server:
+    image: gustmrg/bitfinance-mcp-server:${MCP_IMAGE_TAG:-latest}
+    restart: always
+    environment:
+      - BITFINANCE_API_BASE_URL=${MCP_API_BASE_URL:-http://bitfinance-api:8080}
+      - BITFINANCE_AGENT_EMAIL=${MCP_AGENT_EMAIL}
+      - BITFINANCE_AGENT_PASSWORD=${MCP_AGENT_PASSWORD}
+      - BITFINANCE_DEFAULT_ORGANIZATION_ID=${MCP_DEFAULT_ORGANIZATION_ID:-}
+      - BITFINANCE_API_VERSION=${MCP_API_VERSION:-1}
+    depends_on:
+      - bitfinance-api
+    networks:
+      - bitfinance-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   bitfinance-db:
     restart: always
     ports:
