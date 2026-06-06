@@ -10,6 +10,18 @@ namespace BitFinance.MCP.Services;
 public sealed class BitFinanceApiClient : IBitFinanceApiClient
 {
     public const string ClientName = "BitFinanceBackend";
+    private const long MaxDocumentFileSizeBytes = 10 * 1024 * 1024;
+
+    private static readonly IReadOnlyDictionary<string, string> DocumentContentTypes =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [".pdf"] = "application/pdf",
+            [".jpg"] = "image/jpeg",
+            [".jpeg"] = "image/jpeg",
+            [".png"] = "image/png",
+            [".doc"] = "application/msword",
+            [".docx"] = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        };
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IBitFinanceTokenProvider _tokenProvider;
@@ -82,7 +94,7 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
     public Task<PagedResponse<BillResponse>> ListBillsAsync(
         Guid? organizationId = null,
         int page = 1,
-        int pageSize = 20,
+        int pageSize = 100,
         DateTimeOffset? from = null,
         DateTimeOffset? to = null,
         string? status = null,
@@ -122,6 +134,85 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             cancellationToken,
             request,
             BitFinanceJsonContext.Default.CreateBillRequest);
+    }
+
+    public Task<UpdateBillResponse> UpdateBillAsync(
+        Guid billId,
+        UpdateBillRequest request,
+        Guid? organizationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        return SendAsync(
+            HttpMethod.Patch,
+            ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}"),
+            BitFinanceJsonContext.Default.UpdateBillResponse,
+            cancellationToken,
+            request,
+            BitFinanceJsonContext.Default.UpdateBillRequest);
+    }
+
+    public Task DeleteBillAsync(Guid billId, Guid? organizationId = null, CancellationToken cancellationToken = default)
+    {
+        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        return SendNoContentAsync(
+            HttpMethod.Delete,
+            ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}"),
+            cancellationToken);
+    }
+
+    public async Task<UploadDocumentResponse> UploadBillDocumentAsync(
+        Guid billId,
+        string filePath,
+        string fileCategory,
+        Guid? organizationId = null,
+        string? contentType = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        var upload = ValidateUploadFile(filePath, contentType);
+
+        await using var fileStream = File.OpenRead(upload.FullPath);
+        using var multipart = new MultipartFormDataContent();
+        using var fileContent = new StreamContent(fileStream);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(upload.ContentType);
+
+        multipart.Add(fileContent, "File", Path.GetFileName(upload.FullPath));
+        multipart.Add(new StringContent(fileCategory), "FileCategory");
+
+        return await SendContentAsync(
+            HttpMethod.Post,
+            ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}/documents"),
+            multipart,
+            BitFinanceJsonContext.Default.UploadDocumentResponse,
+            cancellationToken);
+    }
+
+    public Task<DocumentDownloadUrlResponse> GetBillDocumentDownloadUrlAsync(
+        Guid billId,
+        Guid documentId,
+        Guid? organizationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        return SendAsync(
+            HttpMethod.Get,
+            ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}/documents/{documentId}/download-url"),
+            BitFinanceJsonContext.Default.DocumentDownloadUrlResponse,
+            cancellationToken);
+    }
+
+    public Task DeleteBillDocumentAsync(
+        Guid billId,
+        Guid documentId,
+        Guid? organizationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        return SendNoContentAsync(
+            HttpMethod.Delete,
+            ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}/documents/{documentId}"),
+            cancellationToken);
     }
 
     public Task<PagedResponse<ExpenseResponse>> ListExpensesAsync(
@@ -203,6 +294,51 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         return value;
     }
 
+    private async Task<TResponse> SendContentAsync<TResponse>(
+        HttpMethod method,
+        string path,
+        HttpContent content,
+        JsonTypeInfo<TResponse> responseJsonTypeInfo,
+        CancellationToken cancellationToken)
+    {
+        var client = _httpClientFactory.CreateClient(ClientName);
+        using var httpRequest = new HttpRequestMessage(method, path);
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _tokenProvider.GetAccessTokenAsync(cancellationToken));
+        httpRequest.Content = content;
+
+        using var response = await client.SendAsync(httpRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new BitFinanceApiException(response.StatusCode, method.Method, path, errorBody);
+        }
+
+        var value = await response.Content.ReadFromJsonAsync(responseJsonTypeInfo, cancellationToken);
+        if (value is null)
+        {
+            throw new InvalidOperationException($"BitFinance API returned an empty response for {method.Method} {path}.");
+        }
+
+        return value;
+    }
+
+    private async Task SendNoContentAsync(
+        HttpMethod method,
+        string path,
+        CancellationToken cancellationToken)
+    {
+        var client = _httpClientFactory.CreateClient(ClientName);
+        using var httpRequest = new HttpRequestMessage(method, path);
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _tokenProvider.GetAccessTokenAsync(cancellationToken));
+
+        using var response = await client.SendAsync(httpRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new BitFinanceApiException(response.StatusCode, method.Method, path, errorBody);
+        }
+    }
+
     private string ApiPath(string relativePath)
     {
         return $"/api/v{_options.ApiVersion}/{relativePath.TrimStart('/')}";
@@ -217,4 +353,36 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         var queryString = string.Join("&", query);
         return string.IsNullOrWhiteSpace(queryString) ? path : $"{path}?{queryString}";
     }
+
+    private static UploadFile ValidateUploadFile(string filePath, string? contentType)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            throw new ArgumentException("filePath is required.", nameof(filePath));
+        }
+
+        var fullPath = Path.GetFullPath(filePath);
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException("Bill document file was not found.", fullPath);
+        }
+
+        var fileInfo = new FileInfo(fullPath);
+        if (fileInfo.Length > MaxDocumentFileSizeBytes)
+        {
+            throw new InvalidOperationException("Bill document file must be 10 MB or smaller.");
+        }
+
+        var extension = Path.GetExtension(fullPath);
+        if (!DocumentContentTypes.TryGetValue(extension, out var inferredContentType))
+        {
+            throw new InvalidOperationException("Bill document file extension must be one of: .pdf, .jpg, .jpeg, .png, .doc, .docx.");
+        }
+
+        return new UploadFile(
+            fullPath,
+            string.IsNullOrWhiteSpace(contentType) ? inferredContentType : contentType);
+    }
+
+    private sealed record UploadFile(string FullPath, string ContentType);
 }

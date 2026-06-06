@@ -114,6 +114,46 @@ public sealed record CreateBillRequest(
     decimal AmountDue,
     decimal? AmountPaid);
 
+public sealed record UpdateBillRequest(
+    string Description,
+    string Category,
+    string Status,
+    DateTimeOffset DueDate,
+    DateTimeOffset? PaymentDate,
+    decimal AmountDue,
+    decimal? AmountPaid);
+
+public sealed class UpdateBillResponse
+{
+    public Guid Id { get; init; }
+    public string Description { get; init; } = string.Empty;
+    public string Category { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+    public decimal AmountDue { get; init; }
+    public decimal? AmountPaid { get; init; }
+    public DateTimeOffset DueDate { get; init; }
+    public DateTimeOffset? PaidDate { get; init; }
+}
+
+public sealed class UploadDocumentResponse
+{
+    public Guid Id { get; init; }
+    public string FileName { get; init; } = string.Empty;
+    public string ContentType { get; init; } = string.Empty;
+    public string FileCategory { get; init; } = string.Empty;
+    public string AttachmentType { get; init; } = string.Empty;
+}
+
+public sealed record DocumentDownloadUrlResponse(
+    string Url,
+    string FileName,
+    string ContentType,
+    DateTimeOffset ExpiresAt);
+
+public sealed record DeleteBillResponse(bool Deleted, Guid BillId);
+
+public sealed record DeleteBillDocumentResponse(bool Deleted, Guid DocumentId);
+
 public sealed record CreateExpenseRequest(
     string Description,
     string Category,
@@ -134,5 +174,9 @@ public sealed record CreateExpenseRequest(
 [JsonSerializable(typeof(UpcomingBillsResponse))]
 [JsonSerializable(typeof(RecentExpensesResponse))]
 [JsonSerializable(typeof(CreateBillRequest))]
+[JsonSerializable(typeof(UpdateBillRequest))]
+[JsonSerializable(typeof(UpdateBillResponse))]
+[JsonSerializable(typeof(UploadDocumentResponse))]
+[JsonSerializable(typeof(DocumentDownloadUrlResponse))]
 [JsonSerializable(typeof(CreateExpenseRequest))]
 public partial class BitFinanceJsonContext : JsonSerializerContext;

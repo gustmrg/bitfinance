@@ -93,9 +93,18 @@ Example generic MCP server configuration:
 - `bitfinance_list_bills`
 - `bitfinance_get_bill`
 - `bitfinance_create_bill`
+- `bitfinance_update_bill`
+- `bitfinance_delete_bill`
+- `bitfinance_upload_bill_document`
+- `bitfinance_get_bill_document_download_url`
+- `bitfinance_delete_bill_document`
 - `bitfinance_list_expenses`
 - `bitfinance_get_expense`
 - `bitfinance_create_expense`
+
+Bill document uploads accept a `filePath` that must be readable by the MCP server process. Supported document extensions are `.pdf`, `.jpg`, `.jpeg`, `.png`, `.doc`, and `.docx`, up to 10 MB.
+
+Bill document downloads return a temporary signed URL with file metadata. The MCP server does not download the file to local disk; agents such as Hermes can use the returned URL directly before it expires.
 
 ## Example agent interactions
 
@@ -181,6 +190,81 @@ Expected tool call:
     "status": "Upcoming",
     "dueDate": "2026-06-10T00:00:00Z",
     "amountDue": 120.00
+  }
+}
+```
+
+```text
+List overdue bills from May with "internet" in the description.
+```
+
+Expected tool call:
+
+```json
+{
+  "tool": "bitfinance_list_bills",
+  "arguments": {
+    "page": 1,
+    "pageSize": 100,
+    "from": "2026-05-01T00:00:00Z",
+    "to": "2026-05-31T23:59:59Z",
+    "status": "Overdue",
+    "description": "internet"
+  }
+}
+```
+
+```text
+Mark a bill as paid.
+```
+
+Expected tool call:
+
+```json
+{
+  "tool": "bitfinance_update_bill",
+  "arguments": {
+    "billId": "00000000-0000-0000-0000-000000000000",
+    "description": "Utilities",
+    "category": "Utilities",
+    "status": "Paid",
+    "dueDate": "2026-06-10T00:00:00Z",
+    "amountDue": 120.00,
+    "paymentDate": "2026-06-04T12:00:00Z",
+    "amountPaid": 120.00
+  }
+}
+```
+
+```text
+Upload a receipt to a bill.
+```
+
+Expected tool call:
+
+```json
+{
+  "tool": "bitfinance_upload_bill_document",
+  "arguments": {
+    "billId": "00000000-0000-0000-0000-000000000000",
+    "filePath": "/path/readable/by/mcp-server/receipt.pdf",
+    "fileCategory": "Receipt"
+  }
+}
+```
+
+```text
+Get a download URL for a bill document.
+```
+
+Expected tool call:
+
+```json
+{
+  "tool": "bitfinance_get_bill_document_download_url",
+  "arguments": {
+    "billId": "00000000-0000-0000-0000-000000000000",
+    "documentId": "11111111-1111-1111-1111-111111111111"
   }
 }
 ```
