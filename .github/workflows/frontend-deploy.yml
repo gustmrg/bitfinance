@@ -72,6 +72,26 @@ jobs:
       - name: Build app
         run: pnpm run build
 
+      - name: Write version file
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_REF: ${{ github.ref_name }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require("fs");
+
+          const version = {
+            version: process.env.RELEASE_VERSION,
+            commit: process.env.RELEASE_SHA,
+            ref: process.env.RELEASE_REF,
+            builtAt: new Date().toISOString()
+          };
+
+          fs.writeFileSync("dist/version.json", `${JSON.stringify(version, null, 2)}\n`);
+          NODE
+
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
         with:
