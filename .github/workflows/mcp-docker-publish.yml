@@ -202,7 +202,7 @@ jobs:
           TAILSCALE_HOST: ${{ secrets.TAILSCALE_HOST }}
           SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
           SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/bitfinance/apps/backend' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/bitfinance' }}
         run: |
           set -euo pipefail
 
