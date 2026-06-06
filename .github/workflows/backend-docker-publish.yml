@@ -220,10 +220,73 @@ jobs:
           printf '%s' "$SSH_PRIVATE_KEY" > "$KEY_FILE"
           chmod 600 "$KEY_FILE"
 
-          ssh -i "$KEY_FILE" \
-            -p "$SSH_PORT" \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            "$SSH_USERNAME@$TARGET_HOST" \
-            "cd '$DEPLOY_PATH' && IMAGE_TAG='$IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml pull bitfinance-api && IMAGE_TAG='$IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build bitfinance-api"
+          SSH_OPTS=(
+            -i "$KEY_FILE"
+            -p "$SSH_PORT"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+          )
+
+          echo "Checking SSH connectivity to deployment host..."
+          ssh "${SSH_OPTS[@]}" "$SSH_USERNAME@$TARGET_HOST" \
+            'echo "SSH auth OK"; echo "Remote host: $(hostname)"'
+
+          printf -v REMOTE_IMAGE_TAG '%q' "$IMAGE_TAG"
+          printf -v REMOTE_DEPLOY_PATH '%q' "$DEPLOY_PATH"
+
+          ssh "${SSH_OPTS[@]}" "$SSH_USERNAME@$TARGET_HOST" \
+            "IMAGE_TAG=$REMOTE_IMAGE_TAG DEPLOY_PATH=$REMOTE_DEPLOY_PATH bash -s" <<'REMOTE'
+          set -Eeuo pipefail
+
+          COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.prod.yml)
+
+          on_error() {
+            status=$?
+            line=$1
+            echo "::error::Remote backend deploy failed at line ${line} with exit code ${status}"
+
+            if [ -n "${DEPLOY_PATH:-}" ] && [ -d "$DEPLOY_PATH" ]; then
+              cd "$DEPLOY_PATH" || true
+              echo "Compose status after failure:"
+              docker compose "${COMPOSE_FILES[@]}" ps bitfinance-api || true
+              echo "Recent backend logs after failure:"
+              docker compose "${COMPOSE_FILES[@]}" logs --tail 60 bitfinance-api || true
+            fi
+
+            exit "$status"
+          }
+
+          trap 'on_error $LINENO' ERR
+
+          echo "Deploy path: $DEPLOY_PATH"
+          if [ ! -d "$DEPLOY_PATH" ]; then
+            echo "::error::Deploy path does not exist: $DEPLOY_PATH"
+            exit 1
+          fi
+
+          cd "$DEPLOY_PATH"
+          echo "Current directory: $(pwd)"
+
+          for file in docker-compose.yml docker-compose.prod.yml .env; do
+            if [ ! -f "$file" ]; then
+              echo "::error::Required deploy file is missing: $file"
+              exit 1
+            fi
+          done
+
+          echo "Compose services:"
+          docker compose "${COMPOSE_FILES[@]}" config --services
+
+          echo "Pulling backend image tag: $IMAGE_TAG"
+          IMAGE_TAG="$IMAGE_TAG" docker compose "${COMPOSE_FILES[@]}" pull bitfinance-api
+
+          echo "Starting backend service with image tag: $IMAGE_TAG"
+          IMAGE_TAG="$IMAGE_TAG" docker compose "${COMPOSE_FILES[@]}" up -d --no-build bitfinance-api
+
+          echo "Backend service status:"
+          docker compose "${COMPOSE_FILES[@]}" ps bitfinance-api
+
+          echo "Recent backend logs:"
+          docker compose "${COMPOSE_FILES[@]}" logs --tail 40 bitfinance-api
+          REMOTE
