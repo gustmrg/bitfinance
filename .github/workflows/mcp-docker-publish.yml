@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set release version
         id: version
@@ -89,20 +89,20 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           labels: |
@@ -110,7 +110,7 @@ jobs:
 
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./apps/mcp-server
           file: ./apps/mcp-server/Dockerfile
@@ -128,7 +128,7 @@ jobs:
           touch "${{ runner.temp }}/digests/${digest#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mcp-digests-${{ matrix.artifact-suffix }}
           path: ${{ runner.temp }}/digests/*
@@ -146,20 +146,20 @@ jobs:
 
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: ${{ runner.temp }}/digests
           pattern: mcp-digests-*
           merge-multiple: true
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
@@ -224,4 +224,4 @@ jobs:
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             "$SSH_USERNAME@$TARGET_HOST" \
-            "cd '$DEPLOY_PATH' && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml pull bitfinance-mcp-server && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build bitfinance-mcp-server"
+            "cd '$DEPLOY_PATH' && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml pull bitfinance-mcp-server && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps --no-build bitfinance-mcp-server"

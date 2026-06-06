@@ -69,4 +69,6 @@ networks:
 
 volumes:
   postgres-data:
+    external: true
+    name: ${POSTGRES_DATA_VOLUME:-bitfinance_postgres-data}
   api-logs:
