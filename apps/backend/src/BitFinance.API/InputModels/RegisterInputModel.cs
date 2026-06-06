@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace BitFinance.API.InputModels;
 
 public record RegisterInputModel(
-    [property: Required] string FirstName,
-    [property: Required] string LastName,
-    [property: Required, EmailAddress] string Email,
-    [property: Required, MinLength(8)] string Password);
+    [Required] string FirstName,
+    [Required] string LastName,
+    [Required, EmailAddress] string Email,
+    [Required, MinLength(8)] string Password);
