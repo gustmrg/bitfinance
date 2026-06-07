@@ -102,7 +102,7 @@ For production, bind the Docker port to the VPS Tailscale address and firewall p
 - `bitfinance_get_expense`
 - `bitfinance_create_expense`
 
-Bill document uploads accept a `filePath` that must be readable by the MCP server process. Supported document extensions are `.pdf`, `.jpg`, `.jpeg`, `.png`, `.doc`, and `.docx`, up to 10 MB.
+Bill document uploads accept base64 content from a remote agent, so the file does not need to exist on the MCP server filesystem. Supported document extensions are `.pdf`, `.jpg`, `.jpeg`, `.png`, `.doc`, and `.docx`, up to 10 MB decoded size.
 
 Bill document downloads return a temporary signed URL with file metadata. The MCP server does not download the file to local disk; agents such as Hermes can use the returned URL directly before it expires.
 
@@ -247,8 +247,10 @@ Expected tool call:
   "tool": "bitfinance_upload_bill_document",
   "arguments": {
     "billId": "00000000-0000-0000-0000-000000000000",
-    "filePath": "/path/readable/by/mcp-server/receipt.pdf",
-    "fileCategory": "Receipt"
+    "fileName": "receipt.pdf",
+    "base64Content": "JVBERi0x...",
+    "fileCategory": "Receipt",
+    "contentType": "application/pdf"
   }
 }
 ```

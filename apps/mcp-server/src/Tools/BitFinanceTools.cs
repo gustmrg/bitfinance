@@ -129,16 +129,17 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Uploads a document to a bill. Valid file categories: " + FileCategories + ". Allowed extensions: .pdf, .jpg, .jpeg, .png, .doc, .docx. Maximum file size: 10 MB.")]
+    [Description("Uploads a document to a bill from base64 content supplied by a remote agent. Valid file categories: " + FileCategories + ". Allowed extensions: .pdf, .jpg, .jpeg, .png, .doc, .docx. Maximum decoded file size: 10 MB.")]
     public Task<UploadDocumentResponse> bitfinance_upload_bill_document(
         [Description("Bill ID.")] Guid billId,
-        [Description("Path to a local file readable by the MCP server process.")] string filePath,
+        [Description("Original file name, including extension.")] string fileName,
+        [Description("Base64-encoded file content. Data URLs are accepted.")] string base64Content,
         [Description("File category.")] string fileCategory,
         [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
-        [Description("Optional MIME content type. Inferred from file extension when omitted.")] string? contentType = null,
+        [Description("Optional MIME content type. Inferred from file extension or data URL when omitted.")] string? contentType = null,
         CancellationToken cancellationToken = default)
     {
-        return _apiClient.UploadBillDocumentAsync(billId, filePath, fileCategory, organizationId, contentType, cancellationToken);
+        return _apiClient.UploadBillDocumentAsync(billId, fileName, base64Content, fileCategory, organizationId, contentType, cancellationToken);
     }
 
     [McpServerTool]

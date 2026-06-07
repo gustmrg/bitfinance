@@ -163,26 +163,52 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
 
     public async Task<UploadDocumentResponse> UploadBillDocumentAsync(
         Guid billId,
-        string filePath,
+        string fileName,
+        string base64Content,
         string fileCategory,
         Guid? organizationId = null,
         string? contentType = null,
         CancellationToken cancellationToken = default)
     {
         var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        var upload = ValidateUploadFile(filePath, contentType);
+        var upload = ValidateUploadContent(fileName);
+        var base64Upload = ParseBase64Upload(base64Content, contentType, upload.InferredContentType);
 
-        await using var fileStream = File.OpenRead(upload.FullPath);
+        if (base64Upload.Content.Length > MaxDocumentFileSizeBytes)
+        {
+            throw new InvalidOperationException("Bill document file must be 10 MB or smaller.");
+        }
+
+        await using var fileStream = new MemoryStream(base64Upload.Content, writable: false);
+        return await UploadBillDocumentContentAsync(
+            resolvedOrganizationId,
+            billId,
+            fileStream,
+            upload.FileName,
+            base64Upload.ContentType,
+            fileCategory,
+            cancellationToken);
+    }
+
+    private async Task<UploadDocumentResponse> UploadBillDocumentContentAsync(
+        Guid organizationId,
+        Guid billId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        string fileCategory,
+        CancellationToken cancellationToken)
+    {
         using var multipart = new MultipartFormDataContent();
         using var fileContent = new StreamContent(fileStream);
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue(upload.ContentType);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
 
-        multipart.Add(fileContent, "File", Path.GetFileName(upload.FullPath));
+        multipart.Add(fileContent, "File", fileName);
         multipart.Add(new StringContent(fileCategory), "FileCategory");
 
         return await SendContentAsync(
             HttpMethod.Post,
-            ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}/documents"),
+            ApiPath($"organizations/{organizationId}/bills/{billId}/documents"),
             multipart,
             BitFinanceJsonContext.Default.UploadDocumentResponse,
             cancellationToken);
@@ -354,35 +380,78 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         return string.IsNullOrWhiteSpace(queryString) ? path : $"{path}?{queryString}";
     }
 
-    private static UploadFile ValidateUploadFile(string filePath, string? contentType)
+    private static UploadContent ValidateUploadContent(string fileName)
     {
-        if (string.IsNullOrWhiteSpace(filePath))
+        if (string.IsNullOrWhiteSpace(fileName))
         {
-            throw new ArgumentException("filePath is required.", nameof(filePath));
+            throw new ArgumentException("fileName is required.", nameof(fileName));
         }
 
-        var fullPath = Path.GetFullPath(filePath);
-        if (!File.Exists(fullPath))
+        if (fileName.IndexOfAny(['/', '\\']) >= 0 ||
+            fileName.Contains("..", StringComparison.Ordinal) ||
+            fileName.Contains('~') ||
+            fileName.Contains('`'))
         {
-            throw new FileNotFoundException("Bill document file was not found.", fullPath);
+            throw new ArgumentException("fileName must be a simple file name without path segments or unsafe characters.", nameof(fileName));
         }
 
-        var fileInfo = new FileInfo(fullPath);
-        if (fileInfo.Length > MaxDocumentFileSizeBytes)
-        {
-            throw new InvalidOperationException("Bill document file must be 10 MB or smaller.");
-        }
-
-        var extension = Path.GetExtension(fullPath);
+        var extension = Path.GetExtension(fileName);
         if (!DocumentContentTypes.TryGetValue(extension, out var inferredContentType))
         {
             throw new InvalidOperationException("Bill document file extension must be one of: .pdf, .jpg, .jpeg, .png, .doc, .docx.");
         }
 
-        return new UploadFile(
-            fullPath,
-            string.IsNullOrWhiteSpace(contentType) ? inferredContentType : contentType);
+        return new UploadContent(
+            fileName,
+            inferredContentType);
     }
 
-    private sealed record UploadFile(string FullPath, string ContentType);
+    private static Base64Upload ParseBase64Upload(string base64Content, string? contentType, string inferredContentType)
+    {
+        if (string.IsNullOrWhiteSpace(base64Content))
+        {
+            throw new ArgumentException("base64Content is required.", nameof(base64Content));
+        }
+
+        var payload = base64Content.Trim();
+        var resolvedContentType = string.IsNullOrWhiteSpace(contentType) ? null : contentType;
+
+        if (payload.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        {
+            var commaIndex = payload.IndexOf(',');
+            if (commaIndex < 0)
+            {
+                throw new FormatException("Data URL content must include a comma before the base64 payload.");
+            }
+
+            var metadata = payload[5..commaIndex];
+            if (!metadata.Contains(";base64", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new FormatException("Data URL content must be base64 encoded.");
+            }
+
+            var mediaType = metadata.Split(';', 2)[0];
+            if (string.IsNullOrWhiteSpace(contentType) && !string.IsNullOrWhiteSpace(mediaType))
+            {
+                resolvedContentType = mediaType;
+            }
+
+            payload = payload[(commaIndex + 1)..];
+        }
+
+        resolvedContentType ??= inferredContentType;
+
+        try
+        {
+            return new Base64Upload(Convert.FromBase64String(payload), resolvedContentType);
+        }
+        catch (FormatException ex)
+        {
+            throw new FormatException("base64Content must be valid base64 file content.", ex);
+        }
+    }
+
+    private sealed record UploadContent(string FileName, string InferredContentType);
+
+    private sealed record Base64Upload(byte[] Content, string ContentType);
 }
