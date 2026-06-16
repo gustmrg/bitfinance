@@ -47,12 +47,12 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Description")
@@ -62,7 +62,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime>("DueDate")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("due_date");
 
                     b.Property<Guid>("OrganizationId")
@@ -71,7 +71,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime?>("PaymentDate")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("payment_date");
 
                     b.Property<string>("Status")
@@ -81,7 +81,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
@@ -111,7 +111,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<string>("CreatedByUserId")
@@ -121,7 +121,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Description")
@@ -143,7 +143,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
@@ -167,12 +167,12 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Name")
@@ -182,7 +182,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")

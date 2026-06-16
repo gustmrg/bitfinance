@@ -140,7 +140,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<string>("Description")
@@ -158,7 +158,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTimeOffset?>("PaymentDate")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("payment_date");
 
                     b.Property<string>("Status")
@@ -168,7 +168,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
@@ -198,7 +198,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<string>("CreatedByUserId")
@@ -225,7 +225,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
@@ -249,7 +249,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<string>("Email")
@@ -260,7 +260,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime>("ExpiresAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
 
                     b.Property<string>("InvitedByUserId")
@@ -309,7 +309,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
                     b.Property<string>("Name")
@@ -319,7 +319,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime>("PlanExpiresAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("plan_expires_at");
 
                     b.Property<int>("PlanTier")
@@ -336,7 +336,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
@@ -357,7 +357,7 @@ namespace BitFinance.Data.Migrations
 
                     b.Property<DateTime>("JoinedAt")
                         .HasPrecision(3)
-                        .HasColumnType("timestampz")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("joined_at");
 
                     b.Property<int>("Role")
