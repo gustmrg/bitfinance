@@ -110,6 +110,7 @@
     "date": "Date",
     "profile": "Profile",
     "settings": "Settings",
+    "theme": "Theme",
     "logout": "Logout",
     "viewAll": "View All",
     "dueIn": "Due",
@@ -362,7 +363,14 @@
       "title": "Preferences",
       "subtitle": "Customize your experience.",
       "language": "Language",
-      "languageDescription": "Select your preferred language."
+      "languageDescription": "Select your preferred language.",
+      "theme": "Theme",
+      "themeDescription": "Choose your preferred appearance.",
+      "themeOptions": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      }
     },
     "security": {
       "title": "Security",
