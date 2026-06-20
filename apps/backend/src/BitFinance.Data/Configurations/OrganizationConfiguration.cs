@@ -14,13 +14,13 @@ public class OrganizationConfiguration : IEntityTypeConfiguration<Organization>
         
         builder.Property(o => o.CreatedAt)
             .HasColumnName("created_at")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3)
             .IsRequired();
         
         builder.Property(o => o.UpdatedAt)
             .HasColumnName("updated_at")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3);
         
         builder.Property(o => o.TimeZoneId)
@@ -34,7 +34,7 @@ public class OrganizationConfiguration : IEntityTypeConfiguration<Organization>
 
         builder.Property(o => o.PlanExpiresAt)
             .HasColumnName("plan_expires_at")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3)
             .IsRequired();
 

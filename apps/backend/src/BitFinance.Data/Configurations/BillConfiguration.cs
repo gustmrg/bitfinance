@@ -35,7 +35,7 @@ public class BillConfiguration : IEntityTypeConfiguration<Bill>
         
         builder.Property(b => b.PaymentDate)
             .HasColumnName("payment_date")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3);
         
         builder.Property(b => b.AmountDue)
@@ -49,13 +49,13 @@ public class BillConfiguration : IEntityTypeConfiguration<Bill>
         
         builder.Property(b => b.CreatedAt)
             .HasColumnName("created_at")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3)
             .IsRequired();
         
         builder.Property(b => b.UpdatedAt)
             .HasColumnName("updated_at")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3);
         
         builder.ToTable("bills");

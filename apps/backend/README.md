@@ -65,10 +65,11 @@ dotnet tool install --global dotnet-ef
 2. Start the development containers.
 
    ```bash
-   docker compose --project-directory apps/backend -f apps/backend/docker-compose.yml up -d
+   docker compose --project-directory apps/backend up -d --build
    ```
 
    This starts the API, PostgreSQL, Redis, MinIO, and a MinIO bucket initialization container.
+   Compose creates and reuses the local `bitfinance-backend_postgres-data` volume automatically.
 
 3. Apply migrations manually if you are running the API outside Docker or need to update the database directly.
 
@@ -163,26 +164,38 @@ In development, the API also applies migrations automatically during startup.
 Start the default development stack:
 
 ```bash
-docker compose --project-directory apps/backend -f apps/backend/docker-compose.yml up -d
+docker compose --project-directory apps/backend up -d --build
 ```
 
 View logs:
 
 ```bash
-docker compose --project-directory apps/backend -f apps/backend/docker-compose.yml logs -f bitfinance-api
+docker compose --project-directory apps/backend logs -f bitfinance-api
 ```
 
 Stop the stack:
 
 ```bash
-docker compose --project-directory apps/backend -f apps/backend/docker-compose.yml down
+docker compose --project-directory apps/backend down
 ```
 
 Start the production overlay with a prebuilt image:
 
 ```bash
-docker compose --project-directory apps/backend -f apps/backend/docker-compose.yml -f apps/backend/docker-compose.prod.yml up --no-build -d
+docker compose --project-directory apps/backend \
+  -f apps/backend/docker-compose.yml \
+  -f apps/backend/docker-compose.prod.yml \
+  up --no-build -d
 ```
+
+The production overlay expects the external volume configured by
+`POSTGRES_DATA_VOLUME` to exist before startup:
+
+```bash
+docker volume create bitfinance_postgres-data
+```
+
+If `POSTGRES_DATA_VOLUME` uses another name, create that volume instead.
 
 ## Security Notes
 

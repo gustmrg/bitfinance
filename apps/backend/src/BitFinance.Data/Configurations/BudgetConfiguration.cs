@@ -24,13 +24,13 @@ public class BudgetConfiguration : IEntityTypeConfiguration<Budget>
 
         builder.Property(b => b.CreatedAt)
             .HasColumnName("created_at")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3)
             .IsRequired();
 
         builder.Property(b => b.UpdatedAt)
             .HasColumnName("updated_at")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3);
 
         builder.HasIndex(b => b.OrganizationId)
