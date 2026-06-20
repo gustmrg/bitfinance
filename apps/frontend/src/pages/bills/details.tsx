@@ -20,6 +20,7 @@ import { useBillQuery } from "@/hooks/queries/use-bill-query";
 import { BillDetailsContent } from "./components/bill-details-content";
 import { DeleteBillDialog } from "./components/delete-bill-dialog";
 import { EditBillDialog } from "./components/edit-bill-dialog";
+import { StopBillSeriesDialog } from "./components/stop-bill-series-dialog";
 import { UploadDocumentsDialog } from "./components/upload-documents-dialog";
 
 interface EditBillFormValues {
@@ -44,6 +45,7 @@ export function BillDetails() {
   const {
     deleteBillAsync,
     deleteBillDocumentAsync,
+    stopBillSeriesAsync,
     updateBillAsync,
     uploadBillDocumentsAsync,
   } = useBillMutations({
@@ -116,6 +118,14 @@ export function BillDetails() {
     }
   };
 
+  const handleStopBillSeries = async (seriesId: string) => {
+    try {
+      await stopBillSeriesAsync({ seriesId });
+    } catch (error) {
+      console.error("Failed to stop future bills:", error);
+    }
+  };
+
   return (
     <PageContainer className="max-w-4xl">
       <PageHeader
@@ -172,6 +182,13 @@ export function BillDetails() {
               onUpload={handleUploadDocuments}
               trigger={<Button variant="outline">Upload Documents</Button>}
             />
+            {bill.billSeriesId && bill.billSeriesIsActive && (
+              <StopBillSeriesDialog
+                seriesId={bill.billSeriesId}
+                onStop={handleStopBillSeries}
+                size="default"
+              />
+            )}
             <DeleteBillDialog
               id={bill.id}
               onDelete={handleDeleteBill}

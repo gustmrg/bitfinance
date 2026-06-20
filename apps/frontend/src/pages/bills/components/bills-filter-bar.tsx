@@ -20,7 +20,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+
+export type BillTypeFilter = "all" | "recurring" | "installment" | "normal";
 
 const ALL_STATUSES: { value: BillStatus; labelKey: string }[] = [
   { value: "created", labelKey: "labels.created" },
@@ -38,6 +47,8 @@ interface BillsFilterBarProps {
   onStatusChange: (statuses: BillStatus[]) => void;
   descriptionSearch: string;
   onDescriptionChange: (value: string) => void;
+  billTypeFilter: BillTypeFilter;
+  onBillTypeChange: (value: BillTypeFilter) => void;
   actions?: ReactNode;
 }
 
@@ -48,6 +59,8 @@ export function BillsFilterBar({
   onStatusChange,
   descriptionSearch,
   onDescriptionChange,
+  billTypeFilter,
+  onBillTypeChange,
   actions,
 }: BillsFilterBarProps) {
   const { t } = useTranslation();
@@ -67,7 +80,7 @@ export function BillsFilterBar({
       : t("bills.filters.statusSelected", { count: selectedStatuses.length });
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <div className="relative flex-1 sm:max-w-xs">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -117,6 +130,30 @@ export function BillsFilterBar({
           </Command>
         </PopoverContent>
       </Popover>
+
+      <Select
+        value={billTypeFilter}
+        onValueChange={(value) => onBillTypeChange(value as BillTypeFilter)}
+      >
+        <SelectTrigger
+          className="w-full sm:w-[170px]"
+          aria-label={t("bills.filters.typeLabel")}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">{t("bills.filters.typeAll")}</SelectItem>
+          <SelectItem value="recurring">
+            {t("bills.filters.typeRecurring")}
+          </SelectItem>
+          <SelectItem value="installment">
+            {t("bills.filters.typeInstallment")}
+          </SelectItem>
+          <SelectItem value="normal">
+            {t("bills.filters.typeNormal")}
+          </SelectItem>
+        </SelectContent>
+      </Select>
 
       <CalendarDateRangePicker
         startDate={dateRange?.from}

@@ -6,22 +6,31 @@ namespace BitFinance.API.Models.Response;
 public class CreateBillResponse
 {
     public Guid Id { get; set; }
-    
+
     public string Description { get; set; } = null!;
-    
+
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public BillCategory Category { get; set; }
-    
+
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public BillStatus Status { get; set; }
-    
+
     public decimal AmountDue { get; set; }
-    
+
     public decimal? AmountPaid { get; set; }
-    
+
     public DateTime CreatedDate { get; set; }
-    
+
     public DateTime DueDate { get; set; }
-    
+
     public DateTimeOffset? PaidDate { get; set; }
+
+    public Guid? BillSeriesId { get; set; }
+
+    public int? OccurrenceNumber { get; set; }
+
+    public int? TotalOccurrences { get; set; }
+
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public BillSeriesType? BillSeriesType { get; set; }
 }

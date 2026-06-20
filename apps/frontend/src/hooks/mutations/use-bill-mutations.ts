@@ -19,6 +19,10 @@ interface DeleteBillDocumentPayload {
   documentId: string;
 }
 
+interface StopBillSeriesPayload {
+  seriesId: string;
+}
+
 interface UseBillMutationsOptions {
   organizationId: string | null;
 }
@@ -134,15 +138,33 @@ export function useBillMutations({ organizationId }: UseBillMutationsOptions) {
     },
   });
 
+  const stopBillSeriesMutation = useMutation({
+    mutationFn: async (payload: StopBillSeriesPayload) => {
+      const orgId = requireOrganizationId(organizationId);
+
+      return billsService.stopSeriesAsync({
+        organizationId: orgId,
+        seriesId: payload.seriesId,
+      });
+    },
+    onSuccess: async () => {
+      if (organizationId) {
+        await invalidateBillQueries(organizationId);
+      }
+    },
+  });
+
   return {
     addBillAsync: addBillMutation.mutateAsync,
     deleteBillAsync: deleteBillMutation.mutateAsync,
     deleteBillDocumentAsync: deleteBillDocumentMutation.mutateAsync,
+    stopBillSeriesAsync: stopBillSeriesMutation.mutateAsync,
     updateBillAsync: updateBillMutation.mutateAsync,
     uploadBillDocumentsAsync: uploadBillDocumentsMutation.mutateAsync,
     isAddingBill: addBillMutation.isPending,
     isDeletingBill: deleteBillMutation.isPending,
     isDeletingBillDocument: deleteBillDocumentMutation.isPending,
+    isStoppingBillSeries: stopBillSeriesMutation.isPending,
     isUpdatingBill: updateBillMutation.isPending,
     isUploadingBillDocuments: uploadBillDocumentsMutation.isPending,
   };

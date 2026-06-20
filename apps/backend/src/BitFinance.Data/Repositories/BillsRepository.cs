@@ -73,6 +73,7 @@ public class BillsRepository : IBillsRepository
 
         var items = await query
             .Include(b => b.Attachments)
+            .Include(b => b.BillSeries)
             .OrderBy(b => b.DueDate)
             .Skip(pageSize * (page - 1))
             .Take(pageSize)
@@ -108,6 +109,15 @@ public class BillsRepository : IBillsRepository
                           && b.CreatedAt < monthEndUtc);
     }
 
+    public async Task<int> GetOneTimeMonthlyCountByOrganizationAsync(Guid organizationId, DateTime monthStartUtc, DateTime monthEndUtc)
+    {
+        return await _dbContext.Bills
+            .CountAsync(b => b.OrganizationId == organizationId
+                          && b.BillSeriesId == null
+                          && b.CreatedAt >= monthStartUtc
+                          && b.CreatedAt < monthEndUtc);
+    }
+
     public async Task<Bill?> GetByIdAsync(Guid id)
     {
         Bill? bill;
@@ -121,6 +131,7 @@ public class BillsRepository : IBillsRepository
             {
                 bill = await _dbContext.Set<Bill>()
                     .Include(b => b.Attachments)
+                    .Include(b => b.BillSeries)
                     .FirstOrDefaultAsync(x => x.Id == id);
 
                 if (bill is not null)
@@ -133,6 +144,7 @@ public class BillsRepository : IBillsRepository
         {
             bill = await _dbContext.Set<Bill>()
                 .Include(b => b.Attachments)
+                .Include(b => b.BillSeries)
                 .FirstOrDefaultAsync(x => x.Id == id);
         }
         
@@ -186,6 +198,15 @@ public class BillsRepository : IBillsRepository
         }
 
         return bill;
+    }
+
+    public async Task CreateRangeAsync(List<Bill> bills)
+    {
+        if (bills.Count == 0)
+            return;
+
+        await _dbContext.Set<Bill>().AddRangeAsync(bills);
+        await _dbContext.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Bill bill)

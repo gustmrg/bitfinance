@@ -114,7 +114,17 @@
     "dueIn": "Vence em",
     "dueOn": "Vence em {{date}}",
     "overdueSince": "Em atraso desde {{date}}",
-    "markAsPaid": "Marcar como Pago"
+    "markAsPaid": "Marcar como Pago",
+    "frequency": "Frequência",
+    "selectFrequency": "Selecione a frequência",
+    "daily": "Diária",
+    "weekly": "Semanal",
+    "monthly": "Mensal",
+    "annually": "Anual",
+    "installments": "Parcelas",
+    "seriesType": "Série de Contas",
+    "occurrence": "Ocorrência",
+    "seriesStatus": "Status da Série"
   },
   "dashboard": {
     "subtitle": "Visão geral de suas finanças",
@@ -178,7 +188,14 @@
     "filters": {
       "statusPlaceholder": "Todos os status",
       "statusSelected": "{{count}} selecionados",
-      "descriptionPlaceholder": "Buscar contas..."
+      "descriptionPlaceholder": "Buscar contas...",
+      "typeLabel": "Tipo de conta",
+      "typeAll": "Todos os tipos",
+      "typeRecurring": "Recorrentes",
+      "typeInstallment": "Parceladas",
+      "typeNormal": "Normais",
+      "emptyTitle": "Nenhuma conta encontrada",
+      "emptyDescription": "Tente alterar ou limpar os filtros ativos."
     },
     "dialog": {
       "add": {
@@ -201,6 +218,26 @@
         "title": "Marcar como Pago",
         "description": "Confirme os detalhes do pagamento desta conta."
       }
+    },
+    "type": {
+      "label": "Tipo de conta",
+      "select": "Selecione um tipo de conta",
+      "oneTime": "Única",
+      "recurring": "Recorrente",
+      "installment": "Parcelada"
+    },
+    "series": {
+      "recurring": "Recorrente",
+      "installment": "Parcela {{current}}/{{total}}",
+      "installmentCompact": "{{current}}/{{total}}",
+      "occurrenceNumber": "Ocorrência {{current}}",
+      "stopped": "Geração interrompida"
+    },
+    "stopFuture": {
+      "cta": "Parar contas futuras",
+      "title": "Parar contas futuras",
+      "description": "Isso impedirá que a série gere contas futuras. As contas existentes serão mantidas. Esta ação não pode ser desfeita.",
+      "confirm": "Parar contas futuras"
     }
   },
   "expenses": {

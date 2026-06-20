@@ -66,6 +66,48 @@ export function BillDetailsContent({
           </dd>
         </div>
 
+        {bill.billSeriesId && bill.billSeriesType ? (
+          <div className="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt className="text-sm font-medium leading-6 text-gray-900">
+              {t("labels.seriesType")}
+            </dt>
+            <dd className="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+              {bill.billSeriesType === "installment"
+                ? t("bills.type.installment")
+                : t("bills.type.recurring")}
+            </dd>
+          </div>
+        ) : null}
+
+        {bill.billSeriesId && bill.occurrenceNumber ? (
+          <div className="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt className="text-sm font-medium leading-6 text-gray-900">
+              {t("labels.occurrence")}
+            </dt>
+            <dd className="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+              {bill.totalOccurrences
+                ? t("bills.series.installment", {
+                    current: bill.occurrenceNumber,
+                    total: bill.totalOccurrences,
+                  })
+                : t("bills.series.occurrenceNumber", {
+                    current: bill.occurrenceNumber,
+                  })}
+            </dd>
+          </div>
+        ) : null}
+
+        {bill.billSeriesId && bill.billSeriesIsActive === false ? (
+          <div className="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt className="text-sm font-medium leading-6 text-gray-900">
+              {t("labels.seriesStatus")}
+            </dt>
+            <dd className="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+              {t("bills.series.stopped")}
+            </dd>
+          </div>
+        ) : null}
+
         {bill.status === "paid" ? (
           <div className="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
             <dt className="text-sm font-medium leading-6 text-gray-900">

@@ -11,6 +11,8 @@ import { dateFormatter } from "@/utils/formatter";
 
 import { DeleteBillDialog } from "./delete-bill-dialog";
 import { MarkAsPaidDialog, type MarkAsPaidData } from "./mark-as-paid-dialog";
+import { BillSeriesLabel } from "./bill-series-label";
+import { StopBillSeriesDialog } from "./stop-bill-series-dialog";
 import type { Bill } from "../types";
 
 const EditBillDialog = lazy(async () => ({
@@ -77,6 +79,7 @@ export interface BillsMobileListProps {
   onDeleteBill: (id: string) => Promise<void>;
   onEditBill: (data: EditBillFormValue) => Promise<void>;
   onMarkAsPaid: (data: MarkAsPaidData) => Promise<void>;
+  onStopBillSeries: (seriesId: string) => Promise<void>;
 }
 
 export function BillsMobileList({
@@ -85,6 +88,7 @@ export function BillsMobileList({
   onDeleteBill,
   onEditBill,
   onMarkAsPaid,
+  onStopBillSeries,
 }: BillsMobileListProps) {
   const { t } = useTranslation();
 
@@ -94,8 +98,9 @@ export function BillsMobileList({
         <Card key={bill.id}>
           <CardContent className="space-y-4 p-4">
             <div className="flex items-start justify-between gap-3">
-              <div>
+              <div className="space-y-1">
                 <p className="font-semibold leading-5">{bill.description}</p>
+                <BillSeriesLabel bill={bill} />
                 <p className="mt-1 text-sm capitalize text-muted-foreground">
                   {bill.category}
                 </p>
@@ -127,6 +132,12 @@ export function BillsMobileList({
               </Button>
               {bill.status !== "paid" && bill.status !== "cancelled" && (
                 <MarkAsPaidDialog bill={bill} onMarkAsPaid={onMarkAsPaid} />
+              )}
+              {bill.billSeriesId && bill.billSeriesIsActive && (
+                <StopBillSeriesDialog
+                  seriesId={bill.billSeriesId}
+                  onStop={onStopBillSeries}
+                />
               )}
               <LazyEditBillAction bill={bill} onEditBill={onEditBill} />
               <DeleteBillDialog id={bill.id} onDelete={onDeleteBill} />

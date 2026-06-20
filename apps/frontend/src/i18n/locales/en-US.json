@@ -114,7 +114,17 @@
     "dueIn": "Due",
     "dueOn": "Due {{date}}",
     "overdueSince": "Overdue since {{date}}",
-    "markAsPaid": "Mark as Paid"
+    "markAsPaid": "Mark as Paid",
+    "frequency": "Frequency",
+    "selectFrequency": "Select frequency",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "annually": "Annually",
+    "installments": "Installments",
+    "seriesType": "Bill Series",
+    "occurrence": "Occurrence",
+    "seriesStatus": "Series Status"
   },
   "dashboard": {
     "subtitle": "Overview of your finances",
@@ -178,7 +188,14 @@
     "filters": {
       "statusPlaceholder": "All statuses",
       "statusSelected": "{{count}} selected",
-      "descriptionPlaceholder": "Search bills..."
+      "descriptionPlaceholder": "Search bills...",
+      "typeLabel": "Bill type",
+      "typeAll": "All types",
+      "typeRecurring": "Recurring",
+      "typeInstallment": "Installments",
+      "typeNormal": "Normal",
+      "emptyTitle": "No matching bills",
+      "emptyDescription": "Try changing or clearing the active filters."
     },
     "dialog": {
       "add": {
@@ -201,6 +218,26 @@
         "title": "Mark as Paid",
         "description": "Confirm payment details for this bill."
       }
+    },
+    "type": {
+      "label": "Bill type",
+      "select": "Select a bill type",
+      "oneTime": "One-time",
+      "recurring": "Recurring",
+      "installment": "Installments"
+    },
+    "series": {
+      "recurring": "Recurring",
+      "installment": "Installment {{current}}/{{total}}",
+      "installmentCompact": "{{current}}/{{total}}",
+      "occurrenceNumber": "Occurrence {{current}}",
+      "stopped": "Generation stopped"
+    },
+    "stopFuture": {
+      "cta": "Stop future bills",
+      "title": "Stop future bills",
+      "description": "This will stop the series from generating any future bills. Existing bills are kept. This action cannot be undone.",
+      "confirm": "Stop future bills"
     }
   },
   "expenses": {

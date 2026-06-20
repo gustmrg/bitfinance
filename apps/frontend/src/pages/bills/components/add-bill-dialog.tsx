@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { BillType } from "@/api/bills";
 import { cn } from "@/lib/utils";
 
 const AddBillSchema = z.object({
@@ -40,6 +41,29 @@ const AddBillSchema = z.object({
     .number({ required_error: "Amount is required" })
     .positive("Amount must be a positive number"),
   dueDate: z.date(),
+  billType: z.enum(["one-time", "recurring", "installment"]),
+  frequency: z.enum(["daily", "weekly", "monthly", "annually"]).optional(),
+  installments: z.coerce
+    .number()
+    .int("Installments must be a whole number")
+    .min(1, "Installments must be at least 1")
+    .optional(),
+}).superRefine((data, ctx) => {
+  if (data.billType !== "one-time" && !data.frequency) {
+    ctx.addIssue({
+      path: ["frequency"],
+      code: z.ZodIssueCode.custom,
+      message: "Frequency is required for recurring and installment bills",
+    });
+  }
+
+  if (data.billType === "installment" && !data.installments) {
+    ctx.addIssue({
+      path: ["installments"],
+      code: z.ZodIssueCode.custom,
+      message: "Installment count is required for installment bills",
+    });
+  }
 });
 
 type AddBillForm = z.infer<typeof AddBillSchema>;
@@ -56,8 +80,27 @@ export function AddBillDialog({
   const [open, setOpen] = useState(defaultOpen);
   const form = useForm<AddBillForm>({
     resolver: zodResolver(AddBillSchema),
+    defaultValues: {
+      billType: "one-time",
+    },
   });
   const { t } = useTranslation();
+
+  const billType = form.watch("billType");
+  const showFrequency = billType === "recurring" || billType === "installment";
+  const showInstallments = billType === "installment";
+
+  const handleBillTypeChange = (value: string) => {
+    const next = value as BillType;
+    form.setValue("billType", next);
+
+    if (next === "one-time") {
+      form.setValue("frequency", undefined);
+      form.setValue("installments", undefined);
+      form.clearErrors("frequency");
+      form.clearErrors("installments");
+    }
+  };
 
   const handleAddBill: SubmitHandler<AddBillForm> = (data: AddBillForm) => {
     setOpen(false);
@@ -163,6 +206,100 @@ export function AddBillDialog({
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="billType"
+            render={({ field }) => (
+              <FormItem className="grid grid-cols-4 items-center gap-4">
+                <FormLabel className="text-right">{t("bills.type.label")}</FormLabel>
+                <Select
+                  onValueChange={handleBillTypeChange}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder={t("bills.type.select")} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="one-time">
+                      {t("bills.type.oneTime")}
+                    </SelectItem>
+                    <SelectItem value="recurring">
+                      {t("bills.type.recurring")}
+                    </SelectItem>
+                    <SelectItem value="installment">
+                      {t("bills.type.installment")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {showFrequency && (
+            <FormField
+              control={form.control}
+              name="frequency"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-4">
+                  <FormLabel className="text-right">{t("labels.frequency")}</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder={t("labels.selectFrequency")} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="daily">{t("labels.daily")}</SelectItem>
+                      <SelectItem value="weekly">{t("labels.weekly")}</SelectItem>
+                      <SelectItem value="monthly">{t("labels.monthly")}</SelectItem>
+                      <SelectItem value="annually">{t("labels.annually")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
+          {showInstallments && (
+            <FormField
+              control={form.control}
+              name="installments"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-4">
+                  <FormLabel className="text-right">
+                    {t("labels.installments")}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      className="col-span-3"
+                      type="number"
+                      min={1}
+                      step="1"
+                      placeholder="1"
+                      {...field}
+                      onChange={(event) =>
+                        field.onChange(
+                          event.target.value === ""
+                            ? undefined
+                            : parseInt(event.target.value, 10)
+                        )
+                      }
+                      inputMode="numeric"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <FormField
             control={form.control}

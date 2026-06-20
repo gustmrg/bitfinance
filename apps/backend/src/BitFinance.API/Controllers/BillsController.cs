@@ -7,6 +7,7 @@ using BitFinance.API.Models;
 using BitFinance.API.Models.Request;
 using BitFinance.API.Models.Response;
 using BitFinance.API.Services.Interfaces;
+using BitFinance.API.Services;
 using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 using BitFinance.Business.Exceptions;
@@ -29,18 +30,24 @@ public class BillsController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<BillsController> _logger;
     private readonly IBillsRepository _billsRepository;
+    private readonly IBillSeriesRepository _billSeriesRepository;
+    private readonly IBillGenerationService _billGenerationService;
     private readonly IAttachmentService _attachmentService;
     private readonly IOrganizationsRepository _organizationsRepository;
 
     public BillsController(ApplicationDbContext context,
         ILogger<BillsController> logger,
         IBillsRepository billsRepository,
+        IBillSeriesRepository billSeriesRepository,
+        IBillGenerationService billGenerationService,
         IAttachmentService attachmentService,
         IOrganizationsRepository organizationsRepository)
     {
         _context = context;
         _logger = logger;
         _billsRepository = billsRepository;
+        _billSeriesRepository = billSeriesRepository;
+        _billGenerationService = billGenerationService;
         _attachmentService = attachmentService;
         _organizationsRepository = organizationsRepository;
     }
@@ -65,49 +72,101 @@ public class BillsController : ControllerBase
 
             if (!isValidCategory || !isValidStatus) return UnprocessableEntity();
 
+            if (request.Installments is { } installments && installments < 1)
+                return UnprocessableEntity("Installments must be a positive integer.");
+
+            if (request.Installments.HasValue && !request.Frequency.HasValue)
+                return UnprocessableEntity("Installments require a frequency.");
+
             var organization = await _organizationsRepository.GetByIdAsync(organizationId);
             if (organization is null) return NotFound();
 
             var entitlement = PlanEntitlement.For(organization.EffectivePlanTier);
             var (monthStartUtc, monthEndUtc) = organization.GetCurrentMonthBoundariesUtc();
-            var currentBillCount = await _billsRepository.GetMonthlyCountByOrganizationAsync(
+            var oneTimeBillCount = await _billsRepository.GetOneTimeMonthlyCountByOrganizationAsync(
                 organizationId, monthStartUtc, monthEndUtc);
+            var seriesCount = await _billSeriesRepository.GetMonthlyCountByOrganizationAsync(
+                organizationId, monthStartUtc, monthEndUtc);
+            var currentBillCount = oneTimeBillCount + seriesCount;
 
             if (currentBillCount >= entitlement.MaxBillsPerMonth)
                 return StatusCode(403, new { error = $"Monthly bill limit of {entitlement.MaxBillsPerMonth} reached." });
 
-            Bill bill = new()
+            var dueDate = DateOnly.FromDateTime(request.DueDate.ToUniversalTime());
+
+            if (request.Frequency is null)
             {
+                Bill bill = new()
+                {
+                    Description = request.Description,
+                    Category = category,
+                    Status = status,
+                    CreatedAt = DateTime.UtcNow,
+                    DueDate = dueDate,
+                    PaymentDate = request.PaymentDate?.ToUniversalTime(),
+                    AmountDue = request.AmountDue,
+                    AmountPaid = request.AmountPaid,
+                    OrganizationId = organizationId,
+                };
+
+                await _billsRepository.CreateAsync(bill);
+
+                return CreatedAtAction(nameof(GetBillById), new
+                {
+                    billId = bill.Id, organizationId = bill.OrganizationId
+                }, MapCreateBillResponse(bill));
+            }
+
+            BillSeries series = new()
+            {
+                Id = Guid.NewGuid(),
                 Description = request.Description,
                 Category = category,
-                Status = status,
-                CreatedAt = DateTime.UtcNow,
-                DueDate = DateOnly.FromDateTime(request.DueDate.ToUniversalTime()),
-                PaymentDate = request.PaymentDate?.ToUniversalTime(),
+                Frequency = request.Frequency.Value,
                 AmountDue = request.AmountDue,
-                AmountPaid = request.AmountPaid,
+                StartDate = dueDate,
+                TotalOccurrences = request.Installments,
+                IsActive = true,
+                NextOccurrenceNumber = 1,
+                CreatedAt = DateTime.UtcNow,
                 OrganizationId = organizationId,
             };
 
-            await _billsRepository.CreateAsync(bill);
+            await _billSeriesRepository.CreateAsync(series);
 
-            var response = new CreateBillResponse
+            var horizon = BillGenerationService.GetRollingHorizon(organization);
+            await _billGenerationService.GenerateOccurrencesAsync(series, horizon, organization);
+
+            var firstOccurrence = await _context.Bills
+                .AsNoTracking()
+                .Where(b => b.BillSeriesId == series.Id && b.OccurrenceNumber == 1)
+                .OrderBy(b => b.OccurrenceNumber)
+                .FirstOrDefaultAsync();
+
+            if (firstOccurrence is null)
             {
-                Id = bill.Id,
-                Description = bill.Description,
-                Category = bill.Category,
-                Status = bill.Status,
-                CreatedDate = bill.CreatedAt,
-                DueDate = DateTime.Parse(bill.DueDate.ToString()),
-                PaidDate = bill.PaymentDate,
-                AmountDue = bill.AmountDue,
-                AmountPaid = bill.AmountPaid
-            };
+                return CreatedAtAction(nameof(GetBillById), new
+                {
+                    billId = Guid.Empty, organizationId
+                }, new CreateBillResponse
+                {
+                    Description = series.Description,
+                    Category = series.Category,
+                    Status = BillStatus.Upcoming,
+                    CreatedDate = series.CreatedAt,
+                    DueDate = new DateTime(series.StartDate, TimeOnly.MinValue),
+                    AmountDue = series.AmountDue,
+                    BillSeriesId = series.Id,
+                    TotalOccurrences = series.TotalOccurrences,
+                    BillSeriesType = series.Type
+                });
+            }
 
+            firstOccurrence.BillSeries = series;
             return CreatedAtAction(nameof(GetBillById), new
             {
-                billId = bill.Id, organizationId = bill.OrganizationId
-            }, response);
+                billId = firstOccurrence.Id, organizationId = firstOccurrence.OrganizationId
+            }, MapCreateBillResponse(firstOccurrence));
         }
         catch (Exception ex)
         {
@@ -148,26 +207,7 @@ public class BillsController : ControllerBase
                 organizationId, page, pageSize, from, to, statuses, description);
             var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
 
-            var billsDto = bills.Select(bill => new GetBillResponse
-                {
-                    Id = bill.Id,
-                    Description = bill.Description,
-                    Category = bill.Category,
-                    Status = bill.Status,
-                    CreatedAt = bill.CreatedAt,
-                    DueDate = DateTime.Parse(bill.DueDate.ToString()),
-                    PaymentDate = bill.PaymentDate,
-                    AmountDue = bill.AmountDue,
-                    AmountPaid = bill.AmountPaid,
-                    Attachments = bill.Attachments.Select(a => new AttachmentResponseModel
-                    {
-                        Id = a.Id,
-                        FileName = a.FileName,
-                        ContentType = a.ContentType,
-                        FileCategory = a.FileCategory,
-                        AttachmentType = a.AttachmentType
-                    }).ToList()
-                })
+            var billsDto = bills.Select(MapGetBillResponse)
                 .ToList();
 
             var response = new PagedResponse<GetBillResponse>(billsDto, page, pageSize, totalRecords, totalPages);
@@ -202,26 +242,7 @@ public class BillsController : ControllerBase
                 return NotFound();
             }
 
-            var response = new GetBillResponse
-            {
-                Id = bill.Id,
-                Description = bill.Description,
-                Category = bill.Category,
-                Status = bill.Status,
-                CreatedAt = bill.CreatedAt,
-                DueDate = new DateTime(bill.DueDate, TimeOnly.MinValue),
-                PaymentDate = bill.PaymentDate,
-                AmountDue = bill.AmountDue,
-                AmountPaid = bill.AmountPaid,
-                Attachments = bill.Attachments.Select(a => new AttachmentResponseModel
-                {
-                    Id = a.Id,
-                    FileName = a.FileName,
-                    ContentType = a.ContentType,
-                    FileCategory = a.FileCategory,
-                    AttachmentType = a.AttachmentType
-                }).ToList()
-            };
+            var response = MapGetBillResponse(bill);
 
             return Ok(response);
         }
@@ -251,7 +272,9 @@ public class BillsController : ControllerBase
 
             if (!isValidCategory || !isValidStatus) return UnprocessableEntity();
 
-            var bill = await _context.Bills.FirstOrDefaultAsync(b => b.Id == billId);
+            var bill = await _context.Bills
+                .Include(b => b.BillSeries)
+                .FirstOrDefaultAsync(b => b.Id == billId);
 
             if (bill is null)
             {
@@ -284,7 +307,12 @@ public class BillsController : ControllerBase
                 DueDate = new DateTime(bill.DueDate, TimeOnly.MinValue),
                 PaidDate = bill.PaymentDate,
                 AmountDue = bill.AmountDue,
-                AmountPaid = bill.AmountPaid
+                AmountPaid = bill.AmountPaid,
+                BillSeriesId = bill.BillSeriesId,
+                OccurrenceNumber = bill.OccurrenceNumber,
+                TotalOccurrences = bill.TotalOccurrences,
+                BillSeriesType = GetBillSeriesType(bill),
+                BillSeriesIsActive = bill.BillSeries?.IsActive ?? false
             };
 
             return Ok(response);
@@ -466,8 +494,103 @@ public class BillsController : ControllerBase
         }
     }
 
+    [HttpPost]
+    [Route("series/{seriesId:guid}/stop")]
+    [EndpointSummary("Stop future bill generation for a series")]
+    [EndpointDescription("Stops a recurring or installment bill series from generating any future occurrences. Existing generated bills are preserved.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> StopBillSeriesAsync([FromRoute] Guid organizationId, [FromRoute] Guid seriesId)
+    {
+        try
+        {
+            var series = await _billSeriesRepository.GetByIdAsync(seriesId);
+
+            if (series is null || series.OrganizationId != organizationId)
+                return NotFound();
+
+            if (!series.IsActive)
+                return NoContent();
+
+            series.IsActive = false;
+            series.StoppedAt = DateTime.UtcNow;
+
+            await _billSeriesRepository.UpdateAsync(series,
+                s => s.IsActive,
+                s => s.StoppedAt);
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
+                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
+                nameof(StopBillSeriesAsync),
+                ex.Message);
+            return BadRequest();
+        }
+    }
+
     private string? GetCurrentUserId()
     {
         return User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private static BillSeriesType? GetBillSeriesType(Bill bill)
+    {
+        if (bill.BillSeriesId is null)
+            return null;
+
+        return bill.TotalOccurrences is null ? BillSeriesType.Recurring : BillSeriesType.Installment;
+    }
+
+    private static CreateBillResponse MapCreateBillResponse(Bill bill)
+    {
+        return new CreateBillResponse
+        {
+            Id = bill.Id,
+            Description = bill.Description,
+            Category = bill.Category,
+            Status = bill.Status,
+            CreatedDate = bill.CreatedAt,
+            DueDate = new DateTime(bill.DueDate, TimeOnly.MinValue),
+            PaidDate = bill.PaymentDate,
+            AmountDue = bill.AmountDue,
+            AmountPaid = bill.AmountPaid,
+            BillSeriesId = bill.BillSeriesId,
+            OccurrenceNumber = bill.OccurrenceNumber,
+            TotalOccurrences = bill.TotalOccurrences,
+            BillSeriesType = GetBillSeriesType(bill)
+        };
+    }
+
+    private static GetBillResponse MapGetBillResponse(Bill bill)
+    {
+        return new GetBillResponse
+        {
+            Id = bill.Id,
+            Description = bill.Description,
+            Category = bill.Category,
+            Status = bill.Status,
+            CreatedAt = bill.CreatedAt,
+            DueDate = new DateTime(bill.DueDate, TimeOnly.MinValue),
+            PaymentDate = bill.PaymentDate,
+            AmountDue = bill.AmountDue,
+            AmountPaid = bill.AmountPaid,
+            Attachments = bill.Attachments.Select(a => new AttachmentResponseModel
+            {
+                Id = a.Id,
+                FileName = a.FileName,
+                ContentType = a.ContentType,
+                FileCategory = a.FileCategory,
+                AttachmentType = a.AttachmentType
+            }).ToList(),
+            BillSeriesId = bill.BillSeriesId,
+            OccurrenceNumber = bill.OccurrenceNumber,
+            TotalOccurrences = bill.TotalOccurrences,
+            BillSeriesType = GetBillSeriesType(bill),
+            BillSeriesIsActive = bill.BillSeries?.IsActive ?? false
+        };
     }
 }

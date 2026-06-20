@@ -8,6 +8,8 @@ import type {
   BillCategory,
   BillFileCategory,
   BillStatus,
+  BillType,
+  Frequency,
   UpdateBillRequest,
 } from "@/api/bills";
 import { useSelectedOrganization } from "@/auth/auth-provider";
@@ -19,7 +21,10 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useBillMutations } from "@/hooks/mutations/use-bill-mutations";
 import { useBillsQuery } from "@/hooks/queries/use-bills-query";
 
-import { BillsFilterBar } from "./components/bills-filter-bar";
+import {
+  BillsFilterBar,
+  type BillTypeFilter,
+} from "./components/bills-filter-bar";
 import { BillsMobileList } from "./components/bills-mobile-list";
 import { BillsTable } from "./components/bills-table";
 
@@ -32,6 +37,9 @@ interface AddBillFormValues {
   category: string;
   dueDate: Date;
   amount: number;
+  billType: BillType;
+  frequency?: Frequency;
+  installments?: number;
 }
 
 interface EditBillFormValues {
@@ -83,6 +91,7 @@ export function Bills() {
   });
   const [selectedStatuses, setSelectedStatuses] = useState<BillStatus[]>([]);
   const [descriptionSearch, setDescriptionSearch] = useState("");
+  const [billTypeFilter, setBillTypeFilter] = useState<BillTypeFilter>("all");
   const debouncedDescription = useDebounce(descriptionSearch, 300);
 
   const selectedOrganization = useSelectedOrganization();
@@ -94,12 +103,28 @@ export function Bills() {
     status: selectedStatuses.length > 0 ? selectedStatuses : undefined,
     description: debouncedDescription || undefined,
   });
-  const { addBillAsync, deleteBillAsync, updateBillAsync, uploadBillDocumentsAsync } =
-    useBillMutations({
-      organizationId: selectedOrganization?.id ?? null,
-    });
+  const {
+    addBillAsync,
+    deleteBillAsync,
+    updateBillAsync,
+    uploadBillDocumentsAsync,
+    stopBillSeriesAsync,
+  } = useBillMutations({
+    organizationId: selectedOrganization?.id ?? null,
+  });
 
   const bills = billsQuery.data ?? [];
+  const filteredBills = bills.filter((bill) => {
+    if (billTypeFilter === "all") {
+      return true;
+    }
+
+    if (billTypeFilter === "normal") {
+      return !bill.billSeriesType;
+    }
+
+    return bill.billSeriesType === billTypeFilter;
+  });
 
   const handleDateFilterChange = (newDate: DateRange) => {
     setDateRange(newDate);
@@ -123,11 +148,17 @@ export function Bills() {
   };
 
   const getTotalAmount = () => {
-    return bills.reduce((total, bill) => total + bill.amountDue, 0).toFixed(2);
+    return filteredBills
+      .reduce((total, bill) => total + bill.amountDue, 0)
+      .toFixed(2);
   };
 
   const handleAddBill = async (data: AddBillFormValues) => {
     try {
+      const frequency = data.billType === "one-time" ? null : data.frequency ?? null;
+      const installments =
+        data.billType === "installment" ? data.installments ?? null : null;
+
       await addBillAsync({
         description: data.description,
         category: data.category as BillCategory,
@@ -136,6 +167,8 @@ export function Bills() {
         amountDue: data.amount,
         paymentDate: null,
         amountPaid: null,
+        frequency,
+        installments,
       });
     } catch (error) {
       console.error("Failed to add the bill:", error);
@@ -206,6 +239,14 @@ export function Bills() {
     }
   };
 
+  const handleStopBillSeries = async (seriesId: string) => {
+    try {
+      await stopBillSeriesAsync({ seriesId });
+    } catch (error) {
+      console.error("Failed to stop future bills:", error);
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader
@@ -220,38 +261,48 @@ export function Bills() {
         onStatusChange={setSelectedStatuses}
         descriptionSearch={descriptionSearch}
         onDescriptionChange={setDescriptionSearch}
+        billTypeFilter={billTypeFilter}
+        onBillTypeChange={setBillTypeFilter}
         actions={<LazyAddBillAction onAddBill={handleAddBill} />}
       />
 
       {billsQuery.isPending ? (
         <TableSkeleton columns={6} />
-      ) : bills.length === 0 ? (
+      ) : filteredBills.length === 0 ? (
         <div className="rounded-lg border p-10 text-center">
           <ReceiptText className="mx-auto h-12 w-12 text-muted-foreground/50" />
-          <h3 className="mt-2 text-lg font-semibold">{t("bills.emptyTitle")}</h3>
+          <h3 className="mt-2 text-lg font-semibold">
+            {bills.length === 0
+              ? t("bills.emptyTitle")
+              : t("bills.filters.emptyTitle")}
+          </h3>
           <p className="text-sm text-muted-foreground">
-            {t("bills.emptyDescription")}
+            {bills.length === 0
+              ? t("bills.emptyDescription")
+              : t("bills.filters.emptyDescription")}
           </p>
         </div>
       ) : (
         <>
           <div className="md:hidden">
             <BillsMobileList
-              bills={bills}
+              bills={filteredBills}
               renderStatusBadge={renderStatusBadge}
               onDeleteBill={handleDeleteBill}
               onEditBill={handleEditBill}
               onMarkAsPaid={handleMarkAsPaid}
+              onStopBillSeries={handleStopBillSeries}
             />
           </div>
           <div className="hidden md:block">
             <BillsTable
-              bills={bills}
+              bills={filteredBills}
               totalAmount={getTotalAmount()}
               renderStatusBadge={renderStatusBadge}
               onDeleteBill={handleDeleteBill}
               onEditBill={handleEditBill}
               onMarkAsPaid={handleMarkAsPaid}
+              onStopBillSeries={handleStopBillSeries}
               onUploadDocuments={handleUploadDocuments}
             />
           </div>

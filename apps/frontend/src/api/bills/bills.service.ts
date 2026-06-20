@@ -4,6 +4,7 @@ import { normalizeError } from "@/api/shared/normalize-error";
 
 import type {
   Bill,
+  BillSeriesType,
   BillsListQuery,
   BillsListResponse,
   BillDocument,
@@ -11,6 +12,7 @@ import type {
   CreateBillResponse,
   DeleteBillDocumentRequest,
   DownloadBillDocumentRequest,
+  StopBillSeriesRequest,
   UpdateBillRequest,
   UpdateBillResponse,
   UploadBillDocumentResponse,
@@ -27,10 +29,11 @@ interface BillAttachmentApiResponse {
   attachmentType: UploadBillDocumentResponse["attachmentType"];
 }
 
-interface BillApiResponse extends Omit<Bill, "category" | "status" | "documents"> {
+interface BillApiResponse extends Omit<Bill, "category" | "status" | "documents" | "billSeriesType"> {
   category: string;
   status: string;
   attachments?: BillAttachmentApiResponse[];
+  billSeriesType?: string | null;
 }
 
 interface BillsListApiResponse extends Omit<BillsListResponse, "data"> {
@@ -47,6 +50,10 @@ interface CreateBillApiResponse {
   createdDate: string;
   dueDate: string;
   paidDate?: string | null;
+  billSeriesId?: string | null;
+  occurrenceNumber?: number | null;
+  totalOccurrences?: number | null;
+  billSeriesType?: string | null;
 }
 
 interface UpdateBillApiResponse {
@@ -58,6 +65,11 @@ interface UpdateBillApiResponse {
   amountPaid?: number | null;
   dueDate: string;
   paidDate?: string | null;
+  billSeriesId?: string | null;
+  occurrenceNumber?: number | null;
+  totalOccurrences?: number | null;
+  billSeriesType?: string | null;
+  billSeriesIsActive?: boolean;
 }
 
 function mapStatus(status: string): Bill["status"] {
@@ -66,6 +78,12 @@ function mapStatus(status: string): Bill["status"] {
 
 function mapCategory(category: string): Bill["category"] {
   return category.toLowerCase() as Bill["category"];
+}
+
+function mapSeriesType(type?: string | null): BillSeriesType | null | undefined {
+  if (type === null) return null;
+  if (type === undefined) return undefined;
+  return type.toLowerCase() as BillSeriesType;
 }
 
 function mapAttachment(attachment: BillAttachmentApiResponse): BillDocument {
@@ -83,6 +101,7 @@ function mapBill(bill: BillApiResponse): Bill {
     ...bill,
     category: mapCategory(bill.category),
     status: mapStatus(bill.status),
+    billSeriesType: mapSeriesType(bill.billSeriesType),
     paymentDate: bill.paymentDate ?? bill.paidDate ?? null,
     documents: bill.attachments?.map(mapAttachment) ?? [],
   };
@@ -99,6 +118,10 @@ function mapCreateBillResponse(bill: CreateBillApiResponse): CreateBillResponse 
     createdDate: bill.createdDate,
     dueDate: bill.dueDate,
     paymentDate: bill.paidDate ?? null,
+    billSeriesId: bill.billSeriesId ?? null,
+    occurrenceNumber: bill.occurrenceNumber ?? null,
+    totalOccurrences: bill.totalOccurrences ?? null,
+    billSeriesType: mapSeriesType(bill.billSeriesType),
   };
 }
 
@@ -112,6 +135,11 @@ function mapUpdateBillResponse(bill: UpdateBillApiResponse): UpdateBillResponse 
     paymentDate: bill.paidDate ?? null,
     amountDue: bill.amountDue,
     amountPaid: bill.amountPaid ?? null,
+    billSeriesId: bill.billSeriesId ?? null,
+    occurrenceNumber: bill.occurrenceNumber ?? null,
+    totalOccurrences: bill.totalOccurrences ?? null,
+    billSeriesType: mapSeriesType(bill.billSeriesType),
+    billSeriesIsActive: bill.billSeriesIsActive ?? false,
   };
 }
 
@@ -186,6 +214,8 @@ export const billsService = {
           amountDue: request.amountDue,
           paymentDate: request.paymentDate,
           amountPaid: request.amountPaid,
+          frequency: request.frequency ?? undefined,
+          installments: request.installments ?? undefined,
         }
       );
 
@@ -221,6 +251,16 @@ export const billsService = {
       await authApi.delete(`/organizations/${organizationId}/bills/${id}`);
     } catch (error) {
       throw normalizeError(error, "Failed to delete bill.");
+    }
+  },
+
+  async stopSeriesAsync(request: StopBillSeriesRequest): Promise<void> {
+    try {
+      await authApi.post(
+        `/organizations/${request.organizationId}/bills/series/${request.seriesId}/stop`
+      );
+    } catch (error) {
+      throw normalizeError(error, "Failed to stop future bills.");
     }
   },
 

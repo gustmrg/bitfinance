@@ -20,6 +20,17 @@ public class UpdateBillResponse
     public decimal? AmountPaid { get; set; }
     
     public DateTime DueDate { get; set; }
-    
+
     public DateTimeOffset? PaidDate { get; set; }
+
+    public Guid? BillSeriesId { get; set; }
+
+    public int? OccurrenceNumber { get; set; }
+
+    public int? TotalOccurrences { get; set; }
+
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public BillSeriesType? BillSeriesType { get; set; }
+
+    public bool BillSeriesIsActive { get; set; }
 }
