@@ -61,6 +61,11 @@ public sealed class BillResponse
     public DateTimeOffset? DueDate { get; init; }
     public DateTimeOffset? PaymentDate { get; init; }
     public DateTimeOffset? PaidDate { get; init; }
+    public Guid? BillSeriesId { get; init; }
+    public int? OccurrenceNumber { get; init; }
+    public int? TotalOccurrences { get; init; }
+    public string? BillSeriesType { get; init; }
+    public bool? BillSeriesIsActive { get; init; }
     public List<AttachmentResponse> Attachments { get; init; } = [];
 }
 
@@ -105,6 +110,15 @@ public sealed class DashboardExpenseResponse
     public DateTimeOffset Date { get; init; }
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter<BillFrequency>))]
+public enum BillFrequency
+{
+    Daily,
+    Weekly,
+    Monthly,
+    Annually
+}
+
 public sealed record CreateBillRequest(
     string Description,
     string Category,
@@ -112,7 +126,9 @@ public sealed record CreateBillRequest(
     DateTimeOffset DueDate,
     DateTimeOffset? PaymentDate,
     decimal AmountDue,
-    decimal? AmountPaid);
+    decimal? AmountPaid,
+    BillFrequency? Frequency = null,
+    int? Installments = null);
 
 public sealed record UpdateBillRequest(
     string Description,
@@ -133,6 +149,11 @@ public sealed class UpdateBillResponse
     public decimal? AmountPaid { get; init; }
     public DateTimeOffset DueDate { get; init; }
     public DateTimeOffset? PaidDate { get; init; }
+    public Guid? BillSeriesId { get; init; }
+    public int? OccurrenceNumber { get; init; }
+    public int? TotalOccurrences { get; init; }
+    public string? BillSeriesType { get; init; }
+    public bool? BillSeriesIsActive { get; init; }
 }
 
 public sealed class UploadDocumentResponse
@@ -151,6 +172,8 @@ public sealed record DocumentDownloadUrlResponse(
     DateTimeOffset ExpiresAt);
 
 public sealed record DeleteBillResponse(bool Deleted, Guid BillId);
+
+public sealed record StopBillSeriesResponse(bool Stopped, Guid SeriesId);
 
 public sealed record DeleteBillDocumentResponse(bool Deleted, Guid DocumentId);
 
@@ -173,6 +196,7 @@ public sealed record CreateExpenseRequest(
 [JsonSerializable(typeof(ExpenseResponse))]
 [JsonSerializable(typeof(UpcomingBillsResponse))]
 [JsonSerializable(typeof(RecentExpensesResponse))]
+[JsonSerializable(typeof(BillFrequency))]
 [JsonSerializable(typeof(CreateBillRequest))]
 [JsonSerializable(typeof(UpdateBillRequest))]
 [JsonSerializable(typeof(UpdateBillResponse))]
