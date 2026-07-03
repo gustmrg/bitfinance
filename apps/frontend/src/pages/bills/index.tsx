@@ -292,6 +292,7 @@ export function Bills() {
               onEditBill={handleEditBill}
               onMarkAsPaid={handleMarkAsPaid}
               onStopBillSeries={handleStopBillSeries}
+              onUploadDocuments={handleUploadDocuments}
             />
           </div>
           <div className="hidden md:block">
