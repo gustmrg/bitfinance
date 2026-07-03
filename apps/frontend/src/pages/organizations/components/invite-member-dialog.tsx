@@ -57,7 +57,7 @@ type InviteMemberFormValues = z.infer<typeof inviteMemberSchema>;
 
 interface InviteMemberDialogProps {
   organizationId: string;
-  allowedRoles: InviteOrganizationRole[];
+  allowedRoles: readonly InviteOrganizationRole[];
   defaultOpen?: boolean;
   trigger: ReactNode;
 }

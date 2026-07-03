@@ -9,6 +9,7 @@ import {
   LogOut,
   ReceiptText,
   Settings,
+  Users,
   Wallet,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -153,6 +154,14 @@ export function AccountMore() {
       icon: Building2,
       type: "route",
       to: "/account/organization",
+    },
+    {
+      id: "members",
+      title: t("more.items.members.title"),
+      description: t("more.items.members.description"),
+      icon: Users,
+      type: "route",
+      to: "/organization/members",
     },
     {
       id: "create-organization",

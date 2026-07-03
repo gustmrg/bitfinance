@@ -44,18 +44,18 @@ Implement local theme switching and full-stack organization member/role manageme
 
 ## Phase 5: Dedicated Members And Roles Page
 
-- Add protected route `/organization/members` under the dashboard layout.
-- Add a desktop sidebar item labeled `Members & roles` through `layouts/app-navigation.ts`.
-- Add matching breadcrumb and locale strings.
-- Move member management out of `/account/organization`; keep organization settings focused on name, budget, and overview.
-- Build the new page with:
-  - selected-organization empty state,
-  - loading/unavailable states,
-  - current members table/list,
-  - invite member action,
-  - role-change dialog or inline select,
-  - remove-member confirmation.
-- Disable or hide actions based on current user role and backend policy.
+- [x] Add protected route `/organization/members` under the dashboard layout.
+- [x] Add a desktop sidebar item labeled `Members & roles` through `layouts/app-navigation.ts`.
+- [x] Add matching breadcrumb and locale strings.
+- [x] Move member management out of `/account/organization`; keep organization settings focused on name, budget, and overview.
+- [x] Build the new page with:
+  - [x] selected-organization empty state,
+  - [x] loading/unavailable states,
+  - [x] current members table/list,
+  - [x] invite member action,
+  - [x] role-change dialog or inline select,
+  - [x] remove-member confirmation.
+- [x] Disable or hide actions based on current user role and backend policy.
 
 ## Phase 6: Cleanup And Verification
 

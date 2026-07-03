@@ -41,6 +41,7 @@
     "bills": "Contas",
     "expenses": "Despesas",
     "organization": "Organização",
+    "members": "Membros e papéis",
     "account": "Conta",
     "more": "Mais",
     "settings": "Configurações",
@@ -301,7 +302,11 @@
       },
       "organization": {
         "title": "Organização",
-        "description": "Gerencie membros, convites e configurações do espaço de trabalho."
+        "description": "Gerencie nome, orçamento e visão geral do espaço."
+      },
+      "members": {
+        "title": "Membros e papéis",
+        "description": "Gerencie acesso, papéis e remoções."
       },
       "createOrganization": {
         "title": "Criar Organização",
@@ -383,7 +388,7 @@
   },
   "organization": {
     "title": "Organização",
-    "subtitle": "Gerencie as configurações do espaço de trabalho, membros e links de convite.",
+    "subtitle": "Gerencie nome, orçamento e visão geral do espaço.",
     "loading": "Carregando detalhes da organização...",
     "unavailable": {
       "title": "Organização não encontrada",
@@ -444,9 +449,28 @@
       "successDescription": "O orçamento da organização foi salvo com sucesso."
     },
     "members": {
-      "title": "Membros",
-      "description": "Revise os membros atuais e prepare fluxos de gerenciamento de papéis.",
+      "title": "Membros e papéis",
+      "description": "Gerencie quem pode acessar a organização selecionada.",
+      "emptyTitle": "Nenhum membro retornado",
       "empty": "Nenhum membro foi retornado para esta organização.",
+      "you": "Você",
+      "memberColumn": "Membro",
+      "roleColumn": "Papel",
+      "joinedColumn": "Entrada",
+      "actionsColumn": "Ações",
+      "totalMembers": "Total de membros",
+      "ownerCount": "Proprietários",
+      "yourRole": "Seu papel",
+      "removeAction": "Remover",
+      "leaveAction": "Sair",
+      "roleUpdated": "Papel atualizado",
+      "roleUpdatedDescription": "O papel do membro foi atualizado.",
+      "removeSuccess": "Membro removido",
+      "leaveSuccess": "Você saiu da organização",
+      "removeConfirmTitle": "Remover membro",
+      "removeConfirmDescription": "Remover {{member}} desta organização? Essa pessoa perderá acesso imediatamente.",
+      "leaveConfirmTitle": "Sair da organização",
+      "leaveConfirmDescription": "Você perderá acesso a esta organização. Se ela estiver selecionada, o BitFinance mudará para outro espaço disponível.",
       "roleUnavailable": "Papel indisponível",
       "manageRolesTitle": "O gerenciamento de papéis está parcialmente disponível",
       "manageRolesDescription": "Hoje você já pode definir papéis ao criar convites. A edição de papéis para membros existentes ainda depende de suporte do backend para retornar e atualizar papéis."
