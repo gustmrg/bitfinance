@@ -59,10 +59,10 @@ Implement local theme switching and full-stack organization member/role manageme
 
 ## Phase 6: Cleanup And Verification
 
-- Remove the old role-management placeholder alert from the organization settings page.
-- Update More page and organization switcher links only if they still describe organization member management incorrectly.
-- Keep invite creation and join flow behavior intact.
-- Ensure mobile layouts remain usable, especially member rows, dialogs, and bottom navigation.
+- [x] Remove the old role-management placeholder alert from the organization settings page.
+- [x] Update More page and organization switcher links only if they still describe organization member management incorrectly.
+- [x] Keep invite creation and join flow behavior intact.
+- [x] Ensure mobile layouts remain usable, especially member rows, dialogs, and bottom navigation.
 
 ## Test Plan
 

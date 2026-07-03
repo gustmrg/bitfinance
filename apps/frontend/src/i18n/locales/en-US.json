@@ -417,7 +417,7 @@
       "benefits": {
         "workspace": "Keep data separated by workspace from day one.",
         "invites": "Invite teammates with roles as soon as the workspace is ready.",
-        "settings": "Update members, invites, and naming later from organization settings."
+        "settings": "Update naming, budget, and access controls from their dedicated settings pages."
       }
     },
     "overview": {
@@ -474,10 +474,7 @@
       "removeConfirmTitle": "Remove member",
       "removeConfirmDescription": "Remove {{member}} from this organization? They will lose access immediately.",
       "leaveConfirmTitle": "Leave organization",
-      "leaveConfirmDescription": "You will lose access to this organization. If this is the selected organization, BitFinance will switch you to another available workspace.",
-      "roleUnavailable": "Role unavailable",
-      "manageRolesTitle": "Role management is partially available",
-      "manageRolesDescription": "You can assign roles when creating invites today. Editing roles for existing members still depends on backend support for member roles and role updates."
+      "leaveConfirmDescription": "You will lose access to this organization. If this is the selected organization, BitFinance will switch you to another available workspace."
     },
     "invite": {
       "trigger": "Invite member",

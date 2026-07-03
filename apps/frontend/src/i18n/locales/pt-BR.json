@@ -413,7 +413,7 @@
       "benefits": {
         "workspace": "Mantenha os dados separados por espaço de trabalho desde o primeiro dia.",
         "invites": "Convide integrantes com papéis definidos assim que o espaço estiver pronto.",
-        "settings": "Atualize membros, convites e nome depois nas configurações da organização."
+        "settings": "Atualize nome, orçamento e controles de acesso nas páginas dedicadas."
       }
     },
     "overview": {
@@ -470,10 +470,7 @@
       "removeConfirmTitle": "Remover membro",
       "removeConfirmDescription": "Remover {{member}} desta organização? Essa pessoa perderá acesso imediatamente.",
       "leaveConfirmTitle": "Sair da organização",
-      "leaveConfirmDescription": "Você perderá acesso a esta organização. Se ela estiver selecionada, o BitFinance mudará para outro espaço disponível.",
-      "roleUnavailable": "Papel indisponível",
-      "manageRolesTitle": "O gerenciamento de papéis está parcialmente disponível",
-      "manageRolesDescription": "Hoje você já pode definir papéis ao criar convites. A edição de papéis para membros existentes ainda depende de suporte do backend para retornar e atualizar papéis."
+      "leaveConfirmDescription": "Você perderá acesso a esta organização. Se ela estiver selecionada, o BitFinance mudará para outro espaço disponível."
     },
     "invite": {
       "trigger": "Convidar membro",
