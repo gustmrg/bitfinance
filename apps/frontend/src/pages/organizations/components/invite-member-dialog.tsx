@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -18,7 +18,7 @@ import { toast } from "sonner";
 
 import type {
   CreateInvitationResponse,
-  OrganizationRole,
+  InviteOrganizationRole,
 } from "@/api/organizations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,23 +48,23 @@ import {
 import { AdaptiveModal } from "@/components/ui/adaptive-modal";
 import { useOrganizationMutations } from "@/hooks/mutations/use-organization-mutations";
 
-const organizationRoles: OrganizationRole[] = ["Owner", "Admin", "Member"];
-
 const inviteMemberSchema = z.object({
   email: z.string().trim().email(),
-  role: z.enum(["Owner", "Admin", "Member"]),
+  role: z.enum(["Admin", "Member"]),
 });
 
 type InviteMemberFormValues = z.infer<typeof inviteMemberSchema>;
 
 interface InviteMemberDialogProps {
   organizationId: string;
+  allowedRoles: InviteOrganizationRole[];
   defaultOpen?: boolean;
   trigger: ReactNode;
 }
 
 export function InviteMemberDialog({
   organizationId,
+  allowedRoles,
   defaultOpen = false,
   trigger,
 }: InviteMemberDialogProps) {
@@ -73,17 +73,29 @@ export function InviteMemberDialog({
   const [invitation, setInvitation] =
     useState<CreateInvitationResponse | null>(null);
   const { createInviteAsync, isCreatingInvite } = useOrganizationMutations();
+  const defaultRole = allowedRoles[0] ?? "Member";
 
   const form = useForm<InviteMemberFormValues>({
     resolver: zodResolver(inviteMemberSchema),
     mode: "onChange",
     defaultValues: {
       email: "",
-      role: "Member",
+      role: defaultRole,
     },
   });
 
   const selectedRole = form.watch("role");
+
+  useEffect(() => {
+    if (allowedRoles.includes(selectedRole)) {
+      return;
+    }
+
+    form.setValue("role", defaultRole, {
+      shouldDirty: false,
+      shouldValidate: true,
+    });
+  }, [allowedRoles, defaultRole, form, selectedRole]);
 
   const invitationLink = useMemo(() => {
     if (!invitation) {
@@ -103,7 +115,7 @@ export function InviteMemberDialog({
     setInvitation(null);
     form.reset({
       email: "",
-      role: "Member",
+      role: defaultRole,
     });
   }
 
@@ -300,7 +312,7 @@ export function InviteMemberDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {organizationRoles.map((role) => (
+                        {allowedRoles.map((role) => (
                           <SelectItem key={role} value={role}>
                             {t(`organization.roles.${role.toLowerCase()}`)}
                           </SelectItem>

@@ -8,7 +8,8 @@ import { Link } from "react-router-dom";
 import { z } from "zod";
 import { toast } from "sonner";
 
-import { useSelectedOrganization } from "@/auth/auth-provider";
+import type { InviteOrganizationRole, OrganizationRole } from "@/api/organizations";
+import { useCurrentUser, useSelectedOrganization } from "@/auth/auth-provider";
 import { PageContainer, PageHeader } from "@/components/page-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,10 @@ import { useOrganizationQuery } from "@/hooks/queries/use-organization-query";
 import { formatCurrency } from "@/lib/format";
 
 import { OrganizationMembersList } from "./components/organization-members-list";
+
+const ownerInviteRoleOptions: InviteOrganizationRole[] = ["Admin", "Member"];
+const adminInviteRoleOptions: InviteOrganizationRole[] = ["Member"];
+const noInviteRoleOptions: InviteOrganizationRole[] = [];
 
 const InviteMemberDialog = lazy(async () => ({
   default: (await import("./components/invite-member-dialog")).InviteMemberDialog,
@@ -64,9 +69,33 @@ const updateBudgetSchema = z.object({
 type UpdateOrganizationFormValues = z.infer<typeof updateOrganizationSchema>;
 type UpdateBudgetFormValues = z.infer<typeof updateBudgetSchema>;
 
-function LazyInviteMemberAction({ organizationId }: { organizationId: string }) {
+function getInviteRoleOptions(
+  currentUserRole?: OrganizationRole | null
+): InviteOrganizationRole[] {
+  if (currentUserRole === "Owner") {
+    return ownerInviteRoleOptions;
+  }
+
+  if (currentUserRole === "Admin") {
+    return adminInviteRoleOptions;
+  }
+
+  return noInviteRoleOptions;
+}
+
+function LazyInviteMemberAction({
+  organizationId,
+  roleOptions,
+}: {
+  organizationId: string;
+  roleOptions: InviteOrganizationRole[];
+}) {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(false);
+
+  if (roleOptions.length === 0) {
+    return null;
+  }
 
   if (!enabled) {
     return (
@@ -88,6 +117,7 @@ function LazyInviteMemberAction({ organizationId }: { organizationId: string }) 
     >
       <InviteMemberDialog
         defaultOpen
+        allowedRoles={roleOptions}
         organizationId={organizationId}
         trigger={
           <Button>
@@ -103,6 +133,7 @@ function LazyInviteMemberAction({ organizationId }: { organizationId: string }) 
 export function OrganizationManagement() {
   const { t, i18n } = useTranslation();
   const selectedOrganization = useSelectedOrganization();
+  const currentUserQuery = useCurrentUser();
   const organizationQuery = useOrganizationQuery(selectedOrganization?.id ?? null);
   const {
     isUpdatingOrganization,
@@ -207,6 +238,10 @@ export function OrganizationManagement() {
   }
 
   const organization = organizationQuery.data;
+  const currentUserRole =
+    organization?.members.find((member) => member.id === currentUserQuery.data?.id)
+      ?.role ?? null;
+  const inviteRoleOptions = getInviteRoleOptions(currentUserRole);
   const formattedCreatedAt = organization?.createdAt
     ? new Intl.DateTimeFormat(i18n.language).format(new Date(organization.createdAt))
     : null;
@@ -224,7 +259,10 @@ export function OrganizationManagement() {
         description={t("organization.subtitle")}
         actions={
           organization ? (
-            <LazyInviteMemberAction organizationId={organization.id} />
+            <LazyInviteMemberAction
+              organizationId={organization.id}
+              roleOptions={inviteRoleOptions}
+            />
           ) : null
         }
       />

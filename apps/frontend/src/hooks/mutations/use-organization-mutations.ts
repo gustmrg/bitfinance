@@ -5,6 +5,8 @@ import {
   type CreateInvitationRequest,
   type CreateOrganizationRequest,
   type OrganizationSummary,
+  type RemoveOrganizationMemberRequest,
+  type UpdateMemberRoleRequest,
   type UpdateOrganizationRequest,
   type UpsertOrganizationBudgetRequest,
 } from "@/api/organizations";
@@ -24,7 +26,11 @@ export function useOrganizationMutations() {
   const queryClient = useQueryClient();
   const setSelectedOrganizationId = useSetSelectedOrganizationId();
 
-  const invalidateOrganizationQueries = async (organizationId?: string) => {
+  const invalidateOrganizationQueries = async (
+    organizationId?: string,
+    options: { includeDetail?: boolean } = {}
+  ) => {
+    const includeDetail = options.includeDetail ?? true;
     const promises: Promise<void>[] = [
       queryClient.invalidateQueries({
         queryKey: queryKeys.auth.me(),
@@ -34,7 +40,7 @@ export function useOrganizationMutations() {
       }),
     ];
 
-    if (organizationId) {
+    if (organizationId && includeDetail) {
       promises.push(
         queryClient.invalidateQueries({
           queryKey: queryKeys.organizations.detail(organizationId),
@@ -82,6 +88,34 @@ export function useOrganizationMutations() {
     },
   });
 
+  const updateMemberRoleMutation = useMutation({
+    mutationFn: async (request: UpdateMemberRoleRequest) =>
+      organizationsService.updateMemberRoleAsync(request),
+    onSuccess: async (_member, request) => {
+      await invalidateOrganizationQueries(request.organizationId);
+    },
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: async (request: RemoveOrganizationMemberRequest) =>
+      organizationsService.removeMemberAsync(request),
+    onSuccess: async (_response, request) => {
+      const currentUser = queryClient.getQueryData<User>(queryKeys.auth.me());
+      const removedCurrentUser = currentUser?.id === request.userId;
+
+      if (removedCurrentUser) {
+        queryClient.removeQueries({
+          queryKey: queryKeys.organizations.detail(request.organizationId),
+        });
+      }
+
+      await invalidateOrganizationQueries(request.organizationId, {
+        includeDetail: !removedCurrentUser,
+      });
+      await refetchCurrentUser(queryClient);
+    },
+  });
+
   const joinOrganizationMutation = useMutation({
     mutationFn: async (token: string): Promise<OrganizationSummary | null> => {
       const userBeforeJoin = queryClient.getQueryData<User>(queryKeys.auth.me());
@@ -115,9 +149,13 @@ export function useOrganizationMutations() {
     isCreatingInvite: createInviteMutation.isPending,
     isCreatingOrganization: createOrganizationMutation.isPending,
     isJoiningOrganization: joinOrganizationMutation.isPending,
+    isRemovingMember: removeMemberMutation.isPending,
+    isUpdatingMemberRole: updateMemberRoleMutation.isPending,
     isUpsertingBudget: upsertBudgetMutation.isPending,
     isUpdatingOrganization: updateOrganizationMutation.isPending,
     joinOrganizationAsync: joinOrganizationMutation.mutateAsync,
+    removeMemberAsync: removeMemberMutation.mutateAsync,
+    updateMemberRoleAsync: updateMemberRoleMutation.mutateAsync,
     updateOrganizationAsync: updateOrganizationMutation.mutateAsync,
     upsertBudgetAsync: upsertBudgetMutation.mutateAsync,
   };

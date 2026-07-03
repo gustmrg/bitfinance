@@ -35,12 +35,12 @@ Implement local theme switching and full-stack organization member/role manageme
 
 ## Phase 4: Frontend API And State
 
-- Update organization types so members require `role` and include `joinedAt`.
-- Remove `Owner` from invite role options; expose `Admin`/`Member` for owners and `Member` only for admins.
-- Add organization service methods for role update and member removal.
-- Add TanStack mutations for role update/removal.
-- Invalidate organization detail, organization list, and `auth.me` after membership changes.
-- Handle losing access to the currently selected organization after member removal by relying on refreshed `auth.me` and existing selected-organization reconciliation.
+- [x] Update organization types so members require `role` and include `joinedAt`.
+- [x] Remove `Owner` from invite role options; expose `Admin`/`Member` for owners and `Member` only for admins.
+- [x] Add organization service methods for role update and member removal.
+- [x] Add TanStack mutations for role update/removal.
+- [x] Invalidate organization detail, organization list, and `auth.me` after membership changes.
+- [x] Handle losing access to the currently selected organization after member removal by relying on refreshed `auth.me` and existing selected-organization reconciliation.
 
 ## Phase 5: Dedicated Members And Roles Page
 
