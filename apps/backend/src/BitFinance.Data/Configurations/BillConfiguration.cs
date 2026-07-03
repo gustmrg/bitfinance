@@ -35,7 +35,7 @@ public class BillConfiguration : IEntityTypeConfiguration<Bill>
         
         builder.Property(b => b.PaymentDate)
             .HasColumnName("payment_date")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3);
         
         builder.Property(b => b.AmountDue)
@@ -49,15 +49,35 @@ public class BillConfiguration : IEntityTypeConfiguration<Bill>
         
         builder.Property(b => b.CreatedAt)
             .HasColumnName("created_at")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3)
             .IsRequired();
         
         builder.Property(b => b.UpdatedAt)
             .HasColumnName("updated_at")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3);
-        
+
+        builder.Property(b => b.BillSeriesId)
+            .HasColumnName("bill_series_id")
+            .HasColumnType("uuid");
+
+        builder.Property(b => b.OccurrenceNumber)
+            .HasColumnName("occurrence_number")
+            .HasColumnType("integer");
+
+        builder.Property(b => b.TotalOccurrences)
+            .HasColumnName("total_occurrences")
+            .HasColumnType("integer");
+
+        builder.HasOne(b => b.BillSeries)
+            .WithMany(s => s.Bills)
+            .HasForeignKey(b => b.BillSeriesId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(b => b.BillSeriesId)
+            .HasDatabaseName("ix_bills_bill_series_id");
+
         builder.ToTable("bills");
     }
 }

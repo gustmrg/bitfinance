@@ -21,6 +21,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<RefreshTokenCleanupService>();
 
         services.AddScoped<IBillsRepository, BillsRepository>();
+        services.AddScoped<IBillSeriesRepository, BillSeriesRepository>();
         services.AddScoped<IBudgetsRepository, BudgetsRepository>();
         services.AddScoped<IOrganizationsRepository, OrganizationsRepository>();
         services.AddScoped<IUsersRepository, UsersRepository>();
@@ -31,6 +32,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IUsersService, UsersService>();
         services.AddScoped<IBillsService, BillsService>();
+        services.AddScoped<IBillGenerationService, BillGenerationService>();
         services.AddScoped<IExpensesService, ExpensesService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IFileValidationService, FileValidationService>();

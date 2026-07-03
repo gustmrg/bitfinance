@@ -10,6 +10,7 @@ public sealed class BitFinanceTools
 {
     private const string BillCategories = "Housing, Transportation, Food, Utilities, Clothing, Healthcare, Insurance, Personal, Debt, Savings, Education, Entertainment, Miscellaneous, Subscriptions, Taxes, Pets";
     private const string BillStatuses = "Created, Due, Paid, Overdue, Cancelled, Upcoming";
+    private const string BillFrequencies = "Daily, Weekly, Monthly, Annually";
     private const string ExpenseCategories = "Housing, Transportation, Food, Utilities, Clothing, Healthcare, Insurance, Personal, Debt, Savings, Education, Entertainment, Travel, Pets, Gifts, Miscellaneous, Subscriptions, Taxes";
     private const string ExpenseStatuses = "Pending, Paid, Cancelled";
     private const string FileCategories = "Boleto, Receipt, Other";
@@ -83,7 +84,7 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Creates a bill. Valid categories: " + BillCategories + ". Valid statuses: " + BillStatuses + ".")]
+    [Description("Creates a one-time, recurring, or installment bill. Omit frequency and installments for a one-time bill; provide frequency only for an indefinite recurring series; provide both for a fixed installment series. For series, dueDate is the first occurrence date and amountDue is the amount per occurrence. Status, paymentDate, and amountPaid only configure one-time bills. Valid categories: " + BillCategories + ". Valid statuses: " + BillStatuses + ". Valid frequencies: " + BillFrequencies + ".")]
     public Task<BillResponse> bitfinance_create_bill(
         [Description("Bill description.")] string description,
         [Description("Bill category.")] string category,
@@ -91,16 +92,27 @@ public sealed class BitFinanceTools
         [Description("Bill due date/time as ISO 8601.")] DateTimeOffset dueDate,
         [Description("Amount due.")] decimal amountDue,
         [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
-        [Description("Optional payment date/time as ISO 8601.")] DateTimeOffset? paymentDate = null,
-        [Description("Optional amount already paid.")] decimal? amountPaid = null,
+        [Description("Optional payment date/time as ISO 8601. Applies only to one-time bills.")] DateTimeOffset? paymentDate = null,
+        [Description("Optional amount already paid. Applies only to one-time bills.")] decimal? amountPaid = null,
+        [Description("Optional recurrence frequency. Omit for a one-time bill. Valid values: " + BillFrequencies + ".")] BillFrequency? frequency = null,
+        [Description("Optional positive installment count. Requires frequency; omit for an indefinite recurring series.")] int? installments = null,
         CancellationToken cancellationToken = default)
     {
-        var request = new CreateBillRequest(description, category, status, dueDate, paymentDate, amountDue, amountPaid);
+        var request = new CreateBillRequest(
+            description,
+            category,
+            status,
+            dueDate,
+            paymentDate,
+            amountDue,
+            amountPaid,
+            frequency,
+            installments);
         return _apiClient.CreateBillAsync(request, organizationId, cancellationToken);
     }
 
     [McpServerTool]
-    [Description("Updates a bill. Valid categories: " + BillCategories + ". Valid statuses: " + BillStatuses + ".")]
+    [Description("Updates one generated bill occurrence. This does not change other occurrences or the bill series schedule. Valid categories: " + BillCategories + ". Valid statuses: " + BillStatuses + ".")]
     public Task<UpdateBillResponse> bitfinance_update_bill(
         [Description("Bill ID.")] Guid billId,
         [Description("Bill description.")] string description,
@@ -118,7 +130,7 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Deletes a bill and its associated documents. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Deletes one bill occurrence and its associated documents. Deleting a generated occurrence does not stop its bill series; use bitfinance_stop_bill_series to stop future generation. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
     public async Task<DeleteBillResponse> bitfinance_delete_bill(
         [Description("Bill ID.")] Guid billId,
         [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
@@ -126,6 +138,17 @@ public sealed class BitFinanceTools
     {
         await _apiClient.DeleteBillAsync(billId, organizationId, cancellationToken);
         return new DeleteBillResponse(true, billId);
+    }
+
+    [McpServerTool]
+    [Description("Stops a recurring or installment bill series from generating future occurrences. Existing generated bills are preserved. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    public async Task<StopBillSeriesResponse> bitfinance_stop_bill_series(
+        [Description("Bill series ID, available as billSeriesId on a generated bill.")] Guid seriesId,
+        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        await _apiClient.StopBillSeriesAsync(seriesId, organizationId, cancellationToken);
+        return new StopBillSeriesResponse(true, seriesId);
     }
 
     [McpServerTool]

@@ -18,8 +18,8 @@ namespace BitFinance.Data.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     organization_id = table.Column<Guid>(type: "uuid", nullable: false),
                     amount = table.Column<decimal>(type: "numeric(10,2)", nullable: false),
-                    created_at = table.Column<DateTime>(type: "timestampz", precision: 3, nullable: false),
-                    updated_at = table.Column<DateTime>(type: "timestampz", precision: 3, nullable: true)
+                    created_at = table.Column<DateTime>(type: "timestamp(3) with time zone", precision: 3, nullable: false),
+                    updated_at = table.Column<DateTime>(type: "timestamp(3) with time zone", precision: 3, nullable: true)
                 },
                 constraints: table =>
                 {

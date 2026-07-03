@@ -161,6 +161,18 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             cancellationToken);
     }
 
+    public Task StopBillSeriesAsync(
+        Guid seriesId,
+        Guid? organizationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        return SendNoContentAsync(
+            HttpMethod.Post,
+            ApiPath($"organizations/{resolvedOrganizationId}/bills/series/{seriesId}/stop"),
+            cancellationToken);
+    }
+
     public async Task<UploadDocumentResponse> UploadBillDocumentAsync(
         Guid billId,
         string fileName,

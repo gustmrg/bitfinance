@@ -29,12 +29,12 @@ public class InvitationConfiguration : IEntityTypeConfiguration<Invitation>
         builder.HasIndex(i => i.TokenHash).IsUnique();
 
         builder.Property(i => i.ExpiresAt)
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3)
             .IsRequired();
 
         builder.Property(i => i.CreatedAt)
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3)
             .IsRequired();
 

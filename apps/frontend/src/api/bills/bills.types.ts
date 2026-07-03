@@ -24,6 +24,12 @@ export type BillStatus =
   | "cancelled"
   | "upcoming";
 
+export type Frequency = "daily" | "weekly" | "monthly" | "annually";
+
+export type BillSeriesType = "recurring" | "installment";
+
+export type BillType = "one-time" | "recurring" | "installment";
+
 export type BillDocumentType = "Invoice" | "Receipt" | "Contract" | "Other";
 
 export type BillFileCategory = "Boleto" | "Receipt" | "Other";
@@ -53,6 +59,11 @@ export interface Bill {
   deletedDate?: string | null;
   notes?: string;
   documents?: BillDocument[];
+  billSeriesId?: string | null;
+  occurrenceNumber?: number | null;
+  totalOccurrences?: number | null;
+  billSeriesType?: BillSeriesType | null;
+  billSeriesIsActive?: boolean;
 }
 
 export interface BillsListQuery {
@@ -80,6 +91,8 @@ export interface CreateBillRequest {
   amountDue: number;
   amountPaid?: number | null;
   organizationId: string;
+  frequency?: Frequency | null;
+  installments?: number | null;
 }
 
 export interface CreateBillResponse {
@@ -92,6 +105,10 @@ export interface CreateBillResponse {
   createdDate: string;
   dueDate: string;
   paymentDate?: string | null;
+  billSeriesId?: string | null;
+  occurrenceNumber?: number | null;
+  totalOccurrences?: number | null;
+  billSeriesType?: BillSeriesType | null;
 }
 
 export interface UpdateBillRequest {
@@ -115,6 +132,16 @@ export interface UpdateBillResponse {
   paymentDate?: string | null;
   amountDue: number;
   amountPaid?: number | null;
+  billSeriesId?: string | null;
+  occurrenceNumber?: number | null;
+  totalOccurrences?: number | null;
+  billSeriesType?: BillSeriesType | null;
+  billSeriesIsActive?: boolean;
+}
+
+export interface StopBillSeriesRequest {
+  organizationId: string;
+  seriesId: string;
 }
 
 export interface UploadBillDocumentsRequest {

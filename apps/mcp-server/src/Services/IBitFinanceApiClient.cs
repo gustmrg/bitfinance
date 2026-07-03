@@ -14,6 +14,7 @@ public interface IBitFinanceApiClient
     Task<BillResponse> CreateBillAsync(CreateBillRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default);
     Task<UpdateBillResponse> UpdateBillAsync(Guid billId, UpdateBillRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default);
     Task DeleteBillAsync(Guid billId, Guid? organizationId = null, CancellationToken cancellationToken = default);
+    Task StopBillSeriesAsync(Guid seriesId, Guid? organizationId = null, CancellationToken cancellationToken = default);
     Task<UploadDocumentResponse> UploadBillDocumentAsync(Guid billId, string fileName, string base64Content, string fileCategory, Guid? organizationId = null, string? contentType = null, CancellationToken cancellationToken = default);
     Task<DocumentDownloadUrlResponse> GetBillDocumentDownloadUrlAsync(Guid billId, Guid documentId, Guid? organizationId = null, CancellationToken cancellationToken = default);
     Task DeleteBillDocumentAsync(Guid billId, Guid documentId, Guid? organizationId = null, CancellationToken cancellationToken = default);

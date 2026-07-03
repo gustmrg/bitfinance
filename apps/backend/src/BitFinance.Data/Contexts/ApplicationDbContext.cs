@@ -10,6 +10,7 @@ namespace BitFinance.Data.Contexts;
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<User>(options)
 {
     public DbSet<Bill> Bills => Set<Bill>();
+    public DbSet<BillSeries> BillSeries => Set<BillSeries>();
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<Budget> Budgets => Set<Budget>();
     public DbSet<Expense> Expenses => Set<Expense>();

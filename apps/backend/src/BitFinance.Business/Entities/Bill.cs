@@ -63,9 +63,30 @@ public class Bill
     public Guid OrganizationId { get; set; }
 
     /// <summary>
+    /// The ID of the <see cref="BillSeries"/> that generated this bill, if any.
+    /// <c>null</c> for one-time bills.
+    /// </summary>
+    public Guid? BillSeriesId { get; set; }
+
+    /// <summary>
+    /// The 1-based occurrence number of this bill within its series, if any.
+    /// </summary>
+    public int? OccurrenceNumber { get; set; }
+
+    /// <summary>
+    /// The total number of occurrences in the series, if this bill belongs to an installment series.
+    /// </summary>
+    public int? TotalOccurrences { get; set; }
+
+    /// <summary>
     /// Navigation property to the owning organization.
     /// </summary>
     public Organization Organization { get; set; } = null!;
+
+    /// <summary>
+    /// Navigation property to the series that generated this bill, if any.
+    /// </summary>
+    public BillSeries? BillSeries { get; set; }
 
     /// <summary>
     /// The documents attached to this bill (e.g., receipts, invoices).

@@ -26,7 +26,7 @@ pnpm dev
 Run the backend development stack:
 
 ```bash
-docker compose --project-directory apps/backend -f apps/backend/docker-compose.yml up -d
+docker compose --project-directory apps/backend up -d --build
 ```
 
 Run the backend API directly:

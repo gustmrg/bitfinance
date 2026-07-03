@@ -1,5 +1,5 @@
 # Production overlay — use on top of the base:
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --no-build
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --no-build -d
 services:
   bitfinance-api:
     image: gustmrg/bitfinance-backend:${IMAGE_TAG:-latest}
@@ -72,4 +72,7 @@ services:
       - redis-data:/data
 
 volumes:
+  postgres-data:
+    external: true
+    name: ${POSTGRES_DATA_VOLUME:-bitfinance_postgres-data}
   redis-data:

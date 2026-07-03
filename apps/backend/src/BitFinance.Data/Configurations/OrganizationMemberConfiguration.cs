@@ -15,7 +15,7 @@ public class OrganizationMemberConfiguration : IEntityTypeConfiguration<Organiza
             .IsRequired();
 
         builder.Property(om => om.JoinedAt)
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3)
             .IsRequired();
 

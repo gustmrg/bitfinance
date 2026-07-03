@@ -21,6 +21,8 @@ import { dateFormatter } from "@/utils/formatter";
 import { DeleteBillDialog } from "./delete-bill-dialog";
 import { DetailsBillDialog } from "./details-bill-dialog";
 import { MarkAsPaidDialog, type MarkAsPaidData } from "./mark-as-paid-dialog";
+import { BillSeriesLabel } from "./bill-series-label";
+import { StopBillSeriesDialog } from "./stop-bill-series-dialog";
 import type { Bill } from "../types";
 
 const EditBillDialog = lazy(async () => ({
@@ -38,6 +40,7 @@ export interface BillsTableProps {
   onDeleteBill: (id: string) => Promise<void>;
   onEditBill: (data: EditBillFormValue) => Promise<void>;
   onMarkAsPaid: (data: MarkAsPaidData) => Promise<void>;
+  onStopBillSeries: (seriesId: string) => Promise<void>;
   onUploadDocuments: (
     billId: string,
     files: File[],
@@ -153,6 +156,7 @@ export function BillsTable({
   onDeleteBill,
   onEditBill,
   onMarkAsPaid,
+  onStopBillSeries,
   onUploadDocuments,
 }: BillsTableProps) {
   const { t } = useTranslation();
@@ -174,7 +178,12 @@ export function BillsTable({
           <TableBody>
             {bills.map((bill) => (
               <TableRow key={bill.id}>
-                <TableCell className="font-medium">{bill.description}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span>{bill.description}</span>
+                    <BillSeriesLabel bill={bill} />
+                  </div>
+                </TableCell>
                 <TableCell className="capitalize">{bill.category}</TableCell>
                 <TableCell>{dateFormatter.format(new Date(bill.dueDate))}</TableCell>
                 <TableCell>{renderStatusBadge(bill.status)}</TableCell>
@@ -184,6 +193,12 @@ export function BillsTable({
                     <DetailsBillDialog bill={bill} />
                     {bill.status !== "paid" && bill.status !== "cancelled" && (
                       <MarkAsPaidDialog bill={bill} onMarkAsPaid={onMarkAsPaid} />
+                    )}
+                    {bill.billSeriesId && bill.billSeriesIsActive && (
+                      <StopBillSeriesDialog
+                        seriesId={bill.billSeriesId}
+                        onStop={onStopBillSeries}
+                      />
                     )}
                     <LazyEditBillAction bill={bill} onEditBill={onEditBill} />
                     <LazyUploadBillAction

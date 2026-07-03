@@ -1,3 +1,4 @@
+using BitFinance.API.Services.Interfaces;
 using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 using BitFinance.Data.Repositories.Interfaces;
@@ -26,6 +27,7 @@ public class BillStatusWorkerService : BackgroundService
 
             try
             {
+                await GenerateScheduledBills();
                 await UpdateUpcomingBills();
                 await UpdateDueBills();
             }
@@ -53,6 +55,54 @@ public class BillStatusWorkerService : BackgroundService
         }
     }
     
+    private async Task GenerateScheduledBills()
+    {
+        using IServiceScope scope = _serviceScopeFactory.CreateScope();
+        var organizationsRepository = scope.ServiceProvider.GetRequiredService<IOrganizationsRepository>();
+        var billSeriesRepository = scope.ServiceProvider.GetRequiredService<IBillSeriesRepository>();
+        var billGenerationService = scope.ServiceProvider.GetRequiredService<IBillGenerationService>();
+
+        try
+        {
+            var organizations = await organizationsRepository.GetAllAsync();
+            var totalGenerated = 0;
+
+            foreach (var organization in organizations)
+            {
+                try
+                {
+                    var activeSeries = await billSeriesRepository.GetAllActiveByOrganizationAsync(organization.Id);
+                    if (activeSeries.Count == 0)
+                        continue;
+
+                    var horizon = BillGenerationService.GetRollingHorizon(organization);
+
+                    foreach (var series in activeSeries)
+                    {
+                        var generated = await billGenerationService.GenerateOccurrencesAsync(series, horizon, organization);
+                        totalGenerated += generated;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Error while generating scheduled bills for organization {OrgId} ({OrgName}) with timezone {TimeZone}",
+                        organization.Id, organization.Name, organization.TimeZoneId);
+                }
+            }
+
+            if (totalGenerated > 0)
+            {
+                _logger.LogInformation("Generated {TotalGenerated} scheduled bills across {OrgCount} organizations at {DateTime}",
+                    totalGenerated, organizations.Count, DateTimeOffset.Now);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while generating scheduled bills");
+        }
+    }
+
     private async Task UpdateUpcomingBills()
     {
         using IServiceScope scope = _serviceScopeFactory.CreateScope();

@@ -30,13 +30,13 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         
         builder.Property(x => x.CreatedAt)
             .HasColumnName("created_at")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3)
             .IsRequired();
         
         builder.Property(x => x.UpdatedAt)
             .HasColumnName("updated_at")
-            .HasColumnType("timestampz")
+            .HasColumnType("timestamp with time zone")
             .HasPrecision(3);
         
         builder.HasOne(x => x.Organization)

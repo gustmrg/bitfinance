@@ -95,6 +95,7 @@ For production, bind the Docker port to the VPS Tailscale address and firewall p
 - `bitfinance_create_bill`
 - `bitfinance_update_bill`
 - `bitfinance_delete_bill`
+- `bitfinance_stop_bill_series`
 - `bitfinance_upload_bill_document`
 - `bitfinance_get_bill_document_download_url`
 - `bitfinance_delete_bill_document`
@@ -105,6 +106,10 @@ For production, bind the Docker port to the VPS Tailscale address and firewall p
 Bill document uploads accept base64 content from a remote agent, so the file does not need to exist on the MCP server filesystem. Supported document extensions are `.pdf`, `.jpg`, `.jpeg`, `.png`, `.doc`, and `.docx`, up to 10 MB decoded size.
 
 Bill document downloads return a temporary signed URL with file metadata. The MCP server does not download the file to local disk; agents such as Hermes can use the returned URL directly before it expires.
+
+`bitfinance_create_bill` creates a one-time bill when `frequency` and `installments` are omitted, an indefinite recurring series when only `frequency` is provided, and a fixed installment series when both are provided. Valid frequencies are `Daily`, `Weekly`, `Monthly`, and `Annually`. For a series, `dueDate` is the first occurrence date and `amountDue` is the amount of each occurrence. Generated bill responses expose `billSeriesId`, `occurrenceNumber`, `totalOccurrences`, `billSeriesType`, and, where available, `billSeriesIsActive`.
+
+Updating or deleting a generated bill affects only that occurrence. Use `bitfinance_stop_bill_series` to prevent future occurrences; already generated bills are preserved.
 
 ## Example agent interactions
 
@@ -190,6 +195,62 @@ Expected tool call:
     "status": "Upcoming",
     "dueDate": "2026-06-10T00:00:00Z",
     "amountDue": 120.00
+  }
+}
+```
+
+```text
+Create a monthly recurring rent bill for 1500 starting July 1.
+```
+
+Expected tool call:
+
+```json
+{
+  "tool": "bitfinance_create_bill",
+  "arguments": {
+    "description": "Rent",
+    "category": "Housing",
+    "status": "Upcoming",
+    "dueDate": "2026-07-01T00:00:00Z",
+    "amountDue": 1500.00,
+    "frequency": "Monthly"
+  }
+}
+```
+
+```text
+Create a 10-installment monthly bill of 250 starting July 15.
+```
+
+Expected tool call:
+
+```json
+{
+  "tool": "bitfinance_create_bill",
+  "arguments": {
+    "description": "Purchase installments",
+    "category": "Debt",
+    "status": "Upcoming",
+    "dueDate": "2026-07-15T00:00:00Z",
+    "amountDue": 250.00,
+    "frequency": "Monthly",
+    "installments": 10
+  }
+}
+```
+
+```text
+Stop future bills in a recurring series.
+```
+
+Expected tool call:
+
+```json
+{
+  "tool": "bitfinance_stop_bill_series",
+  "arguments": {
+    "seriesId": "00000000-0000-0000-0000-000000000000"
   }
 }
 ```

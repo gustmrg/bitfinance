@@ -140,7 +140,15 @@ Production builds use `VITE_API_URL=/api/v1` by default, which supports same-ori
 
 The included `Dockerfile` builds the Vite app and serves the generated `dist` directory on port `3000`.
 
-Deployment automation lives in `.github/workflows/frontend-deploy.yml` and runs on pushes to `main`.
+Deployment automation lives in `.github/workflows/frontend-deploy.yml` and runs when a
+`frontend/v*` release tag is pushed, for example:
+
+```bash
+git tag frontend/v1.11.0
+git push origin frontend/v1.11.0
+```
+
+The tag version must match the version in `apps/frontend/package.json`.
 
 ## License
 
