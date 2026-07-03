@@ -1,3 +1,5 @@
+import { type ReactNode } from "react";
+
 import { Eye } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -11,9 +13,10 @@ import { BillDetailsContent } from "./bill-details-content";
 
 interface DetailsBillDialogProps {
   bill: Bill;
+  trigger?: ReactNode;
 }
 
-export function DetailsBillDialog({ bill }: DetailsBillDialogProps) {
+export function DetailsBillDialog({ bill, trigger }: DetailsBillDialogProps) {
   const { t } = useTranslation();
   const selectedOrganization = useSelectedOrganization();
 
@@ -42,10 +45,12 @@ export function DetailsBillDialog({ bill }: DetailsBillDialogProps) {
   return (
     <AdaptiveModal
       trigger={
-        <Button size="icon" variant="outline" onSelect={(event) => event.preventDefault()}>
-          <Eye className="h-4 w-4" />
-          <span className="sr-only">{t("labels.details")}</span>
-        </Button>
+        trigger ?? (
+          <Button size="icon" variant="outline" onSelect={(event) => event.preventDefault()}>
+            <Eye className="h-4 w-4" />
+            <span className="sr-only">{t("labels.details")}</span>
+          </Button>
+        )
       }
       title={t("bills.dialog.details.title")}
       description={t("bills.dialog.details.description")}

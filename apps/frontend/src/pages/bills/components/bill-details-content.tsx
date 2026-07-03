@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { formatCurrency } from "@/lib/format";
 
 import type { Bill } from "../types";
 
@@ -136,7 +137,7 @@ export function BillDetailsContent({
               {t("labels.amountPaid")}
             </dt>
             <dd className="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
-              {`$${bill.amountPaid?.toFixed(2)}`}
+              {formatCurrency(bill.amountPaid ?? 0)}
             </dd>
           </div>
         ) : (
@@ -145,7 +146,7 @@ export function BillDetailsContent({
               {t("labels.amountDue")}
             </dt>
             <dd className="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
-              {`$${bill.amountDue.toFixed(2)}`}
+              {formatCurrency(bill.amountDue)}
             </dd>
           </div>
         )}
@@ -172,39 +173,40 @@ export function BillDetailsContent({
                 className="divide-y divide-gray-100 rounded-md border border-gray-200"
               >
                 {bill.documents.map((document) => (
-                  <li
-                    key={document.id}
-                    className="flex items-center justify-between py-4 pl-4 pr-5 text-sm leading-6"
-                  >
-                    <div className="flex w-0 flex-1 items-center">
+                  <li key={document.id} className="p-4 text-sm leading-6">
+                    <div className="flex min-w-0 items-start gap-3">
                       <Paperclip
                         aria-hidden="true"
-                        className="h-5 w-5 flex-shrink-0 text-gray-400"
+                        className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-400"
                       />
-                      <div className="ml-4 flex min-w-0 flex-1 gap-2">
-                        <span className="truncate font-medium">{document.fileName}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words font-medium leading-5">
+                          {document.fileName}
+                        </p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              onDownloadDocument(document.id, document.fileName)
+                            }
+                            className="h-8 px-2 font-medium text-blue-700 hover:text-blue-500"
+                          >
+                            {t("labels.download")}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onDeleteDocument(document.id)}
+                            className="h-8 px-2 font-medium text-red-700 hover:text-red-500"
+                          >
+                            {t("labels.delete")}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                     <div className="ml-4 flex items-center gap-2 flex-shrink-0">
-                       <Button
-                         variant="ghost"
-                         size="sm"
-                         onClick={() => onDownloadDocument(document.id, document.fileName)}
-                         className="font-medium text-blue-700 hover:text-blue-500"
-                       >
-                         {t("labels.download")}
-                       </Button>
-                       <Button
-                         variant="ghost"
-                         size="sm"
-                         onClick={() => onDeleteDocument(document.id)}
-                         className="font-medium text-red-700 hover:text-red-500"
-                       >
-                         {t("labels.delete")}
-                       </Button>
-                     </div>
-                   </li>
-                 ))}
+                  </li>
+                ))}
               </ul>
             </dd>
           </div>

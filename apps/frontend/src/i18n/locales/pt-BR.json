@@ -93,6 +93,7 @@
     "confirm": "Confirmar",
     "delete": "Excluir",
     "details": "Detalhes",
+    "actions": "Ações",
     "notes": "Anotações",
     "attachments": "Anexos",
     "download": "Baixar",
@@ -196,6 +197,9 @@
       "typeNormal": "Normais",
       "emptyTitle": "Nenhuma conta encontrada",
       "emptyDescription": "Tente alterar ou limpar os filtros ativos."
+    },
+    "actions": {
+      "more": "Mais ações da conta"
     },
     "dialog": {
       "add": {

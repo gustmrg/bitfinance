@@ -93,6 +93,7 @@
     "confirm": "Confirm",
     "delete": "Delete",
     "details": "Details",
+    "actions": "Actions",
     "notes": "Notes",
     "attachments": "Attachments",
     "download": "Download",
@@ -196,6 +197,9 @@
       "typeNormal": "Normal",
       "emptyTitle": "No matching bills",
       "emptyDescription": "Try changing or clearing the active filters."
+    },
+    "actions": {
+      "more": "More bill actions"
     },
     "dialog": {
       "add": {

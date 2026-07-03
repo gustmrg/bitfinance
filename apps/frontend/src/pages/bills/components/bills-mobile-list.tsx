@@ -1,23 +1,16 @@
-import { Suspense, lazy, type ReactNode, useState } from "react";
+import { type ReactNode } from "react";
 
-import { Eye, Pencil } from "lucide-react";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@/components/ui/button";
+import type { BillFileCategory } from "@/api/bills";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
 import { dateFormatter } from "@/utils/formatter";
 
-import { DeleteBillDialog } from "./delete-bill-dialog";
-import { MarkAsPaidDialog, type MarkAsPaidData } from "./mark-as-paid-dialog";
+import type { MarkAsPaidData } from "./mark-as-paid-dialog";
 import { BillSeriesLabel } from "./bill-series-label";
-import { StopBillSeriesDialog } from "./stop-bill-series-dialog";
+import { BillRowActions } from "./bill-row-actions";
 import type { Bill } from "../types";
-
-const EditBillDialog = lazy(async () => ({
-  default: (await import("./edit-bill-dialog")).EditBillDialog,
-}));
 
 interface EditBillFormValue {
   id: string;
@@ -30,49 +23,6 @@ interface EditBillFormValue {
   paymentDate?: Date;
 }
 
-function LazyEditBillAction({
-  bill,
-  onEditBill,
-}: {
-  bill: Bill;
-  onEditBill: (data: EditBillFormValue) => Promise<void>;
-}) {
-  const { t } = useTranslation();
-  const [enabled, setEnabled] = useState(false);
-
-  if (!enabled) {
-    return (
-      <Button size="icon" variant="outline" onClick={() => setEnabled(true)}>
-        <Pencil className="h-4 w-4" />
-        <span className="sr-only">{t("labels.edit")}</span>
-      </Button>
-    );
-  }
-
-  return (
-    <Suspense
-      fallback={
-        <Button disabled size="icon" variant="outline">
-          <Pencil className="h-4 w-4" />
-          <span className="sr-only">{t("labels.edit")}</span>
-        </Button>
-      }
-    >
-      <EditBillDialog
-        bill={bill}
-        defaultOpen
-        onEdit={onEditBill}
-        trigger={
-          <Button size="icon" variant="outline">
-            <Pencil className="h-4 w-4" />
-            <span className="sr-only">{t("labels.edit")}</span>
-          </Button>
-        }
-      />
-    </Suspense>
-  );
-}
-
 export interface BillsMobileListProps {
   bills: Bill[];
   renderStatusBadge: (status: string) => ReactNode;
@@ -80,6 +30,11 @@ export interface BillsMobileListProps {
   onEditBill: (data: EditBillFormValue) => Promise<void>;
   onMarkAsPaid: (data: MarkAsPaidData) => Promise<void>;
   onStopBillSeries: (seriesId: string) => Promise<void>;
+  onUploadDocuments: (
+    billId: string,
+    files: File[],
+    documentType: BillFileCategory
+  ) => Promise<void>;
 }
 
 export function BillsMobileList({
@@ -89,6 +44,7 @@ export function BillsMobileList({
   onEditBill,
   onMarkAsPaid,
   onStopBillSeries,
+  onUploadDocuments,
 }: BillsMobileListProps) {
   const { t } = useTranslation();
 
@@ -123,25 +79,14 @@ export function BillsMobileList({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2">
-              <Button asChild size="icon" variant="outline">
-                <Link to={`/dashboard/bills/${bill.id}`}>
-                  <Eye className="h-4 w-4" />
-                  <span className="sr-only">{t("labels.details")}</span>
-                </Link>
-              </Button>
-              {bill.status !== "paid" && bill.status !== "cancelled" && (
-                <MarkAsPaidDialog bill={bill} onMarkAsPaid={onMarkAsPaid} />
-              )}
-              {bill.billSeriesId && bill.billSeriesIsActive && (
-                <StopBillSeriesDialog
-                  seriesId={bill.billSeriesId}
-                  onStop={onStopBillSeries}
-                />
-              )}
-              <LazyEditBillAction bill={bill} onEditBill={onEditBill} />
-              <DeleteBillDialog id={bill.id} onDelete={onDeleteBill} />
-            </div>
+            <BillRowActions
+              bill={bill}
+              onDeleteBill={onDeleteBill}
+              onEditBill={onEditBill}
+              onMarkAsPaid={onMarkAsPaid}
+              onStopBillSeries={onStopBillSeries}
+              onUploadDocuments={onUploadDocuments}
+            />
           </CardContent>
         </Card>
       ))}
