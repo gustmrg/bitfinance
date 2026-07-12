@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import {
   ArrowUpRight,
   BarChart3,
@@ -16,7 +15,6 @@ import {
   Menu,
   MoreHorizontal,
   ReceiptText,
-  RotateCcw,
   Settings2,
   Sparkles,
   UsersRound,
@@ -26,7 +24,9 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { formatCurrency } from "./format";
-import { selectActiveOrganization, useDemoStore } from "./store";
+import { useAuth } from "./auth/auth-provider";
+import { useOrganizationStore } from "./auth/auth-store";
+import { useHealthQuery, useOrganizationsQuery } from "./hooks/use-queries";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -46,10 +46,9 @@ export function Avatar({ initials, src, size = "md" }: { initials: string; src?:
   return src ? <img className={`avatar avatar--${size}`} src={src} alt="" /> : <span className={`avatar avatar--${size}`}>{initials}</span>;
 }
 
-export function DemoBadge() {
-  const { t } = useTranslation();
-  const resetDemo = useDemoStore((state) => state.resetDemo);
-  return <div className="demo-badge"><Sparkles size={14} /><span>{t("common.demo")}</span><button onClick={() => { resetDemo(); toast.success("Demo reset"); }}><RotateCcw size={13} /> {t("common.reset")}</button></div>;
+export function HealthBadge() {
+  const health = useHealthQuery();
+  return <div className="health-badge" aria-live="polite"><Sparkles size={14} /><span>{health.isPending ? "Checking API" : health.isSuccess ? "API online" : "API unavailable"}</span></div>;
 }
 
 export function StatusPill({ status }: { status: string }) {
@@ -100,25 +99,27 @@ const navItems = [
 ];
 
 function OrganizationSwitcher() {
-  const organization = useDemoStore(selectActiveOrganization);
-  const organizations = useDemoStore((state) => state.organizations);
-  const setActiveOrganization = useDemoStore((state) => state.setActiveOrganization);
-  return <label className="org-switcher"><Building2 size={16} /><select aria-label="Select organization" value={organization?.id} onChange={(event) => setActiveOrganization(event.target.value)}>{organizations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><ChevronDown size={14} /></label>;
+  const { user } = useAuth();
+  const organizations = useOrganizationsQuery(Boolean(user));
+  const selectedId = useOrganizationStore((state) => state.selectedOrganizationId);
+  const setSelectedId = useOrganizationStore((state) => state.setSelectedOrganizationId);
+  const items = organizations.data ?? user?.organizations ?? [];
+  return <label className="org-switcher"><Building2 size={16} /><select aria-label="Select organization" value={selectedId ?? items[0]?.id ?? ""} onChange={(event) => setSelectedId(event.target.value)} disabled={!items.length}>{items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><ChevronDown size={14} /></label>;
 }
 
 function UserMenu() {
   const { t } = useTranslation();
-  const user = useDemoStore((state) => state.user);
-  const signOut = useDemoStore((state) => state.signOut);
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   if (!user) return null;
-  return <button className="user-menu" onClick={() => { signOut(); navigate("/auth/sign-in"); }} title={t("account.signOut")}><Avatar initials={`${user.firstName[0]}${user.lastName[0]}`} src={user.avatarUrl} size="sm" /><span><strong>{user.firstName} {user.lastName}</strong><small>{user.email}</small></span><LogOut size={15} /></button>;
+  const initials = user.fullName.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+  return <button className="user-menu" onClick={() => { void signOut().finally(() => navigate("/auth/sign-in")); }} title={t("account.signOut")}><Avatar initials={initials} src={user.avatarUrl ?? undefined} size="sm" /><span><strong>{user.fullName}</strong><small>{user.email}</small></span><LogOut size={15} /></button>;
 }
 
 export function AppShell() {
   const { t } = useTranslation();
   const location = useLocation();
-  return <div className="app-shell"><aside className="sidebar"><div className="sidebar__brand"><BrandMark compact /><span className="sidebar__brand-label">finance desk</span></div><div className="sidebar__org"><OrganizationSwitcher /></div><nav className="sidebar__nav" aria-label="Primary navigation"><p className="sidebar__section-label">Workspace</p>{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Icon size={18} /><span>{t(labelKey)}</span>{to === "/dashboard/bills" && <span className="nav-link__count">4</span>}</NavLink>)}<p className="sidebar__section-label sidebar__section-label--spaced">Workspace settings</p><NavLink to="/account/organization" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Building2 size={18} /><span>{t("nav.organization")}</span></NavLink><NavLink to="/organization/members" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><UsersRound size={18} /><span>{t("nav.members")}</span></NavLink><NavLink to="/account/settings" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Settings2 size={18} /><span>{t("nav.account")}</span></NavLink></nav><div className="sidebar__footer"><div className="sidebar__signal"><CircleDollarSign size={18} /><span><strong>Cash flow</strong><small>Healthy this month</small></span><span className="signal-dot" /></div></div></aside><main className="main-content"><div className="mobile-topbar"><BrandMark /><div className="mobile-topbar__actions"><OrganizationSwitcher /><IconButton label="Notifications"><Bell size={18} /></IconButton></div></div><header className="content-topbar"><div className="content-topbar__crumb"><span className="live-dot" />Live workspace <span>/</span> {location.pathname.includes("bills") ? t("nav.bills") : location.pathname.includes("expenses") ? t("nav.expenses") : location.pathname.includes("organization") ? t("nav.organization") : t("nav.overview")}</div><div className="content-topbar__actions"><DemoBadge /><IconButton label="Notifications"><Bell size={18} /></IconButton><UserMenu /></div></header><div className="content-scroll"><Outlet /></div><nav className="mobile-bottom-nav" aria-label="Mobile navigation">{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><Icon size={20} /><span>{t(labelKey)}</span></NavLink>)}<NavLink to="/account/more" className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><MoreHorizontal size={20} /><span>More</span></NavLink></nav></main></div>;
+  return <div className="app-shell"><aside className="sidebar"><div className="sidebar__brand"><BrandMark compact /><span className="sidebar__brand-label">finance desk</span></div><div className="sidebar__org"><OrganizationSwitcher /></div><nav className="sidebar__nav" aria-label="Primary navigation"><p className="sidebar__section-label">Workspace</p>{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Icon size={18} /><span>{t(labelKey)}</span>{to === "/dashboard/bills" && <span className="nav-link__count">4</span>}</NavLink>)}<p className="sidebar__section-label sidebar__section-label--spaced">Workspace settings</p><NavLink to="/account/organization" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Building2 size={18} /><span>{t("nav.organization")}</span></NavLink><NavLink to="/organization/members" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><UsersRound size={18} /><span>{t("nav.members")}</span></NavLink><NavLink to="/account/settings" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Settings2 size={18} /><span>{t("nav.account")}</span></NavLink></nav><div className="sidebar__footer"><div className="sidebar__signal"><CircleDollarSign size={18} /><span><strong>Cash flow</strong><small>Healthy this month</small></span><span className="signal-dot" /></div></div></aside><main className="main-content"><div className="mobile-topbar"><BrandMark /><div className="mobile-topbar__actions"><OrganizationSwitcher /><IconButton label="Notifications"><Bell size={18} /></IconButton></div></div><header className="content-topbar"><div className="content-topbar__crumb"><span className="live-dot" />Live workspace <span>/</span> {location.pathname.includes("bills") ? t("nav.bills") : location.pathname.includes("expenses") ? t("nav.expenses") : location.pathname.includes("organization") ? t("nav.organization") : t("nav.overview")}</div><div className="content-topbar__actions"><HealthBadge /><IconButton label="Notifications"><Bell size={18} /></IconButton><UserMenu /></div></header><div className="content-scroll"><Outlet /></div><nav className="mobile-bottom-nav" aria-label="Mobile navigation">{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><Icon size={20} /><span>{t(labelKey)}</span></NavLink>)}<NavLink to="/account/more" className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><MoreHorizontal size={20} /><span>More</span></NavLink></nav></main></div>;
 }
 
 export function PublicLayout({ children }: { children: ReactNode }) {
