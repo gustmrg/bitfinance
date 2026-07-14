@@ -3,6 +3,9 @@ import { normalizeApiError } from "../shared/errors";
 import type { OrganizationSummary } from "../auth/auth.types";
 import type { Budget, InvitationResult, OrganizationDetails } from "./organizations.types";
 
+export type OrganizationMemberRole = "Owner" | "Admin" | "Member";
+export type EditableOrganizationMemberRole = "Admin" | "Member";
+
 export const organizationsService = {
   async listAsync(): Promise<OrganizationSummary[]> {
     try { return (await authApi.get<OrganizationSummary[]>("/organizations")).data; }
@@ -28,14 +31,22 @@ export const organizationsService = {
     try { return (await authApi.put<Budget>(`/organizations/${organizationId}/budget`, { amount })).data; }
     catch (error) { throw normalizeApiError(error, "Unable to save the budget."); }
   },
-  async createInviteAsync(organizationId: string, email: string, role: "Owner" | "Admin" | "Member"): Promise<InvitationResult> {
+  async createInviteAsync(organizationId: string, email: string, role: EditableOrganizationMemberRole): Promise<InvitationResult> {
     try {
-      const roleValue = { Owner: 1, Admin: 2, Member: 3 }[role];
+      const roleValue = { Admin: 2, Member: 3 }[role];
       return (await authApi.post<InvitationResult>(`/organizations/${organizationId}/invite`, { email, role: roleValue })).data;
     } catch (error) { throw normalizeApiError(error, "Unable to create the invitation."); }
   },
-  async joinAsync(token: string) {
-    try { return (await authApi.post<OrganizationSummary>(`/organizations/join?token=${encodeURIComponent(token)}`)).data; }
+  async updateMemberRoleAsync(organizationId: string, userId: string, role: EditableOrganizationMemberRole): Promise<void> {
+    try { await authApi.patch(`/organizations/${organizationId}/members/${userId}/role`, { role }); }
+    catch (error) { throw normalizeApiError(error, "Unable to update this member's role."); }
+  },
+  async removeMemberAsync(organizationId: string, userId: string): Promise<void> {
+    try { await authApi.delete(`/organizations/${organizationId}/members/${userId}`); }
+    catch (error) { throw normalizeApiError(error, "Unable to remove this member."); }
+  },
+  async joinAsync(token: string): Promise<void> {
+    try { await authApi.post(`/organizations/join?token=${encodeURIComponent(token)}`); }
     catch (error) { throw normalizeApiError(error, "Unable to join the organization."); }
   },
 };

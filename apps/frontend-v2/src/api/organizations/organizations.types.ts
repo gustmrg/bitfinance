@@ -5,7 +5,13 @@ export interface OrganizationDetails extends OrganizationSummary {
   createdAt: string;
   updatedAt?: string | null;
   budget: { id: string; amount: number; createdAt: string; updatedAt?: string | null } | null;
-  members: Array<{ id: string; username: string; email: string }>;
+  members: Array<{
+    id: string;
+    username: string;
+    email: string;
+    role: "Owner" | "Admin" | "Member";
+    joinedAt: string;
+  }>;
 }
 
 export interface InvitationResult { id: string; token: string; expiresAt: string }

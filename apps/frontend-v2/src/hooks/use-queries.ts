@@ -9,6 +9,7 @@ import { healthService } from "../api/health/health.service";
 import { organizationsService } from "../api/organizations/organizations.service";
 import type { BillInput, BillListFilters } from "../api/bills/bills.types";
 import type { ExpenseInput, ExpenseListFilters } from "../api/expenses/expenses.types";
+import type { EditableOrganizationMemberRole } from "../api/organizations/organizations.service";
 import { queryKeys } from "../lib/query-keys";
 
 export function useHealthQuery() { return useQuery({ queryKey: queryKeys.health.all, queryFn: healthService.getAsync, retry: 0, staleTime: 60_000 }); }
@@ -34,6 +35,23 @@ export function useOrganizationMutations(organizationId: string | null) {
   const update = useMutation({ mutationFn: (name: string) => organizationsService.updateAsync(organizationId!, name), onSuccess: invalidate });
   const budget = useMutation({ mutationFn: (amount: number) => organizationsService.upsertBudgetAsync(organizationId!, amount), onSuccess: () => { invalidate(); void client.invalidateQueries({ queryKey: queryKeys.organizations.budget(organizationId!) }); } });
   return { update, budget };
+}
+export function useOrganizationMemberMutations(organizationId: string | null) {
+  const client = useQueryClient();
+  const invalidate = () => {
+    void client.invalidateQueries({ queryKey: queryKeys.organizations.all });
+    void client.invalidateQueries({ queryKey: queryKeys.auth.me() });
+  };
+  return {
+    updateRole: useMutation({
+      mutationFn: ({ userId, role }: { userId: string; role: EditableOrganizationMemberRole }) => organizationsService.updateMemberRoleAsync(organizationId!, userId, role),
+      onSuccess: invalidate,
+    }),
+    remove: useMutation({
+      mutationFn: (userId: string) => organizationsService.removeMemberAsync(organizationId!, userId),
+      onSuccess: invalidate,
+    }),
+  };
 }
 export function useAccountMutations() {
   const client = useQueryClient();
