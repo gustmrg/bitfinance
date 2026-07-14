@@ -1,4 +1,6 @@
 export type OrganizationRole = "Owner" | "Admin" | "Member";
+export const inviteOrganizationRoles = ["Admin", "Member"] as const;
+export type InviteOrganizationRole = (typeof inviteOrganizationRoles)[number];
 
 export interface OrganizationSummary {
   id: string;
@@ -9,7 +11,8 @@ export interface OrganizationMember {
   id: string;
   username: string;
   email: string;
-  role?: OrganizationRole | null;
+  role: OrganizationRole;
+  joinedAt: string;
 }
 
 export interface OrganizationBudgetDetails {
@@ -49,11 +52,22 @@ export interface UpsertOrganizationBudgetRequest {
 export interface CreateInvitationRequest {
   organizationId: string;
   email: string;
-  role?: OrganizationRole | null;
+  role?: InviteOrganizationRole | null;
 }
 
 export interface CreateInvitationResponse {
   id: string;
   token: string;
   expiresAt: string;
+}
+
+export interface UpdateMemberRoleRequest {
+  organizationId: string;
+  userId: string;
+  role: InviteOrganizationRole;
+}
+
+export interface RemoveOrganizationMemberRequest {
+  organizationId: string;
+  userId: string;
 }

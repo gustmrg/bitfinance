@@ -5,6 +5,8 @@ const routeNameMap: { [key: string]: string } = {
   bills: "Bills",
   account: "Account",
   expenses: "Expenses",
+  members: "Members & roles",
+  organization: "Organization",
 };
 
 const getBreadcrumbName = (segment: string): string => {

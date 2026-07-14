@@ -7,5 +7,5 @@ public class GetOrganizationByIdResponse
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public OrganizationBudgetResponse? Budget { get; set; }
-    public List<UserResponseModel> Members { get; set; } = [];
+    public List<OrganizationMemberResponse> Members { get; set; } = [];
 }

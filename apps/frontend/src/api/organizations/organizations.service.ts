@@ -5,11 +5,15 @@ import { normalizeError } from "@/api/shared/normalize-error";
 import type {
   CreateInvitationRequest,
   CreateInvitationResponse,
+  InviteOrganizationRole,
   CreateOrganizationRequest,
   OrganizationBudget,
   OrganizationDetails,
+  OrganizationMember,
   OrganizationRole,
   OrganizationSummary,
+  RemoveOrganizationMemberRequest,
+  UpdateMemberRoleRequest,
   UpdateOrganizationRequest,
   UpsertOrganizationBudgetRequest,
 } from "./organizations.types";
@@ -22,7 +26,7 @@ const organizationRoleToApiValue: Record<OrganizationRole, number> = {
   Member: 3,
 };
 
-function mapInviteRole(role?: OrganizationRole | null) {
+function mapInviteRole(role?: InviteOrganizationRole | null) {
   if (!role) {
     return undefined;
   }
@@ -127,6 +131,33 @@ export const organizationsService = {
       return response.data;
     } catch (error) {
       throw normalizeError(error, "Failed to create organization invite.");
+    }
+  },
+
+  async updateMemberRoleAsync(
+    request: UpdateMemberRoleRequest
+  ): Promise<OrganizationMember> {
+    try {
+      const response = await authApi.patch<OrganizationMember>(
+        `/organizations/${request.organizationId}/members/${request.userId}/role`,
+        {
+          role: request.role,
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error, "Failed to update organization member role.");
+    }
+  },
+
+  async removeMemberAsync(request: RemoveOrganizationMemberRequest): Promise<void> {
+    try {
+      await authApi.delete(
+        `/organizations/${request.organizationId}/members/${request.userId}`
+      );
+    } catch (error) {
+      throw normalizeError(error, "Failed to remove organization member.");
     }
   },
 

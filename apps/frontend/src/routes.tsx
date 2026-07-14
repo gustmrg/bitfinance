@@ -71,6 +71,10 @@ const OrganizationManagement = lazy(async () => ({
   default: (await import("./pages/organizations/manage")).OrganizationManagement,
 }));
 
+const OrganizationMembers = lazy(async () => ({
+  default: (await import("./pages/organizations/members")).OrganizationMembers,
+}));
+
 function RouteFallback() {
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -142,6 +146,20 @@ export const router = createBrowserRouter([
       {
         path: "organization",
         element: withSuspense(<OrganizationManagement />),
+      },
+    ],
+  },
+  {
+    path: "organization",
+    element: (
+      <ProtectedRoute>
+        {withSuspense(<DashboardLayout />)}
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        path: "members",
+        element: withSuspense(<OrganizationMembers />),
       },
     ],
   },

@@ -9,6 +9,8 @@ using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using static BitFinance.API.Models.RemoveMemberResult;
+using static BitFinance.API.Models.UpdateMemberRoleResult;
 
 namespace BitFinance.API.Controllers;
 
@@ -82,7 +84,12 @@ public class OrganizationsController : ControllerBase
         foreach (var membership in organization.Members)
         {
             var user = membership.User;
-            response.Members.Add(new UserResponseModel(user.Id, user.UserName ?? string.Empty, user.Email ?? string.Empty));
+            response.Members.Add(new OrganizationMemberResponse(
+                user.Id,
+                user.UserName ?? string.Empty,
+                user.Email ?? string.Empty,
+                membership.Role,
+                membership.JoinedAt));
         }
 
         return Ok(response);
@@ -180,6 +187,75 @@ public class OrganizationsController : ControllerBase
 
         var invitation = result.Invitation!;
         return Ok(new CreateInvitationResponse(invitation.Id, result.RawToken!, invitation.ExpiresAt));
+    }
+
+    [HttpPatch("{organizationId:guid}/members/{userId}/role")]
+    [OrganizationAuthorization]
+    [EndpointSummary("Update member role")]
+    [EndpointDescription("Updates the role of a member in the organization. Only owners can update roles.")]
+    public async Task<IActionResult> UpdateMemberRole(
+        [FromRoute] Guid organizationId,
+        [FromRoute] string userId,
+        [FromBody] UpdateMemberRoleRequest request)
+    {
+        var actingUserId = User.Claims.FirstOrDefault(a => a.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(actingUserId)) return BadRequest("Invalid user");
+
+        var result = await _organizationsService.UpdateMemberRoleAsync(
+            organizationId, userId, request.Role, actingUserId);
+
+        if (!result.Success)
+        {
+            return result.Error switch
+            {
+                UpdateMemberRoleError.NotAuthorized => Forbid(),
+                UpdateMemberRoleError.OrganizationNotFound => NotFound(result.ErrorMessage),
+                UpdateMemberRoleError.MemberNotFound => NotFound(result.ErrorMessage),
+                UpdateMemberRoleError.CannotDemoteLastOwner => StatusCode(403, new { error = result.ErrorMessage }),
+                UpdateMemberRoleError.CannotManageOwner => StatusCode(403, new { error = result.ErrorMessage }),
+                UpdateMemberRoleError.CannotPromoteToOwner => StatusCode(403, new { error = result.ErrorMessage }),
+                _ => BadRequest(result.ErrorMessage),
+            };
+        }
+
+        var member = result.Member!;
+        return Ok(new OrganizationMemberResponse(
+            member.UserId,
+            member.User?.UserName ?? string.Empty,
+            member.User?.Email ?? string.Empty,
+            member.Role,
+            member.JoinedAt));
+    }
+
+    [HttpDelete("{organizationId:guid}/members/{userId}")]
+    [OrganizationAuthorization]
+    [EndpointSummary("Remove a member")]
+    [EndpointDescription("Removes a member from the organization. Owners can remove admins and members. Admins can remove members only.")]
+    public async Task<IActionResult> RemoveMember(
+        [FromRoute] Guid organizationId,
+        [FromRoute] string userId)
+    {
+        var actingUserId = User.Claims.FirstOrDefault(a => a.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(actingUserId)) return BadRequest("Invalid user");
+
+        var result = await _organizationsService.RemoveMemberAsync(organizationId, userId, actingUserId);
+
+        if (!result.Success)
+        {
+            return result.Error switch
+            {
+                RemoveMemberError.NotAuthorized => Forbid(),
+                RemoveMemberError.OrganizationNotFound => NotFound(result.ErrorMessage),
+                RemoveMemberError.MemberNotFound => NotFound(result.ErrorMessage),
+                RemoveMemberError.CannotRemoveLastOwner => StatusCode(403, new { error = result.ErrorMessage }),
+                RemoveMemberError.CannotRemoveOwner => StatusCode(403, new { error = result.ErrorMessage }),
+                _ => BadRequest(result.ErrorMessage),
+            };
+        }
+
+        return NoContent();
     }
 
     [HttpPost("join")]

@@ -27,7 +27,7 @@ export function DashboardLayout() {
 
   if (isMobile) {
     return (
-      <div className="flex min-h-svh flex-col bg-white dark:bg-zinc-950">
+      <div className="flex min-h-svh flex-col bg-background">
         <MobileAppHeader />
         <main className="flex flex-1 flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom))]">
           <Outlet />

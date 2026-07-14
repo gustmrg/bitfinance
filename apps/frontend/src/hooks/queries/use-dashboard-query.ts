@@ -39,11 +39,14 @@ export function useDashboardSummaryQuery(
   organizationId: string | null,
   filters?: DashboardDateFilters,
 ) {
+  const from = filters?.from;
+  const to = filters?.to;
+
   return useQuery({
     queryKey: [
       ...queryKeys.dashboard.summary(organizationId ?? ""),
-      filters?.from?.toISOString(),
-      filters?.to?.toISOString(),
+      from?.toISOString(),
+      to?.toISOString(),
     ],
     enabled: Boolean(organizationId),
     queryFn: async (): Promise<DashboardSummaryResponse> => {
@@ -58,7 +61,7 @@ export function useDashboardSummaryQuery(
         };
       }
 
-      return getDashboardSummary(organizationId, filters);
+      return getDashboardSummary(organizationId, { from, to });
     },
   });
 }
@@ -67,11 +70,14 @@ export function useUpcomingBillsQuery(
   organizationId: string | null,
   filters?: DashboardDateFilters,
 ) {
+  const from = filters?.from;
+  const to = filters?.to;
+
   return useQuery({
     queryKey: [
       ...queryKeys.dashboard.upcomingBills(organizationId ?? ""),
-      filters?.from?.toISOString(),
-      filters?.to?.toISOString(),
+      from?.toISOString(),
+      to?.toISOString(),
     ],
     enabled: Boolean(organizationId),
     queryFn: async (): Promise<Bill[]> => {
@@ -79,7 +85,7 @@ export function useUpcomingBillsQuery(
         return [];
       }
 
-      const response = await getUpcomingBills(organizationId, filters);
+      const response = await getUpcomingBills(organizationId, { from, to });
       return response.data.map(mapUpcomingBillResponse);
     },
   });
@@ -89,11 +95,14 @@ export function useRecentExpensesQuery(
   organizationId: string | null,
   filters?: DashboardDateFilters,
 ) {
+  const from = filters?.from;
+  const to = filters?.to;
+
   return useQuery({
     queryKey: [
       ...queryKeys.dashboard.recentExpenses(organizationId ?? ""),
-      filters?.from?.toISOString(),
-      filters?.to?.toISOString(),
+      from?.toISOString(),
+      to?.toISOString(),
     ],
     enabled: Boolean(organizationId),
     queryFn: async (): Promise<ExpenseResponseModel[]> => {
@@ -101,7 +110,7 @@ export function useRecentExpensesQuery(
         return [];
       }
 
-      const response = await getRecentExpenses(organizationId, filters);
+      const response = await getRecentExpenses(organizationId, { from, to });
       return response.data.map(mapRecentExpenseResponse);
     },
   });

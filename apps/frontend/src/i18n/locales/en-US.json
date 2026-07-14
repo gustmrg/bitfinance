@@ -41,6 +41,7 @@
     "bills": "Bills",
     "expenses": "Expenses",
     "organization": "Organization",
+    "members": "Members & roles",
     "account": "Account",
     "more": "More",
     "settings": "Settings",
@@ -110,6 +111,7 @@
     "date": "Date",
     "profile": "Profile",
     "settings": "Settings",
+    "theme": "Theme",
     "logout": "Logout",
     "viewAll": "View All",
     "dueIn": "Due",
@@ -304,7 +306,11 @@
       },
       "organization": {
         "title": "Organization",
-        "description": "Manage members, invites, and workspace settings."
+        "description": "Manage workspace name, budget, and overview."
+      },
+      "members": {
+        "title": "Members & roles",
+        "description": "Manage access, roles, and member removals."
       },
       "createOrganization": {
         "title": "Create Organization",
@@ -362,7 +368,14 @@
       "title": "Preferences",
       "subtitle": "Customize your experience.",
       "language": "Language",
-      "languageDescription": "Select your preferred language."
+      "languageDescription": "Select your preferred language.",
+      "theme": "Theme",
+      "themeDescription": "Choose your preferred appearance.",
+      "themeOptions": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      }
     },
     "security": {
       "title": "Security",
@@ -379,7 +392,7 @@
   },
   "organization": {
     "title": "Organization",
-    "subtitle": "Manage your workspace settings, members, and invitation links.",
+    "subtitle": "Manage workspace name, budget, and overview.",
     "loading": "Loading organization details...",
     "unavailable": {
       "title": "Organization not found",
@@ -404,7 +417,7 @@
       "benefits": {
         "workspace": "Keep data separated by workspace from day one.",
         "invites": "Invite teammates with roles as soon as the workspace is ready.",
-        "settings": "Update members, invites, and naming later from organization settings."
+        "settings": "Update naming, budget, and access controls from their dedicated settings pages."
       }
     },
     "overview": {
@@ -440,12 +453,28 @@
       "successDescription": "The organization budget has been saved successfully."
     },
     "members": {
-      "title": "Members",
-      "description": "Review current members and prepare role management workflows.",
+      "title": "Members & roles",
+      "description": "Manage who can access the selected organization.",
+      "emptyTitle": "No members returned",
       "empty": "No members were returned for this organization.",
-      "roleUnavailable": "Role unavailable",
-      "manageRolesTitle": "Role management is partially available",
-      "manageRolesDescription": "You can assign roles when creating invites today. Editing roles for existing members still depends on backend support for member roles and role updates."
+      "you": "You",
+      "memberColumn": "Member",
+      "roleColumn": "Role",
+      "joinedColumn": "Joined",
+      "actionsColumn": "Actions",
+      "totalMembers": "Total members",
+      "ownerCount": "Owners",
+      "yourRole": "Your role",
+      "removeAction": "Remove",
+      "leaveAction": "Leave",
+      "roleUpdated": "Role updated",
+      "roleUpdatedDescription": "The member role has been updated.",
+      "removeSuccess": "Member removed",
+      "leaveSuccess": "You left the organization",
+      "removeConfirmTitle": "Remove member",
+      "removeConfirmDescription": "Remove {{member}} from this organization? They will lose access immediately.",
+      "leaveConfirmTitle": "Leave organization",
+      "leaveConfirmDescription": "You will lose access to this organization. If this is the selected organization, BitFinance will switch you to another available workspace."
     },
     "invite": {
       "trigger": "Invite member",

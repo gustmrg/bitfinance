@@ -6,7 +6,7 @@ React + TypeScript + Vite finance dashboard app with:
 - TanStack Query for server state
 - Zustand for shared client auth/organization state
 - Tailwind CSS + Radix UI for UI
-- `react-i18next` with locale files in `public/locales`
+- `react-i18next` with locale files in `src/i18n/locales`
 
 ## Build/Development Commands
 
@@ -130,8 +130,8 @@ export function ComponentName() {
 ### Internationalization (i18n)
 
 - Use `useTranslation()` from `react-i18next`
-- i18n runtime config: `src/i18n/config.js`
-- Translation files: `public/locales/{lng}/translation.json`
+- i18n runtime config: `src/i18n/config.ts`
+- Translation files: `src/i18n/locales/{lng}.json`
 
 ### File Organization
 

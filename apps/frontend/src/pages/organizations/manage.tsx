@@ -1,7 +1,7 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Building2, Plus, Save, Users } from "lucide-react";
+import { Building2, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -34,12 +34,6 @@ import { useOrganizationMutations } from "@/hooks/mutations/use-organization-mut
 import { useOrganizationQuery } from "@/hooks/queries/use-organization-query";
 import { formatCurrency } from "@/lib/format";
 
-import { OrganizationMembersList } from "./components/organization-members-list";
-
-const InviteMemberDialog = lazy(async () => ({
-  default: (await import("./components/invite-member-dialog")).InviteMemberDialog,
-}));
-
 const updateOrganizationSchema = z.object({
   name: z.string().trim().min(1),
 });
@@ -63,42 +57,6 @@ const updateBudgetSchema = z.object({
 
 type UpdateOrganizationFormValues = z.infer<typeof updateOrganizationSchema>;
 type UpdateBudgetFormValues = z.infer<typeof updateBudgetSchema>;
-
-function LazyInviteMemberAction({ organizationId }: { organizationId: string }) {
-  const { t } = useTranslation();
-  const [enabled, setEnabled] = useState(false);
-
-  if (!enabled) {
-    return (
-      <Button onClick={() => setEnabled(true)}>
-        <Plus className="h-4 w-4" />
-        {t("organization.invite.trigger")}
-      </Button>
-    );
-  }
-
-  return (
-    <Suspense
-      fallback={
-        <Button disabled>
-          <Plus className="h-4 w-4" />
-          {t("organization.invite.trigger")}
-        </Button>
-      }
-    >
-      <InviteMemberDialog
-        defaultOpen
-        organizationId={organizationId}
-        trigger={
-          <Button>
-            <Plus className="h-4 w-4" />
-            {t("organization.invite.trigger")}
-          </Button>
-        }
-      />
-    </Suspense>
-  );
-}
 
 export function OrganizationManagement() {
   const { t, i18n } = useTranslation();
@@ -222,11 +180,6 @@ export function OrganizationManagement() {
       <PageHeader
         title={t("organization.title")}
         description={t("organization.subtitle")}
-        actions={
-          organization ? (
-            <LazyInviteMemberAction organizationId={organization.id} />
-          ) : null
-        }
       />
 
       {organizationQuery.isPending ? (
@@ -402,23 +355,6 @@ export function OrganizationManagement() {
               </CardContent>
             </Card>
           </div>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <CardTitle>{t("organization.members.title")}</CardTitle>
-                  <CardDescription>
-                    {t("organization.members.description")}
-                  </CardDescription>
-                </div>
-                <Users className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <OrganizationMembersList members={organization.members} />
-            </CardContent>
-          </Card>
         </>
       )}
     </PageContainer>

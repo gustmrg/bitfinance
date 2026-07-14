@@ -41,6 +41,7 @@
     "bills": "Contas",
     "expenses": "Despesas",
     "organization": "Organização",
+    "members": "Membros e papéis",
     "account": "Conta",
     "more": "Mais",
     "settings": "Configurações",
@@ -110,6 +111,7 @@
     "date": "Data",
     "profile": "Perfil",
     "settings": "Configurações",
+    "theme": "Tema",
     "logout": "Sair",
     "viewAll": "Ver tudo",
     "dueIn": "Vence em",
@@ -300,7 +302,11 @@
       },
       "organization": {
         "title": "Organização",
-        "description": "Gerencie membros, convites e configurações do espaço de trabalho."
+        "description": "Gerencie nome, orçamento e visão geral do espaço."
+      },
+      "members": {
+        "title": "Membros e papéis",
+        "description": "Gerencie acesso, papéis e remoções."
       },
       "createOrganization": {
         "title": "Criar Organização",
@@ -358,7 +364,14 @@
       "title": "Preferências",
       "subtitle": "Personalize sua experiência.",
       "language": "Idioma",
-      "languageDescription": "Selecione seu idioma preferido."
+      "languageDescription": "Selecione seu idioma preferido.",
+      "theme": "Tema",
+      "themeDescription": "Escolha a aparência preferida.",
+      "themeOptions": {
+        "light": "Claro",
+        "dark": "Escuro",
+        "system": "Sistema"
+      }
     },
     "security": {
       "title": "Segurança",
@@ -375,7 +388,7 @@
   },
   "organization": {
     "title": "Organização",
-    "subtitle": "Gerencie as configurações do espaço de trabalho, membros e links de convite.",
+    "subtitle": "Gerencie nome, orçamento e visão geral do espaço.",
     "loading": "Carregando detalhes da organização...",
     "unavailable": {
       "title": "Organização não encontrada",
@@ -400,7 +413,7 @@
       "benefits": {
         "workspace": "Mantenha os dados separados por espaço de trabalho desde o primeiro dia.",
         "invites": "Convide integrantes com papéis definidos assim que o espaço estiver pronto.",
-        "settings": "Atualize membros, convites e nome depois nas configurações da organização."
+        "settings": "Atualize nome, orçamento e controles de acesso nas páginas dedicadas."
       }
     },
     "overview": {
@@ -436,12 +449,28 @@
       "successDescription": "O orçamento da organização foi salvo com sucesso."
     },
     "members": {
-      "title": "Membros",
-      "description": "Revise os membros atuais e prepare fluxos de gerenciamento de papéis.",
+      "title": "Membros e papéis",
+      "description": "Gerencie quem pode acessar a organização selecionada.",
+      "emptyTitle": "Nenhum membro retornado",
       "empty": "Nenhum membro foi retornado para esta organização.",
-      "roleUnavailable": "Papel indisponível",
-      "manageRolesTitle": "O gerenciamento de papéis está parcialmente disponível",
-      "manageRolesDescription": "Hoje você já pode definir papéis ao criar convites. A edição de papéis para membros existentes ainda depende de suporte do backend para retornar e atualizar papéis."
+      "you": "Você",
+      "memberColumn": "Membro",
+      "roleColumn": "Papel",
+      "joinedColumn": "Entrada",
+      "actionsColumn": "Ações",
+      "totalMembers": "Total de membros",
+      "ownerCount": "Proprietários",
+      "yourRole": "Seu papel",
+      "removeAction": "Remover",
+      "leaveAction": "Sair",
+      "roleUpdated": "Papel atualizado",
+      "roleUpdatedDescription": "O papel do membro foi atualizado.",
+      "removeSuccess": "Membro removido",
+      "leaveSuccess": "Você saiu da organização",
+      "removeConfirmTitle": "Remover membro",
+      "removeConfirmDescription": "Remover {{member}} desta organização? Essa pessoa perderá acesso imediatamente.",
+      "leaveConfirmTitle": "Sair da organização",
+      "leaveConfirmDescription": "Você perderá acesso a esta organização. Se ela estiver selecionada, o BitFinance mudará para outro espaço disponível."
     },
     "invite": {
       "trigger": "Convidar membro",

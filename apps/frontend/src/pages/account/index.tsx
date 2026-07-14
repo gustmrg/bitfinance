@@ -4,10 +4,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Camera, ShieldCheck, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "next-themes";
 import { z } from "zod";
 import { toast } from "sonner";
 
 import { useCurrentUser } from "@/auth/auth-provider";
+import { themeOptions, type ThemeOption } from "@/lib/theme";
 import { PageContainer } from "@/components/page-shell";
 import { AdaptiveConfirm } from "@/components/ui/adaptive-modal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -64,6 +66,7 @@ function splitFullName(fullName: string) {
 
 export function Account() {
   const { t, i18n } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const currentUserQuery = useCurrentUser();
   const user = currentUserQuery.data ?? null;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -157,7 +160,7 @@ export function Account() {
     <PageContainer className="max-w-3xl">
       <div>
         <h3 className="text-lg font-bold">{t("account.title")}</h3>
-        <p className="text-sm text-zinc-500">{t("account.subtitle")}</p>
+        <p className="text-sm text-muted-foreground">{t("account.subtitle")}</p>
       </div>
       <Separator />
       <Card>
@@ -264,7 +267,7 @@ export function Account() {
         <h3 className="text-lg font-bold">
           {t("account.preferences.title")}
         </h3>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-muted-foreground">
           {t("account.preferences.subtitle")}
         </p>
       </div>
@@ -288,6 +291,27 @@ export function Account() {
         </Select>
         <p className="text-[0.8rem] text-muted-foreground">
           {t("account.preferences.languageDescription")}
+        </p>
+      </div>
+      <div className="space-y-2">
+        <Label>{t("account.preferences.theme")}</Label>
+        <Select
+          value={theme ?? "system"}
+          onValueChange={(value) => setTheme(value as ThemeOption)}
+        >
+          <SelectTrigger className="w-full max-w-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {themeOptions.map((option) => (
+              <SelectItem key={option} value={option}>
+                {t(`account.preferences.themeOptions.${option}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[0.8rem] text-muted-foreground">
+          {t("account.preferences.themeDescription")}
         </p>
       </div>
       <Separator />

@@ -1,15 +1,22 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
+import { useTheme } from "next-themes";
 import {
   BadgeCheck,
   Bell,
   ChevronsUpDown,
   CreditCard,
   LogOut,
+  Monitor,
+  Moon,
+  Palette,
   Sparkles,
+  Sun,
 } from "lucide-react";
 
 import { useLogoutAction } from "@/auth/auth-provider";
+import { themeOptions, type ThemeOption } from "@/lib/theme";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +25,12 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -41,6 +53,8 @@ export function NavUser({
   email,
   variant = "sidebar",
 }: NavUserProps) {
+  const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const logout = useLogoutAction();
   const navigate = useNavigate();
 
@@ -122,6 +136,33 @@ export function NavUser({
           <Bell />
           Notifications
         </DropdownMenuItem>
+      </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Palette />
+            {t("labels.theme")}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuRadioGroup
+              value={theme ?? "system"}
+              onValueChange={(value) => setTheme(value as ThemeOption)}
+            >
+              {themeOptions.map((option) => {
+                const Icon =
+                  option === "light" ? Sun : option === "dark" ? Moon : Monitor;
+
+                return (
+                  <DropdownMenuRadioItem key={option} value={option}>
+                    <Icon className="mr-2 h-4 w-4" />
+                    {t(`account.preferences.themeOptions.${option}`)}
+                  </DropdownMenuRadioItem>
+                );
+              })}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={onLogout}>

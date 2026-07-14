@@ -5,6 +5,7 @@ import {
   MoreHorizontal,
   ReceiptText,
   Settings,
+  Users,
 } from "lucide-react";
 
 type AppNavSurface = "desktop-sidebar" | "mobile-bottom";
@@ -15,6 +16,7 @@ export interface AppNavItem {
     | "bills"
     | "expenses"
     | "organization"
+    | "members"
     | "account"
     | "more";
   label: string;
@@ -64,6 +66,15 @@ export const appNavigation: AppNavItem[] = [
     isMatch: (pathname) => pathname.startsWith("/account/organization"),
   },
   {
+    id: "members",
+    label: "Members & roles",
+    to: "/organization/members",
+    icon: Users,
+    section: "account",
+    surfaces: ["desktop-sidebar"],
+    isMatch: (pathname) => pathname.startsWith("/organization/members"),
+  },
+  {
     id: "account",
     label: "Account",
     to: "/account/settings",
@@ -79,7 +90,8 @@ export const appNavigation: AppNavItem[] = [
     icon: MoreHorizontal,
     section: "account",
     surfaces: ["mobile-bottom"],
-    isMatch: (pathname) => pathname.startsWith("/account"),
+    isMatch: (pathname) =>
+      pathname.startsWith("/account") || pathname.startsWith("/organization"),
   },
 ];
 

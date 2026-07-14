@@ -1,4 +1,6 @@
+using BitFinance.API.Models;
 using BitFinance.Business.Entities;
+using BitFinance.Business.Enums;
 
 namespace BitFinance.API.Services.Interfaces;
 
@@ -51,4 +53,17 @@ public interface IOrganizationsService
     /// <param name="amount">The monthly budget amount.</param>
     /// <returns>The created or updated <see cref="Budget"/> entity.</returns>
     Task<Budget> UpsertBudgetAsync(Guid organizationId, decimal amount);
+
+    /// <summary>
+    /// Updates the role of a member in the organization.
+    /// Only owners can update roles, and they cannot promote to Owner, demote the last owner, or change another owner's role.
+    /// </summary>
+    Task<UpdateMemberRoleResult> UpdateMemberRoleAsync(Guid organizationId, string targetUserId, OrgRole newRole, string actingUserId);
+
+    /// <summary>
+    /// Removes a member from the organization.
+    /// Owners can remove admins and members. Admins can remove members only.
+    /// The last owner cannot be removed. A member can remove themselves (leave) unless they are the last owner.
+    /// </summary>
+    Task<RemoveMemberResult> RemoveMemberAsync(Guid organizationId, string targetUserId, string actingUserId);
 }

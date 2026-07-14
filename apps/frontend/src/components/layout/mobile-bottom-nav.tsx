@@ -14,7 +14,7 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-30 border-t bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <ul className="grid min-h-16 grid-cols-4 gap-1 p-1">
         {mobileBottomNavigation.map((item) => {
