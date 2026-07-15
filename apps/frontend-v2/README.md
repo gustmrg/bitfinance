@@ -34,6 +34,13 @@ server-backed CRUD, uploads/downloads, and explicit loading/empty/error states.
 
 The compiler is pinned to TypeScript 5.9.3 because the current TypeScript ESLint parser does not yet load the registry’s TypeScript 7 release; the rest of the verified tooling uses its current stable line.
 
+## Deployment
+
+Frontend v2 is released independently at
+`https://bitfinance-v2.gustavomiranda.dev` while the existing frontend remains
+live. See [`docs/deployment.md`](docs/deployment.md) for the release workflow,
+VPS, Nginx, TLS, and verification steps.
+
 ## Backend mapping
 
 See [`docs/backend-endpoints.md`](docs/backend-endpoints.md) for the 39-route

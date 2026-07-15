@@ -1,11 +1,13 @@
-import { lazy, Suspense, useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { isValidElement, lazy, Suspense, useEffect, useRef, useState, type ButtonHTMLAttributes, type FormEvent, type ReactNode } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowUpRight,
   BarChart3,
   Bell,
   Building2,
+  CalendarDays,
   ChevronDown,
+  ChevronRight,
   CircleDollarSign,
   CreditCard,
   FileText,
@@ -16,7 +18,6 @@ import {
   MoreHorizontal,
   ReceiptText,
   Settings2,
-  Sparkles,
   UsersRound,
   WalletCards,
   X,
@@ -26,7 +27,7 @@ import { useTranslation } from "react-i18next";
 import { formatCurrency } from "./format";
 import { useAuth } from "./auth/auth-provider";
 import { useOrganizationStore } from "./auth/auth-store";
-import { useHealthQuery, useOrganizationsQuery } from "./hooks/use-queries";
+import { useOrganizationsQuery } from "./hooks/use-queries";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -46,18 +47,78 @@ export function Avatar({ initials, src, size = "md" }: { initials: string; src?:
   return src ? <img className={`avatar avatar--${size}`} src={src} alt="" /> : <span className={`avatar avatar--${size}`}>{initials}</span>;
 }
 
-export function HealthBadge() {
-  const health = useHealthQuery();
-  return <div className="health-badge" aria-live="polite"><Sparkles size={14} /><span>{health.isPending ? "Checking API" : health.isSuccess ? "API online" : "API unavailable"}</span></div>;
-}
-
 export function StatusPill({ status }: { status: string }) {
   const label = status.replaceAll("_", " ");
   return <span className={`status-pill status-pill--${status}`}>{label}</span>;
 }
 
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow: string; title: string; description?: string; actions?: ReactNode }) {
-  return <header className="page-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1>{description && <p className="page-header__description">{description}</p>}</div>{actions && <div className="page-header__actions">{actions}</div>}</header>;
+  const labelsPeriodControl = isValidElement<{ className?: string }>(actions) && actions.props.className?.split(/\s+/).includes("period-control") === true;
+  return <header className="page-header"><div>{!labelsPeriodControl && <p className="eyebrow">{eyebrow}</p>}<h1>{title}</h1>{description && <p className="page-header__description">{description}</p>}</div>{actions && <div className="page-header__actions">{labelsPeriodControl && <p className="eyebrow">{eyebrow}</p>}{labelsPeriodControl ? <PeriodPicker /> : actions}</div>}</header>;
+}
+
+const dateParamPattern = /^\d{4}-\d{2}-\d{2}$/;
+
+function currentMonthInputs() {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), 1);
+  const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const input = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return { from: input(from), to: input(to) };
+}
+
+function validDateInput(value: string | null) {
+  if (!value || !dateParamPattern.test(value)) return null;
+  const date = new Date(`${value}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? null : value;
+}
+
+function PeriodPicker() {
+  const { i18n } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const defaults = currentMonthInputs();
+  const selectedFrom = validDateInput(searchParams.get("from")) ?? defaults.from;
+  const selectedTo = validDateInput(searchParams.get("to")) ?? defaults.to;
+  const [open, setOpen] = useState(false);
+  const [from, setFrom] = useState(selectedFrom);
+  const [to, setTo] = useState(selectedTo);
+  const root = useRef<HTMLDivElement>(null);
+  const locale = i18n.language === "pt-BR" ? "pt-BR" : "en-US";
+  const display = (value: string) => new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(new Date(`${value}T12:00:00`));
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", escape); };
+  }, [open]);
+
+  const toggle = () => {
+    if (!open) { setFrom(selectedFrom); setTo(selectedTo); }
+    setOpen((value) => !value);
+  };
+  const apply = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (from > to) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("from", from);
+    next.set("to", to);
+    setSearchParams(next, { replace: true });
+    setOpen(false);
+  };
+  const reset = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("from");
+    next.delete("to");
+    setSearchParams(next, { replace: true });
+    setFrom(defaults.from);
+    setTo(defaults.to);
+    setOpen(false);
+  };
+
+  return <div className="period-picker" ref={root}><button type="button" className="period-control" aria-expanded={open} aria-haspopup="dialog" onClick={toggle}><span className="period-control__dot" />{display(selectedFrom)} — {display(selectedTo)} <ChevronRight size={14} className={open ? "period-control__chevron period-control__chevron--open" : "period-control__chevron"} /></button>{open && <form className="period-popover" role="dialog" aria-label="Select dashboard period" onSubmit={apply}><div className="period-popover__heading"><CalendarDays size={17} /><span><strong>Choose a period</strong><small>Dashboard data updates after applying.</small></span></div><div className="period-popover__fields"><label><span>From</span><input type="date" value={from} max={to} onChange={(event) => setFrom(event.target.value)} required /></label><label><span>To</span><input type="date" value={to} min={from} onChange={(event) => setTo(event.target.value)} required /></label></div>{from > to && <p className="period-popover__error" role="alert">The end date must be on or after the start date.</p>}<div className="period-popover__actions"><button type="button" className="period-popover__reset" onClick={reset}>This month</button><Button type="submit" className="button--small" disabled={from > to}>Apply</Button></div></form>}</div>;
 }
 
 export function SectionHeading({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
@@ -113,13 +174,13 @@ function UserMenu() {
   const navigate = useNavigate();
   if (!user) return null;
   const initials = user.fullName.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
-  return <button className="user-menu" onClick={() => { void signOut().finally(() => navigate("/auth/sign-in")); }} title={t("account.signOut")}><Avatar initials={initials} src={user.avatarUrl ?? undefined} size="sm" /><span><strong>{user.fullName}</strong><small>{user.email}</small></span><LogOut size={15} /></button>;
+  return <div className="sidebar-user"><Link className="user-menu" to="/account/settings"><Avatar initials={initials} src={user.avatarUrl ?? undefined} size="sm" /><span><strong>{user.fullName}</strong><small>{user.email}</small></span></Link><IconButton className="sidebar-user__logout" label={t("account.signOut")} onClick={() => { void signOut().finally(() => navigate("/auth/sign-in")); }}><LogOut size={16} /></IconButton></div>;
 }
 
 export function AppShell() {
   const { t } = useTranslation();
   const location = useLocation();
-  return <div className="app-shell"><aside className="sidebar"><div className="sidebar__brand"><BrandMark compact /><span className="sidebar__brand-label">finance desk</span></div><div className="sidebar__org"><OrganizationSwitcher /></div><nav className="sidebar__nav" aria-label="Primary navigation"><p className="sidebar__section-label">Workspace</p>{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Icon size={18} /><span>{t(labelKey)}</span>{to === "/dashboard/bills" && <span className="nav-link__count">4</span>}</NavLink>)}<p className="sidebar__section-label sidebar__section-label--spaced">Workspace settings</p><NavLink to="/account/organization" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Building2 size={18} /><span>{t("nav.organization")}</span></NavLink><NavLink to="/organization/members" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><UsersRound size={18} /><span>{t("nav.members")}</span></NavLink><NavLink to="/account/settings" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Settings2 size={18} /><span>{t("nav.account")}</span></NavLink></nav><div className="sidebar__footer"><div className="sidebar__signal"><CircleDollarSign size={18} /><span><strong>Cash flow</strong><small>Healthy this month</small></span><span className="signal-dot" /></div></div></aside><main className="main-content"><div className="mobile-topbar"><BrandMark /><div className="mobile-topbar__actions"><OrganizationSwitcher /><IconButton label="Notifications"><Bell size={18} /></IconButton></div></div><header className="content-topbar"><div className="content-topbar__crumb"><span className="live-dot" />Live workspace <span>/</span> {location.pathname.includes("bills") ? t("nav.bills") : location.pathname.includes("expenses") ? t("nav.expenses") : location.pathname.includes("organization") ? t("nav.organization") : t("nav.overview")}</div><div className="content-topbar__actions"><HealthBadge /><IconButton label="Notifications"><Bell size={18} /></IconButton><UserMenu /></div></header><div className="content-scroll"><Outlet /></div><nav className="mobile-bottom-nav" aria-label="Mobile navigation">{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><Icon size={20} /><span>{t(labelKey)}</span></NavLink>)}<NavLink to="/account/more" className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><MoreHorizontal size={20} /><span>More</span></NavLink></nav></main></div>;
+  return <div className="app-shell"><aside className="sidebar"><div className="sidebar__brand"><BrandMark compact /><span className="sidebar__brand-label">finance desk</span></div><div className="sidebar__org"><OrganizationSwitcher /></div><nav className="sidebar__nav" aria-label="Primary navigation"><p className="sidebar__section-label">Workspace</p>{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Icon size={18} /><span>{t(labelKey)}</span></NavLink>)}<p className="sidebar__section-label sidebar__section-label--spaced">Workspace settings</p><NavLink to="/account/organization" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Building2 size={18} /><span>{t("nav.organization")}</span></NavLink><NavLink to="/organization/members" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><UsersRound size={18} /><span>{t("nav.members")}</span></NavLink><NavLink to="/account/settings" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Settings2 size={18} /><span>{t("nav.account")}</span></NavLink></nav><div className="sidebar__footer"><div className="sidebar__signal"><CircleDollarSign size={18} /><span><strong>Cash flow</strong><small>Healthy this month</small></span><span className="signal-dot" /></div><UserMenu /></div></aside><main className="main-content"><div className="mobile-topbar"><BrandMark /><div className="mobile-topbar__actions"><OrganizationSwitcher /><IconButton label="Notifications"><Bell size={18} /></IconButton></div></div><header className="content-topbar"><div className="content-topbar__crumb"><span className="live-dot" />Live workspace <span>/</span> {location.pathname.includes("bills") ? t("nav.bills") : location.pathname.includes("expenses") ? t("nav.expenses") : location.pathname.includes("organization") ? t("nav.organization") : t("nav.overview")}</div><div className="content-topbar__actions"><IconButton label="Notifications"><Bell size={18} /></IconButton></div></header><div className="content-scroll"><Outlet /></div><nav className="mobile-bottom-nav" aria-label="Mobile navigation">{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><Icon size={20} /><span>{t(labelKey)}</span></NavLink>)}<NavLink to="/account/more" className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><MoreHorizontal size={20} /><span>More</span></NavLink></nav></main></div>;
 }
 
 export function PublicLayout({ children }: { children: ReactNode }) {

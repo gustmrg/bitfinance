@@ -35,6 +35,7 @@ jobs:
               - '.github/workflows/main-validation.yml'
             frontend_v2:
               - 'apps/frontend-v2/**'
+              - '.github/workflows/frontend-v2-deploy.yml'
               - '.github/workflows/main-validation.yml'
             backend:
               - 'apps/backend/**'
