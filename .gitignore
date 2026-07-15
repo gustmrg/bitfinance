@@ -20,6 +20,7 @@ pnpm-debug.log*
 
 # Node
 node_modules/
+.pnpm-store/
 .pnp
 .pnp.js
 .yarn/install-state.gz
