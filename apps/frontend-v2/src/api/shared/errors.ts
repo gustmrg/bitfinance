@@ -1,5 +1,7 @@
 import axios, { isAxiosError } from "axios";
 
+import i18n from "../../i18n";
+
 export class ApiError extends Error {
   readonly status: number | undefined;
   readonly code: string | undefined;
@@ -14,7 +16,7 @@ export class ApiError extends Error {
   }
 }
 
-export function normalizeApiError(error: unknown, fallback: string): ApiError {
+export function normalizeApiError(error: unknown, fallbackKey: string): ApiError {
   if (error instanceof ApiError) return error;
 
   if (isAxiosError(error)) {
@@ -27,14 +29,14 @@ export function normalizeApiError(error: unknown, fallback: string): ApiError {
         : typeof data?.description === "string"
           ? data.description
           : errors
-            ? "Please check the highlighted fields."
-            : fallback;
+            ? i18n.t("errors.validation")
+            : i18n.t(fallbackKey);
 
     return new ApiError(message, error.response?.status, typeof data?.code === "string" ? data.code : undefined, errors);
   }
 
-  if (axios.isCancel(error)) return new ApiError("Request canceled.");
-  return new ApiError(error instanceof Error ? error.message : fallback);
+  if (axios.isCancel(error)) return new ApiError(i18n.t("errors.requestCanceled"));
+  return new ApiError(error instanceof Error ? error.message : i18n.t(fallbackKey));
 }
 
 export function isUnauthorized(error: unknown) {

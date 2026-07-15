@@ -32,7 +32,8 @@ import { useOrganizationsQuery } from "./hooks/use-queries";
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
-  return <Link to="/" className={`brand-mark ${compact ? "brand-mark--compact" : ""}`} aria-label="BitFinance home"><span className="brand-mark__dot" /><span className="brand-mark__word">bit<span>finance</span></span></Link>;
+  const { t } = useTranslation();
+  return <Link to="/" className={`brand-mark ${compact ? "brand-mark--compact" : ""}`} aria-label={`BitFinance / ${t("common.backHome")}`}><span className="brand-mark__dot" /><span className="brand-mark__word">bit<span>finance</span></span></Link>;
 }
 
 export function Button({ variant = "primary", className = "", children, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
@@ -48,7 +49,8 @@ export function Avatar({ initials, src, size = "md" }: { initials: string; src?:
 }
 
 export function StatusPill({ status }: { status: string }) {
-  const label = status.replaceAll("_", " ");
+  const { t } = useTranslation();
+  const label = t(`statuses.${status}`, { defaultValue: status.replaceAll("_", " ") });
   return <span className={`status-pill status-pill--${status}`}>{label}</span>;
 }
 
@@ -118,7 +120,8 @@ function PeriodPicker() {
     setOpen(false);
   };
 
-  return <div className="period-picker" ref={root}><button type="button" className="period-control" aria-expanded={open} aria-haspopup="dialog" onClick={toggle}><span className="period-control__dot" />{display(selectedFrom)} — {display(selectedTo)} <ChevronRight size={14} className={open ? "period-control__chevron period-control__chevron--open" : "period-control__chevron"} /></button>{open && <form className="period-popover" role="dialog" aria-label="Select dashboard period" onSubmit={apply}><div className="period-popover__heading"><CalendarDays size={17} /><span><strong>Choose a period</strong><small>Dashboard data updates after applying.</small></span></div><div className="period-popover__fields"><label><span>From</span><input type="date" value={from} max={to} onChange={(event) => setFrom(event.target.value)} required /></label><label><span>To</span><input type="date" value={to} min={from} onChange={(event) => setTo(event.target.value)} required /></label></div>{from > to && <p className="period-popover__error" role="alert">The end date must be on or after the start date.</p>}<div className="period-popover__actions"><button type="button" className="period-popover__reset" onClick={reset}>This month</button><Button type="submit" className="button--small" disabled={from > to}>Apply</Button></div></form>}</div>;
+  const { t } = useTranslation();
+  return <div className="period-picker" ref={root}><button type="button" className="period-control" aria-expanded={open} aria-haspopup="dialog" onClick={toggle}><span className="period-control__dot" />{display(selectedFrom)} — {display(selectedTo)} <ChevronRight size={14} className={open ? "period-control__chevron period-control__chevron--open" : "period-control__chevron"} /></button>{open && <form className="period-popover" role="dialog" aria-label={t("common.selectPeriod")} onSubmit={apply}><div className="period-popover__heading"><CalendarDays size={17} /><span><strong>{t("common.choosePeriod")}</strong><small>{t("common.periodUpdated")}</small></span></div><div className="period-popover__fields"><label><span>{t("common.from")}</span><input type="date" value={from} max={to} onChange={(event) => setFrom(event.target.value)} required /></label><label><span>{t("common.to")}</span><input type="date" value={to} min={from} onChange={(event) => setTo(event.target.value)} required /></label></div>{from > to && <p className="period-popover__error" role="alert">{t("common.endDateError")}</p>}<div className="period-popover__actions"><button type="button" className="period-popover__reset" onClick={reset}>{t("common.thisMonth")}</button><Button type="submit" className="button--small" disabled={from > to}>{t("common.apply")}</Button></div></form>}</div>;
 }
 
 export function SectionHeading({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
@@ -134,6 +137,7 @@ export function EmptyState({ icon: Icon = FileText, title, description, action }
 }
 
 export function Modal({ title, description, onClose, children, wide = false }: { title: string; description?: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
@@ -141,11 +145,12 @@ export function Modal({ title, description, onClose, children, wide = false }: {
     ref.current?.focus();
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className={`modal ${wide ? "modal--wide" : ""}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1} ref={ref}><div className="modal__header"><div><h2 id="modal-title">{title}</h2>{description && <p>{description}</p>}</div><IconButton label="Close" onClick={onClose}><X size={18} /></IconButton></div>{children}</div></div>;
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className={`modal ${wide ? "modal--wide" : ""}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1} ref={ref}><div className="modal__header"><div><h2 id="modal-title">{title}</h2>{description && <p>{description}</p>}</div><IconButton label={t("common.close")} onClick={onClose}><X size={18} /></IconButton></div>{children}</div></div>;
 }
 
 export function ActionMenu({ onEdit, onPaid, onDelete, detailHref, canPay = false }: { onEdit: () => void; onPaid?: () => void; onDelete: () => void; detailHref?: string; canPay?: boolean }) {
-  return <Suspense fallback={<IconButton label="More actions"><MoreHorizontal size={18} /></IconButton>}><LazyActionMenu onEdit={onEdit} onPaid={onPaid} onDelete={onDelete} detailHref={detailHref} canPay={canPay} /></Suspense>;
+  const { t } = useTranslation();
+  return <Suspense fallback={<IconButton label={t("common.moreActions")}><MoreHorizontal size={18} /></IconButton>}><LazyActionMenu onEdit={onEdit} onPaid={onPaid} onDelete={onDelete} detailHref={detailHref} canPay={canPay} /></Suspense>;
 }
 
 const LazyActionMenu = lazy(async () => {
@@ -165,7 +170,8 @@ function OrganizationSwitcher() {
   const selectedId = useOrganizationStore((state) => state.selectedOrganizationId);
   const setSelectedId = useOrganizationStore((state) => state.setSelectedOrganizationId);
   const items = organizations.data ?? user?.organizations ?? [];
-  return <label className="org-switcher"><Building2 size={16} /><select aria-label="Select organization" value={selectedId ?? items[0]?.id ?? ""} onChange={(event) => setSelectedId(event.target.value)} disabled={!items.length}>{items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><ChevronDown size={14} /></label>;
+  const { t } = useTranslation();
+  return <label className="org-switcher"><Building2 size={16} /><select aria-label={t("common.selectOrganization")} value={selectedId ?? items[0]?.id ?? ""} onChange={(event) => setSelectedId(event.target.value)} disabled={!items.length}>{items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><ChevronDown size={14} /></label>;
 }
 
 function UserMenu() {
@@ -180,12 +186,12 @@ function UserMenu() {
 export function AppShell() {
   const { t } = useTranslation();
   const location = useLocation();
-  return <div className="app-shell"><aside className="sidebar"><div className="sidebar__brand"><BrandMark compact /><span className="sidebar__brand-label">finance desk</span></div><div className="sidebar__org"><OrganizationSwitcher /></div><nav className="sidebar__nav" aria-label="Primary navigation"><p className="sidebar__section-label">Workspace</p>{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Icon size={18} /><span>{t(labelKey)}</span></NavLink>)}<p className="sidebar__section-label sidebar__section-label--spaced">Workspace settings</p><NavLink to="/account/organization" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Building2 size={18} /><span>{t("nav.organization")}</span></NavLink><NavLink to="/organization/members" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><UsersRound size={18} /><span>{t("nav.members")}</span></NavLink><NavLink to="/account/settings" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Settings2 size={18} /><span>{t("nav.account")}</span></NavLink></nav><div className="sidebar__footer"><div className="sidebar__signal"><CircleDollarSign size={18} /><span><strong>Cash flow</strong><small>Healthy this month</small></span><span className="signal-dot" /></div><UserMenu /></div></aside><main className="main-content"><div className="mobile-topbar"><BrandMark /><div className="mobile-topbar__actions"><OrganizationSwitcher /><IconButton label="Notifications"><Bell size={18} /></IconButton></div></div><header className="content-topbar"><div className="content-topbar__crumb"><span className="live-dot" />Live workspace <span>/</span> {location.pathname.includes("bills") ? t("nav.bills") : location.pathname.includes("expenses") ? t("nav.expenses") : location.pathname.includes("organization") ? t("nav.organization") : t("nav.overview")}</div><div className="content-topbar__actions"><IconButton label="Notifications"><Bell size={18} /></IconButton></div></header><div className="content-scroll"><Outlet /></div><nav className="mobile-bottom-nav" aria-label="Mobile navigation">{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><Icon size={20} /><span>{t(labelKey)}</span></NavLink>)}<NavLink to="/account/more" className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><MoreHorizontal size={20} /><span>More</span></NavLink></nav></main></div>;
+  return <div className="app-shell"><aside className="sidebar"><div className="sidebar__brand"><BrandMark compact /><span className="sidebar__brand-label">{t("common.financeDesk")}</span></div><div className="sidebar__org"><OrganizationSwitcher /></div><nav className="sidebar__nav" aria-label={t("common.primaryNavigation")}><p className="sidebar__section-label">{t("common.workspace")}</p>{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Icon size={18} /><span>{t(labelKey)}</span></NavLink>)}<p className="sidebar__section-label sidebar__section-label--spaced">{t("common.workspaceSettings")}</p><NavLink to="/account/organization" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Building2 size={18} /><span>{t("nav.organization")}</span></NavLink><NavLink to="/organization/members" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><UsersRound size={18} /><span>{t("nav.members")}</span></NavLink><NavLink to="/account/settings" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Settings2 size={18} /><span>{t("nav.account")}</span></NavLink></nav><div className="sidebar__footer"><div className="sidebar__signal"><CircleDollarSign size={18} /><span><strong>{t("common.cashFlow")}</strong><small>{t("common.healthyThisMonth")}</small></span><span className="signal-dot" /></div><UserMenu /></div></aside><main className="main-content"><div className="mobile-topbar"><BrandMark /><div className="mobile-topbar__actions"><OrganizationSwitcher /><IconButton label={t("common.notifications")}><Bell size={18} /></IconButton></div></div><header className="content-topbar"><div className="content-topbar__crumb"><span className="live-dot" />{t("common.liveWorkspace")} <span>/</span> {location.pathname.includes("bills") ? t("nav.bills") : location.pathname.includes("expenses") ? t("nav.expenses") : location.pathname.includes("organization") ? t("nav.organization") : t("nav.overview")}</div><div className="content-topbar__actions"><IconButton label={t("common.notifications")}><Bell size={18} /></IconButton></div></header><div className="content-scroll"><Outlet /></div><nav className="mobile-bottom-nav" aria-label={t("common.mobileNavigation")}>{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><Icon size={20} /><span>{t(labelKey)}</span></NavLink>)}<NavLink to="/account/more" className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><MoreHorizontal size={20} /><span>{t("common.more")}</span></NavLink></nav></main></div>;
 }
 
 export function PublicLayout({ children }: { children: ReactNode }) {
   const { t, i18n } = useTranslation();
-  return <div className="public-shell"><header className="public-nav"><BrandMark /><div className="public-nav__actions"><button className="language-switch" onClick={() => { const next = i18n.language === "en-US" ? "pt-BR" : "en-US"; void i18n.changeLanguage(next); localStorage.setItem("bitfinance-v2-locale", next); }}><Globe2 size={15} /> {i18n.language === "en-US" ? "EN" : "PT"}</button><Link to="/auth/sign-in" className="text-link">{t("common.signIn")}</Link><Link to="/auth/sign-up" className="button button--primary button--small">{t("common.signUp")}</Link></div></header>{children}<footer className="public-footer"><BrandMark /><span>© 2026 BitFinance. A clearer view of your money.</span></footer></div>;
+  return <div className="public-shell"><header className="public-nav"><BrandMark /><div className="public-nav__actions"><button className="language-switch" onClick={() => { const next = i18n.language === "en-US" ? "pt-BR" : "en-US"; void i18n.changeLanguage(next); localStorage.setItem("bitfinance-v2-locale", next); }}><Globe2 size={15} /> {i18n.language === "en-US" ? "EN" : "PT"}</button><Link to="/auth/sign-in" className="text-link">{t("common.signIn")}</Link><Link to="/auth/sign-up" className="button button--primary button--small">{t("common.signUp")}</Link></div></header>{children}<footer className="public-footer"><BrandMark /><span>{t("home.footer")}</span></footer></div>;
 }
 
 export function KpiSparkline({ values, color = "#2f5bea" }: { values: number[]; color?: string }) {
@@ -206,7 +212,8 @@ export function PageContainer({ children }: { children: ReactNode }) {
 }
 
 export function MobileMenuButton({ onClick }: { onClick: () => void }) {
-  return <IconButton label="Open menu" onClick={onClick}><Menu size={20} /></IconButton>;
+  const { t } = useTranslation();
+  return <IconButton label={t("common.openMenu")} onClick={onClick}><Menu size={20} /></IconButton>;
 }
 
 export function DataIcon({ type }: { type: "bill" | "expense" | "budget" | "team" }) {

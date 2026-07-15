@@ -6,26 +6,26 @@ import { mapMeResponse } from "./auth.types";
 export const authService = {
   async registerAsync(credentials: RegisterCredentials): Promise<AuthSessionResponse> {
     try { return (await publicApi.post<AuthSessionResponse>("/identity/register", credentials)).data; }
-    catch (error) { throw normalizeApiError(error, "Unable to create your account."); }
+    catch (error) { throw normalizeApiError(error, "api.auth.createAccount"); }
   },
   async loginAsync(credentials: AuthCredentials): Promise<AuthSessionResponse> {
     try { return (await publicApi.post<AuthSessionResponse>("/identity/login", credentials)).data; }
-    catch (error) { throw normalizeApiError(error, "Unable to sign in."); }
+    catch (error) { throw normalizeApiError(error, "api.auth.signIn"); }
   },
   async refreshAsync(): Promise<AuthSessionResponse> {
     try { return (await publicApi.post<AuthSessionResponse>("/identity/refresh")).data; }
-    catch (error) { throw normalizeApiError(error, "Unable to restore your session."); }
+    catch (error) { throw normalizeApiError(error, "api.auth.restoreSession"); }
   },
   async logoutAsync() {
     try { await authApi.post("/identity/logout"); }
-    catch (error) { throw normalizeApiError(error, "Unable to sign out."); }
+    catch (error) { throw normalizeApiError(error, "api.auth.signOut"); }
   },
   async logoutAllAsync() {
     try { await authApi.post("/identity/logout-all"); }
-    catch (error) { throw normalizeApiError(error, "Unable to sign out all sessions."); }
+    catch (error) { throw normalizeApiError(error, "api.auth.signOutAll"); }
   },
   async getMeAsync(): Promise<User> {
     try { return mapMeResponse((await authApi.get("/identity/me")).data); }
-    catch (error) { throw normalizeApiError(error, "Unable to load your account."); }
+    catch (error) { throw normalizeApiError(error, "api.auth.loadAccount"); }
   },
 };
