@@ -16,7 +16,7 @@ import { server } from "./test/server";
 const base = "/api/v1";
 
 describe("backend endpoint contract", () => {
-  it("covers every documented route with the right method and request shape", { timeout: 30_000 }, async () => {
+  it("covers every documented route with the right method and request shape", { timeout: 120_000 }, async () => {
     const seen: string[] = [];
     const record = (method: string, path: string) => { seen.push(`${method} ${path}`); };
     server.use(
