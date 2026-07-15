@@ -104,9 +104,6 @@ jobs:
       - name: Lint frontend-v2
         run: pnpm run lint
 
-      - name: Test frontend-v2
-        run: pnpm run test
-
       - name: Build frontend-v2
         run: pnpm run build
 

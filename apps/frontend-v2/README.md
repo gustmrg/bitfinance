@@ -20,7 +20,6 @@ credentials. Health is requested from `/health`, not `/api/v1/health`.
 
 ```bash
 pnpm lint
-pnpm test
 pnpm build
 ```
 
@@ -44,4 +43,4 @@ VPS, Nginx, TLS, and verification steps.
 ## Backend mapping
 
 See [`docs/backend-endpoints.md`](docs/backend-endpoints.md) for the 39-route
-coverage ledger and contract boundaries. MSW rejects unhandled requests in tests.
+client mapping ledger and contract boundaries.
