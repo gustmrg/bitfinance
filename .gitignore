@@ -5,6 +5,7 @@
 .env
 .env.*
 !.env*.example
+!.env.test
 
 # Local editor and agent settings
 .idea/
