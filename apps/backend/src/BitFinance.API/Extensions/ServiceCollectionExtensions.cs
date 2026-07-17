@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddHostedService<BillStatusWorkerService>();
         services.AddHostedService<RefreshTokenCleanupService>();
+        services.AddHostedService<NotificationDispatchWorkerService>();
 
         services.AddScoped<IBillsRepository, BillsRepository>();
         services.AddScoped<IBillSeriesRepository, BillSeriesRepository>();
@@ -40,6 +41,26 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICookieService, CookieService>();
         services.AddScoped<IOrganizationsService, OrganizationsService>();
         services.AddScoped<IInvitationsService, InvitationsService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<NotificationDispatcher>();
+        services.AddScoped<ITransactionRunner, EfTransactionRunner>();
+
+        services.AddSingleton<IValidateOptions<NotificationOptions>, NotificationOptionsValidator>();
+        services.AddOptions<NotificationOptions>()
+            .Bind(configuration.GetSection(NotificationOptions.SectionName))
+            .ValidateOnStart();
+        if (configuration.GetValue<bool>("Notifications:EmailEnabled"))
+        {
+            services.AddHttpClient<IEmailSender, ResendEmailSender>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.resend.com/");
+                client.Timeout = TimeSpan.FromSeconds(20);
+            });
+        }
+        else
+        {
+            services.AddSingleton<IEmailSender, DisabledEmailSender>();
+        }
 
         services.AddSingleton<IValidateOptions<JwtSettings>, JwtSettingsValidator>();
         services.AddOptions<JwtSettings>()

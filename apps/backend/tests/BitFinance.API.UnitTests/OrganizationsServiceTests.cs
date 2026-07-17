@@ -1,5 +1,6 @@
 using BitFinance.API.Models;
 using BitFinance.API.Services;
+using BitFinance.API.Services.Interfaces;
 using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 using BitFinance.Data.Repositories.Interfaces;
@@ -12,13 +13,24 @@ public class OrganizationsServiceTests
 {
     private readonly Mock<IOrganizationsRepository> _orgRepoMock;
     private readonly Mock<IBudgetsRepository> _budgetRepoMock;
+    private readonly Mock<INotificationService> _notificationServiceMock;
+    private readonly Mock<ITransactionRunner> _transactionRunnerMock;
     private readonly OrganizationsService _sut;
 
     public OrganizationsServiceTests()
     {
         _orgRepoMock = new Mock<IOrganizationsRepository>();
         _budgetRepoMock = new Mock<IBudgetsRepository>();
-        _sut = new OrganizationsService(_orgRepoMock.Object, _budgetRepoMock.Object);
+        _notificationServiceMock = new Mock<INotificationService>();
+        _transactionRunnerMock = new Mock<ITransactionRunner>();
+        _transactionRunnerMock
+            .Setup(runner => runner.ExecuteAsync(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()))
+            .Returns((Func<Task> operation, CancellationToken _) => operation());
+        _sut = new OrganizationsService(
+            _orgRepoMock.Object,
+            _budgetRepoMock.Object,
+            _notificationServiceMock.Object,
+            _transactionRunnerMock.Object);
     }
 
     private Organization CreateOrganizationWithMembers(List<(string UserId, OrgRole Role)> members)
@@ -68,6 +80,13 @@ public class OrganizationsServiceTests
         Assert.True(result.Success);
         Assert.Equal(OrgRole.Member, org.Members.Single(m => m.UserId == "admin1").Role);
         _orgRepoMock.Verify(r => r.UpdateAsync(org), Times.Once);
+        _notificationServiceMock.Verify(service => service.EnqueueAsync(
+            org.Id,
+            NotificationType.MemberRoleChanged,
+            "admin1",
+            It.Is<string>(key => key.StartsWith("membership:role:")),
+            It.Is<NotificationEventPayload>(payload => payload.PreviousRole == "Admin" && payload.NewRole == "Member"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -219,6 +238,13 @@ public class OrganizationsServiceTests
         Assert.Single(org.Members);
         Assert.DoesNotContain(org.Members, m => m.UserId == "admin1");
         _orgRepoMock.Verify(r => r.UpdateAsync(org), Times.Once);
+        _notificationServiceMock.Verify(service => service.EnqueueAsync(
+            org.Id,
+            NotificationType.MemberRemoved,
+            "admin1",
+            It.Is<string>(key => key.StartsWith("membership:removed:")),
+            It.Is<NotificationEventPayload>(payload => payload.MemberUserId == "admin1"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

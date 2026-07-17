@@ -1,4 +1,6 @@
 using BitFinance.API.Extensions;
+using BitFinance.Data.Contexts;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +17,14 @@ builder.Services.AddCustomHttpLogging();
 builder.Host.AddLogging(builder.Configuration);
 
 var app = builder.Build();
+
+if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await dbContext.Database.MigrateAsync();
+    return;
+}
 
 app.ConfigureMiddleware(builder.Configuration);
 

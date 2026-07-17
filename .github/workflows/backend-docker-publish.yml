@@ -281,6 +281,9 @@ jobs:
           echo "Pulling backend image tag: $IMAGE_TAG"
           IMAGE_TAG="$IMAGE_TAG" docker compose "${COMPOSE_FILES[@]}" pull bitfinance-api
 
+          echo "Applying database migrations with image tag: $IMAGE_TAG"
+          IMAGE_TAG="$IMAGE_TAG" docker compose "${COMPOSE_FILES[@]}" run --rm --no-deps bitfinance-api --migrate
+
           echo "Starting backend service with image tag: $IMAGE_TAG"
           IMAGE_TAG="$IMAGE_TAG" docker compose "${COMPOSE_FILES[@]}" up -d --no-build bitfinance-api
 

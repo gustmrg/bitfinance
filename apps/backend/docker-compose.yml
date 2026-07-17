@@ -26,6 +26,11 @@ services:
       - Jwt__ExpirationInMinutes=${JWT_EXPIRATION:-60}
       - Storage__BucketName=${S3_BUCKET_NAME:-bitfinance}
       - Storage__Region=${S3_REGION:-us-east-1}
+      - Notifications__EmailEnabled=${NOTIFICATIONS_EMAIL_ENABLED:-false}
+      - Notifications__ResendApiToken=${RESEND_API_TOKEN:-}
+      - Notifications__ResendWebhookSecret=${RESEND_WEBHOOK_SECRET:-}
+      - Notifications__FromAddress=${NOTIFICATIONS_FROM_ADDRESS:-}
+      - Notifications__FrontendBaseUrl=${NOTIFICATIONS_FRONTEND_BASE_URL:-http://localhost:5174}
     restart: unless-stopped
     networks:
       - bitfinance-network

@@ -2,6 +2,8 @@ using BitFinance.API.Services.Interfaces;
 using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 using BitFinance.Data.Repositories.Interfaces;
+using BitFinance.Data.Contexts;
+using Microsoft.EntityFrameworkCore;
 
 namespace BitFinance.API.Services;
 
@@ -30,6 +32,7 @@ public class BillStatusWorkerService : BackgroundService
                 await GenerateScheduledBills();
                 await UpdateUpcomingBills();
                 await UpdateDueBills();
+                await EnqueueBillReminders();
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -51,6 +54,46 @@ public class BillStatusWorkerService : BackgroundService
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 break;
+            }
+        }
+    }
+
+    private async Task EnqueueBillReminders()
+    {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var organizationsRepository = scope.ServiceProvider.GetRequiredService<IOrganizationsRepository>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+        var organizations = await organizationsRepository.GetAllAsync();
+
+        foreach (var organization in organizations)
+        {
+            var today = organization.GetCurrentLocalDate();
+            var dueSoon = today.AddDays(3);
+            var bills = await dbContext.Bills.AsNoTracking()
+                .Where(bill => bill.OrganizationId == organization.Id
+                    && bill.Status != BillStatus.Paid
+                    && bill.Status != BillStatus.Cancelled
+                    && (bill.DueDate == dueSoon
+                        || bill.DueDate == today
+                        || (bill.DueDate < today && bill.Status == BillStatus.Overdue)))
+                .ToListAsync();
+
+            foreach (var bill in bills)
+            {
+                var type = NotificationRules.GetBillReminderType(bill.DueDate, today, bill.Status);
+                if (type is null) continue;
+
+                await notificationService.EnqueueAsync(
+                    organization.Id,
+                    type.Value,
+                    bill.Id.ToString(),
+                    $"bill:{bill.Id:N}:{type.Value}",
+                    new NotificationEventPayload(
+                        BillId: bill.Id,
+                        BillDescription: bill.Description,
+                        AmountDue: bill.AmountDue,
+                        DueDate: bill.DueDate));
             }
         }
     }
