@@ -3,7 +3,6 @@ import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from
 import {
   ArrowUpRight,
   BarChart3,
-  Bell,
   Building2,
   CalendarDays,
   ChevronDown,
@@ -15,9 +14,11 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Moon,
   MoreHorizontal,
   ReceiptText,
   Settings2,
+  SunMedium,
   UsersRound,
   WalletCards,
   X,
@@ -28,6 +29,8 @@ import { formatCurrency } from "./format";
 import { useAuth } from "./auth/auth-provider";
 import { useOrganizationStore } from "./auth/auth-store";
 import { useOrganizationsQuery } from "./hooks/use-queries";
+import { useTheme } from "./hooks/use-theme";
+import { NotificationBell } from "./notification-bell";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -174,6 +177,13 @@ function OrganizationSwitcher() {
   return <label className="org-switcher"><Building2 size={16} /><select aria-label={t("common.selectOrganization")} value={selectedId ?? items[0]?.id ?? ""} onChange={(event) => setSelectedId(event.target.value)} disabled={!items.length}>{items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><ChevronDown size={14} /></label>;
 }
 
+function ThemeSwitcher() {
+  const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
+  const label = t("common.theme");
+  return <IconButton label={label} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? <SunMedium size={18} /> : <Moon size={18} />}</IconButton>;
+}
+
 function UserMenu() {
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
@@ -186,7 +196,7 @@ function UserMenu() {
 export function AppShell() {
   const { t } = useTranslation();
   const location = useLocation();
-  return <div className="app-shell"><aside className="sidebar"><div className="sidebar__brand"><BrandMark compact /><span className="sidebar__brand-label">{t("common.financeDesk")}</span></div><div className="sidebar__org"><OrganizationSwitcher /></div><nav className="sidebar__nav" aria-label={t("common.primaryNavigation")}><p className="sidebar__section-label">{t("common.workspace")}</p>{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Icon size={18} /><span>{t(labelKey)}</span></NavLink>)}<p className="sidebar__section-label sidebar__section-label--spaced">{t("common.workspaceSettings")}</p><NavLink to="/account/organization" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Building2 size={18} /><span>{t("nav.organization")}</span></NavLink><NavLink to="/organization/members" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><UsersRound size={18} /><span>{t("nav.members")}</span></NavLink><NavLink to="/account/settings" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Settings2 size={18} /><span>{t("nav.account")}</span></NavLink></nav><div className="sidebar__footer"><div className="sidebar__signal"><CircleDollarSign size={18} /><span><strong>{t("common.cashFlow")}</strong><small>{t("common.healthyThisMonth")}</small></span><span className="signal-dot" /></div><UserMenu /></div></aside><main className="main-content"><div className="mobile-topbar"><BrandMark /><div className="mobile-topbar__actions"><OrganizationSwitcher /><IconButton label={t("common.notifications")}><Bell size={18} /></IconButton></div></div><header className="content-topbar"><div className="content-topbar__crumb"><span className="live-dot" />{t("common.liveWorkspace")} <span>/</span> {location.pathname.includes("bills") ? t("nav.bills") : location.pathname.includes("expenses") ? t("nav.expenses") : location.pathname.includes("organization") ? t("nav.organization") : t("nav.overview")}</div><div className="content-topbar__actions"><IconButton label={t("common.notifications")}><Bell size={18} /></IconButton></div></header><div className="content-scroll"><Outlet /></div><nav className="mobile-bottom-nav" aria-label={t("common.mobileNavigation")}>{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><Icon size={20} /><span>{t(labelKey)}</span></NavLink>)}<NavLink to="/account/more" className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><MoreHorizontal size={20} /><span>{t("common.more")}</span></NavLink></nav></main></div>;
+  return <div className="app-shell"><aside className="sidebar"><div className="sidebar__brand"><BrandMark compact /><span className="sidebar__brand-label">{t("common.financeDesk")}</span></div><div className="sidebar__org"><OrganizationSwitcher /></div><nav className="sidebar__nav" aria-label={t("common.primaryNavigation")}><p className="sidebar__section-label">{t("common.workspace")}</p>{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Icon size={18} /><span>{t(labelKey)}</span></NavLink>)}<p className="sidebar__section-label sidebar__section-label--spaced">{t("common.workspaceSettings")}</p><NavLink to="/account/organization" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Building2 size={18} /><span>{t("nav.organization")}</span></NavLink><NavLink to="/organization/members" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><UsersRound size={18} /><span>{t("nav.members")}</span></NavLink><NavLink to="/account/settings" className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}><Settings2 size={18} /><span>{t("nav.account")}</span></NavLink></nav><div className="sidebar__footer"><div className="sidebar__signal"><CircleDollarSign size={18} /><span><strong>{t("common.cashFlow")}</strong><small>{t("common.healthyThisMonth")}</small></span><span className="signal-dot" /></div><UserMenu /></div></aside><main className="main-content"><div className="mobile-topbar"><BrandMark /><div className="mobile-topbar__actions"><OrganizationSwitcher /><ThemeSwitcher /><NotificationBell /></div></div><header className="content-topbar"><div className="content-topbar__crumb"><span className="live-dot" />{t("common.liveWorkspace")} <span>/</span> {location.pathname.includes("bills") ? t("nav.bills") : location.pathname.includes("expenses") ? t("nav.expenses") : location.pathname.includes("organization") ? t("nav.organization") : t("nav.overview")}</div><div className="content-topbar__actions"><ThemeSwitcher /><NotificationBell /></div></header><div className="content-scroll"><Outlet /></div><nav className="mobile-bottom-nav" aria-label={t("common.mobileNavigation")}>{navItems.map(({ to, labelKey, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><Icon size={20} /><span>{t(labelKey)}</span></NavLink>)}<NavLink to="/account/more" className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`}><MoreHorizontal size={20} /><span>{t("common.more")}</span></NavLink></nav></main></div>;
 }
 
 export function PublicLayout({ children }: { children: ReactNode }) {
