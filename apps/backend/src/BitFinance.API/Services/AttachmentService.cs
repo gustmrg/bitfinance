@@ -4,7 +4,6 @@ using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 using BitFinance.Business.Exceptions;
 using BitFinance.Data.Repositories.Interfaces;
-using FluentValidation;
 
 namespace BitFinance.API.Services;
 
@@ -198,7 +197,7 @@ public class AttachmentService : IAttachmentService
         if (!validationResult.IsValid)
         {
             _logger.LogWarning("File validation failed for {FileName}: {Errors}", fileName, validationResult.ErrorMessage);
-            throw new ValidationException(validationResult.ErrorMessage);
+            throw new RequestValidationException(validationResult.ErrorMessage);
         }
     }
 
