@@ -2,9 +2,9 @@ import { authApi } from "../shared/client";
 import { normalizeApiError } from "../shared/errors";
 import type { Bill, BillDocument, BillInput, BillListFilters, Paged } from "./bills.types";
 
-type BillWire = Omit<Bill, "category" | "status" | "billSeriesType" | "documents" | "paymentDate"> & { category: string; status: string; billSeriesType?: string | null; paymentDate?: string | null; paidDate?: string | null; attachments?: BillDocument[] };
+type BillWire = Omit<Bill, "category" | "status" | "billSeriesType" | "billSeriesFrequency" | "documents" | "paymentDate"> & { category: string; status: string; billSeriesType?: string | null; billSeriesFrequency?: string | null; paymentDate?: string | null; paidDate?: string | null; attachments?: BillDocument[] };
 const normalize = (value: string) => value.toLowerCase();
-const map = (wire: BillWire): Bill => ({ ...wire, category: normalize(wire.category) as Bill["category"], status: normalize(wire.status) as Bill["status"], billSeriesType: wire.billSeriesType ? normalize(wire.billSeriesType) as Bill["billSeriesType"] : null, paymentDate: wire.paymentDate ?? wire.paidDate ?? null, documents: wire.attachments ?? [], billSeriesId: wire.billSeriesId ?? null, occurrenceNumber: wire.occurrenceNumber ?? null, totalOccurrences: wire.totalOccurrences ?? null, billSeriesIsActive: wire.billSeriesIsActive ?? false, amountPaid: wire.amountPaid ?? null });
+const map = (wire: BillWire): Bill => ({ ...wire, category: normalize(wire.category) as Bill["category"], status: normalize(wire.status) as Bill["status"], billSeriesType: wire.billSeriesType ? normalize(wire.billSeriesType) as Bill["billSeriesType"] : null, billSeriesFrequency: wire.billSeriesFrequency ? normalize(wire.billSeriesFrequency) as Bill["billSeriesFrequency"] : null, paymentDate: wire.paymentDate ?? wire.paidDate ?? null, documents: wire.attachments ?? [], billSeriesId: wire.billSeriesId ?? null, occurrenceNumber: wire.occurrenceNumber ?? null, totalOccurrences: wire.totalOccurrences ?? null, billSeriesIsActive: wire.billSeriesIsActive ?? false, amountPaid: wire.amountPaid ?? null });
 
 export const billsService = {
   async listAsync(filters: BillListFilters): Promise<Paged<Bill>> {

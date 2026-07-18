@@ -78,7 +78,7 @@ function validDateInput(value: string | null) {
   return Number.isNaN(date.getTime()) ? null : value;
 }
 
-function PeriodPicker() {
+export function PeriodPicker() {
   const { i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const defaults = currentMonthInputs();
@@ -151,9 +151,9 @@ export function Modal({ title, description, onClose, children, wide = false }: {
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className={`modal ${wide ? "modal--wide" : ""}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1} ref={ref}><div className="modal__header"><div><h2 id="modal-title">{title}</h2>{description && <p>{description}</p>}</div><IconButton label={t("common.close")} onClick={onClose}><X size={18} /></IconButton></div>{children}</div></div>;
 }
 
-export function ActionMenu({ onEdit, onPaid, onDelete, detailHref, canPay = false }: { onEdit: () => void; onPaid?: () => void; onDelete: () => void; detailHref?: string; canPay?: boolean }) {
+export function ActionMenu({ onEdit, onPaid, onDelete, onUpload, detailHref, canPay = false }: { onEdit: () => void; onPaid?: () => void; onDelete: () => void; onUpload?: () => void; detailHref?: string; canPay?: boolean }) {
   const { t } = useTranslation();
-  return <Suspense fallback={<IconButton label={t("common.moreActions")}><MoreHorizontal size={18} /></IconButton>}><LazyActionMenu onEdit={onEdit} onPaid={onPaid} onDelete={onDelete} detailHref={detailHref} canPay={canPay} /></Suspense>;
+  return <Suspense fallback={<IconButton label={t("common.moreActions")}><MoreHorizontal size={18} /></IconButton>}><LazyActionMenu onEdit={onEdit} onPaid={onPaid} onDelete={onDelete} onUpload={onUpload} detailHref={detailHref} canPay={canPay} /></Suspense>;
 }
 
 const LazyActionMenu = lazy(async () => {

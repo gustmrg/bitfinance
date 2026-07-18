@@ -35,5 +35,8 @@ public class GetBillResponse
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public BillSeriesType? BillSeriesType { get; set; }
 
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public Frequency? BillSeriesFrequency { get; set; }
+
     public bool BillSeriesIsActive { get; set; }
 }

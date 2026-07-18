@@ -590,6 +590,7 @@ public class BillsController : ControllerBase
             OccurrenceNumber = bill.OccurrenceNumber,
             TotalOccurrences = bill.TotalOccurrences,
             BillSeriesType = GetBillSeriesType(bill),
+            BillSeriesFrequency = bill.BillSeries?.Frequency,
             BillSeriesIsActive = bill.BillSeries?.IsActive ?? false
         };
     }
