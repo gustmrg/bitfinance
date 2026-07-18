@@ -35,6 +35,7 @@
         <PackageReference Include="Serilog.Sinks.Elasticsearch" Version="10.0.0" />
         <PackageReference Include="Serilog.Sinks.MSSqlServer" Version="7.0.1" />
         <PackageReference Include="Scalar.AspNetCore" Version="2.0.18" />
+        <PackageReference Include="Svix" Version="1.96.1" />
     </ItemGroup>
 
     <ItemGroup>

@@ -10,13 +10,19 @@ public class OrganizationsService : IOrganizationsService
 {
     private readonly IOrganizationsRepository _organizationsRepository;
     private readonly IBudgetsRepository _budgetsRepository;
+    private readonly INotificationService _notificationService;
+    private readonly ITransactionRunner _transactionRunner;
 
     public OrganizationsService(
         IOrganizationsRepository organizationsRepository,
-        IBudgetsRepository budgetsRepository)
+        IBudgetsRepository budgetsRepository,
+        INotificationService notificationService,
+        ITransactionRunner transactionRunner)
     {
         _organizationsRepository = organizationsRepository;
         _budgetsRepository = budgetsRepository;
+        _notificationService = notificationService;
+        _transactionRunner = transactionRunner;
     }
 
     public async Task<List<Organization>> GetAllByUserIdAsync(string userId)
@@ -109,8 +115,24 @@ public class OrganizationsService : IOrganizationsService
             }
         }
 
-        targetMember.Role = newRole;
-        await _organizationsRepository.UpdateAsync(organization);
+        var previousRole = targetMember.Role;
+        var eventId = Guid.CreateVersion7();
+        await _transactionRunner.ExecuteAsync(async () =>
+        {
+            targetMember.Role = newRole;
+            await _organizationsRepository.UpdateAsync(organization);
+            await _notificationService.EnqueueAsync(
+                organizationId,
+                NotificationType.MemberRoleChanged,
+                targetUserId,
+                $"membership:role:{eventId:N}",
+                new NotificationEventPayload(
+                    MemberUserId: targetUserId,
+                    MemberName: targetMember.User?.FullName ?? targetMember.User?.UserName ?? targetUserId,
+                    ActorName: actingMember.User?.FullName ?? actingMember.User?.UserName ?? actingUserId,
+                    PreviousRole: previousRole.ToString(),
+                    NewRole: newRole.ToString()));
+        });
         return UpdateMemberRoleResult.Succeeded(targetMember);
     }
 
@@ -136,8 +158,7 @@ public class OrganizationsService : IOrganizationsService
                     return RemoveMemberResult.Failed(RemoveMemberError.CannotRemoveLastOwner, "The last owner cannot leave the organization");
             }
 
-            organization.Members.Remove(targetMember);
-            await _organizationsRepository.UpdateAsync(organization);
+            await RemoveMemberAndNotifyAsync(organization, targetMember, actingMember: targetMember);
             return RemoveMemberResult.Succeeded();
         }
 
@@ -161,8 +182,31 @@ public class OrganizationsService : IOrganizationsService
             return RemoveMemberResult.Failed(RemoveMemberError.NotAuthorized, "Only owners and admins can remove members");
         }
 
-        organization.Members.Remove(targetMember);
-        await _organizationsRepository.UpdateAsync(organization);
+        await RemoveMemberAndNotifyAsync(organization, targetMember, actingMember);
         return RemoveMemberResult.Succeeded();
+    }
+
+    private async Task RemoveMemberAndNotifyAsync(
+        Organization organization,
+        OrganizationMember targetMember,
+        OrganizationMember actingMember)
+    {
+        var eventId = Guid.CreateVersion7();
+        var memberName = targetMember.User?.FullName ?? targetMember.User?.UserName ?? targetMember.UserId;
+        var actorName = actingMember.User?.FullName ?? actingMember.User?.UserName ?? actingMember.UserId;
+        await _transactionRunner.ExecuteAsync(async () =>
+        {
+            organization.Members.Remove(targetMember);
+            await _organizationsRepository.UpdateAsync(organization);
+            await _notificationService.EnqueueAsync(
+                organization.Id,
+                NotificationType.MemberRemoved,
+                targetMember.UserId,
+                $"membership:removed:{eventId:N}",
+                new NotificationEventPayload(
+                    MemberUserId: targetMember.UserId,
+                    MemberName: memberName,
+                    ActorName: actorName));
+        });
     }
 }

@@ -7,6 +7,7 @@ import { dashboardService } from "../api/dashboard/dashboard.service";
 import { expensesService } from "../api/expenses/expenses.service";
 import { healthService } from "../api/health/health.service";
 import { organizationsService } from "../api/organizations/organizations.service";
+import { notificationsService } from "../api/notifications/notifications.service";
 import type { BillInput, BillListFilters } from "../api/bills/bills.types";
 import type { ExpenseInput, ExpenseListFilters } from "../api/expenses/expenses.types";
 import type { EditableOrganizationMemberRole } from "../api/organizations/organizations.service";
@@ -28,6 +29,18 @@ export function useBillsQuery(filters: BillListFilters | null) { return useQuery
 export function useBillQuery(organizationId: string | null, billId?: string) { return useQuery({ queryKey: queryKeys.bills.detail(organizationId ?? "", billId ?? ""), queryFn: () => billsService.getAsync(organizationId!, billId!), enabled: Boolean(organizationId && billId) }); }
 export function useExpensesQuery(filters: ExpenseListFilters | null) { return useQuery({ queryKey: filters ? queryKeys.expenses.list(filters.organizationId, filters.page, filters.pageSize, filters.from, filters.to) : ["expenses", "disabled"], queryFn: () => expensesService.listAsync(filters!), enabled: Boolean(filters) }); }
 export function useExpenseQuery(organizationId: string | null, expenseId?: string) { return useQuery({ queryKey: queryKeys.expenses.detail(organizationId ?? "", expenseId ?? ""), queryFn: () => expensesService.getAsync(organizationId!, expenseId!), enabled: Boolean(organizationId && expenseId) }); }
+export function useNotificationsQuery(organizationId: string | null, enabled = true) { return useQuery({ queryKey: queryKeys.notifications.list(organizationId ?? ""), queryFn: () => notificationsService.listAsync(organizationId!), enabled: Boolean(organizationId) && enabled, refetchInterval: 60_000 }); }
+export function useNotificationUnreadCountQuery(organizationId: string | null) { return useQuery({ queryKey: queryKeys.notifications.unread(organizationId ?? ""), queryFn: () => notificationsService.unreadCountAsync(organizationId!), enabled: Boolean(organizationId), refetchInterval: 60_000 }); }
+export function useNotificationPreferencesQuery(organizationId: string | null) { return useQuery({ queryKey: queryKeys.notifications.preferences(organizationId ?? ""), queryFn: () => notificationsService.getPreferencesAsync(organizationId!), enabled: Boolean(organizationId) }); }
+export function useNotificationMutations(organizationId: string | null) {
+  const client = useQueryClient();
+  const invalidate = () => void client.invalidateQueries({ queryKey: queryKeys.notifications.all });
+  return {
+    markRead: useMutation({ mutationFn: (notificationId: string) => notificationsService.markReadAsync(organizationId!, notificationId), onSuccess: invalidate }),
+    markAllRead: useMutation({ mutationFn: () => notificationsService.markAllReadAsync(organizationId!), onSuccess: invalidate }),
+    updatePreferences: useMutation({ mutationFn: (enabled: boolean) => notificationsService.updatePreferencesAsync(organizationId!, enabled), onSuccess: invalidate }),
+  };
+}
 
 export function useOrganizationMutations(organizationId: string | null) {
   const client = useQueryClient();

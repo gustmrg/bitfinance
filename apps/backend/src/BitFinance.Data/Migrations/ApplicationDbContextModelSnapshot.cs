@@ -425,6 +425,244 @@ namespace BitFinance.Data.Migrations
                     b.ToTable("invitations", (string)null);
                 });
 
+            modelBuilder.Entity("BitFinance.Business.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActionPath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("action_path");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload_json");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<string>("RecipientUserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("recipient_user_id");
+
+                    b.Property<Guid>("SourceEventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_event_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notifications");
+
+                    b.HasIndex("RecipientUserId")
+                        .HasDatabaseName("ix_notifications_recipient_user_id");
+
+                    b.HasIndex("SourceEventId", "RecipientUserId")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId", "RecipientUserId", "ReadAt", "CreatedAt");
+
+                    b.ToTable("notifications", (string)null);
+                });
+
+            modelBuilder.Entity("BitFinance.Business.Entities.NotificationDelivery", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("channel");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTime?>("LockedUntil")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("locked_until");
+
+                    b.Property<DateTime>("NextAttemptAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<Guid>("NotificationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("notification_id");
+
+                    b.Property<DateTime?>("ProviderEventAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("provider_event_at");
+
+                    b.Property<string>("ProviderMessageId")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("provider_message_id");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_deliveries");
+
+                    b.HasIndex("ProviderMessageId");
+
+                    b.HasIndex("NotificationId", "Channel")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "NextAttemptAt", "LockedUntil");
+
+                    b.ToTable("notification_deliveries", (string)null);
+                });
+
+            modelBuilder.Entity("BitFinance.Business.Entities.NotificationOutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AggregateId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("aggregate_id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DeduplicationKey")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("deduplication_key");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTime?>("LockedUntil")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("locked_until");
+
+                    b.Property<DateTime>("NextAttemptAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload_json");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_outbox_messages");
+
+                    b.HasIndex("DeduplicationKey")
+                        .IsUnique();
+
+                    b.HasIndex("ProcessedAt", "NextAttemptAt", "LockedUntil");
+
+                    b.ToTable("notification_outbox_messages", (string)null);
+                });
+
+            modelBuilder.Entity("BitFinance.Business.Entities.NotificationPreference", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("EmailBillRemindersEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("email_bill_reminders_enabled");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("UserId", "OrganizationId");
+
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("ix_notification_preferences_organization_id");
+
+                    b.ToTable("notification_preferences", (string)null);
+                });
+
             modelBuilder.Entity("BitFinance.Business.Entities.Organization", b =>
                 {
                     b.Property<Guid>("Id")
@@ -495,6 +733,23 @@ namespace BitFinance.Data.Migrations
                         .HasDatabaseName("ix_organization_members_organization_id");
 
                     b.ToTable("organization_members", (string)null);
+                });
+
+            modelBuilder.Entity("BitFinance.Business.Entities.ProviderWebhookReceipt", b =>
+                {
+                    b.Property<string>("ProviderEventId")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("provider_event_id");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.HasKey("ProviderEventId");
+
+                    b.ToTable("provider_webhook_receipts", (string)null);
                 });
 
             modelBuilder.Entity("BitFinance.Business.Entities.RefreshToken", b =>
@@ -976,6 +1231,60 @@ namespace BitFinance.Data.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("BitFinance.Business.Entities.Notification", b =>
+                {
+                    b.HasOne("BitFinance.Business.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notifications_organizations_organization_id");
+
+                    b.HasOne("BitFinance.Business.Entities.User", "RecipientUser")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notifications_asp_net_users_recipient_user_id");
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("RecipientUser");
+                });
+
+            modelBuilder.Entity("BitFinance.Business.Entities.NotificationDelivery", b =>
+                {
+                    b.HasOne("BitFinance.Business.Entities.Notification", "Notification")
+                        .WithMany("Deliveries")
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_deliveries_notifications_notification_id");
+
+                    b.Navigation("Notification");
+                });
+
+            modelBuilder.Entity("BitFinance.Business.Entities.NotificationPreference", b =>
+                {
+                    b.HasOne("BitFinance.Business.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_preferences_organizations_organization_id");
+
+                    b.HasOne("BitFinance.Business.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_preferences_asp_net_users_user_id");
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("BitFinance.Business.Entities.OrganizationMember", b =>
                 {
                     b.HasOne("BitFinance.Business.Entities.Organization", "Organization")
@@ -1099,6 +1408,11 @@ namespace BitFinance.Data.Migrations
             modelBuilder.Entity("BitFinance.Business.Entities.Expense", b =>
                 {
                     b.Navigation("Attachments");
+                });
+
+            modelBuilder.Entity("BitFinance.Business.Entities.Notification", b =>
+                {
+                    b.Navigation("Deliveries");
                 });
 
             modelBuilder.Entity("BitFinance.Business.Entities.Organization", b =>

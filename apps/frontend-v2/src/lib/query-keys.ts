@@ -25,4 +25,10 @@ export const queryKeys = {
     list: (organizationId: string, page: number, pageSize: number, from?: Date, to?: Date) => ["expenses", "list", organizationId, page, pageSize, dateKey(from), dateKey(to)] as const,
     detail: (organizationId: string, expenseId: string) => ["expenses", "detail", organizationId, expenseId] as const,
   },
+  notifications: {
+    all: ["notifications"] as const,
+    list: (organizationId: string) => ["notifications", organizationId, "list"] as const,
+    unread: (organizationId: string) => ["notifications", organizationId, "unread"] as const,
+    preferences: (organizationId: string) => ["notifications", organizationId, "preferences"] as const,
+  },
 } as const;

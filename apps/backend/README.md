@@ -21,6 +21,7 @@ BitFinance is a finance platform for tracking bills, expenses, organizations, an
 - HTTP-only refresh token cookies
 - Multi-device session management
 - Subscription plans with plan-based entitlements
+- Durable in-app notifications and paid-plan bill reminder emails through Resend
 - PostgreSQL persistence through Entity Framework Core
 - Optional Redis caching
 - Local object storage with MinIO and production S3-compatible storage
@@ -115,6 +116,11 @@ The local `.env.example` includes safe development defaults.
 | `JWT_AUDIENCE` | JWT audience | `bitfinance-dev` |
 | `JWT_EXPIRATION` | Access token lifetime in minutes | `2880` |
 | `CACHE_ENABLED` | Enables Redis-backed caching | `false` |
+| `NOTIFICATIONS_EMAIL_ENABLED` | Enables Resend delivery for eligible plans | `false` |
+| `RESEND_API_TOKEN` | Resend API token | Empty |
+| `RESEND_WEBHOOK_SECRET` | Resend/Svix webhook signing secret | Empty |
+| `NOTIFICATIONS_FROM_ADDRESS` | Verified sender address | Development placeholder |
+| `NOTIFICATIONS_FRONTEND_BASE_URL` | Base URL used by notification email links | `http://localhost:5174` |
 
 Production deployments should use `.env.prod.example` as a template and provide real values for database credentials, JWT settings, Azure Key Vault configuration, and image tags.
 
@@ -140,6 +146,9 @@ Primary route groups:
 - `/api/v1/organizations/{organizationId}/expenses`
 - `/api/v1/organizations/{organizationId}/dashboard/upcoming-bills`
 - `/api/v1/organizations/{organizationId}/dashboard/recent-expenses`
+- `/api/v1/organizations/{organizationId}/notifications`
+- `/api/v1/organizations/{organizationId}/notification-preferences`
+- `POST /api/v1/webhooks/resend`
 
 Use Scalar at `http://localhost:8080/scalar/v1` for the full interactive API reference.
 
@@ -155,6 +164,12 @@ Apply migrations with:
 
 ```bash
 dotnet ef database update --project apps/backend/src/BitFinance.Data --startup-project apps/backend/src/BitFinance.API
+```
+
+Container deployments can run the migration-only command before replacing the API:
+
+```bash
+docker compose run --rm --no-deps bitfinance-api --migrate
 ```
 
 In development, the API also applies migrations automatically during startup.

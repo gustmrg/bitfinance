@@ -11,13 +11,19 @@ public class InvitationsService : IInvitationsService
 {
     private readonly IInvitationsRepository _invitationsRepository;
     private readonly IOrganizationsRepository _organizationsRepository;
+    private readonly INotificationService _notificationService;
+    private readonly ITransactionRunner _transactionRunner;
 
     public InvitationsService(
         IInvitationsRepository invitationsRepository,
-        IOrganizationsRepository organizationsRepository)
+        IOrganizationsRepository organizationsRepository,
+        INotificationService notificationService,
+        ITransactionRunner transactionRunner)
     {
         _invitationsRepository = invitationsRepository;
         _organizationsRepository = organizationsRepository;
+        _notificationService = notificationService;
+        _transactionRunner = transactionRunner;
     }
 
     public async Task<CreateInvitationResult> CreateInvitationAsync(
@@ -88,18 +94,30 @@ public class InvitationsService : IInvitationsService
         if (organization.Members.Any(m => m.UserId == userId))
             return JoinOrganizationResult.Failed(JoinOrganizationError.AlreadyMember, "You are already a member of this organization");
 
-        organization.Members.Add(new OrganizationMember
+        var member = new OrganizationMember
         {
             UserId = userId,
             OrganizationId = organization.Id,
             Role = invitation.Role,
             JoinedAt = DateTime.UtcNow,
-        });
+        };
+        organization.Members.Add(member);
 
         invitation.Status = InvitationStatus.Accepted;
 
-        await _organizationsRepository.UpdateAsync(organization);
-        await _invitationsRepository.UpdateAsync(invitation);
+        await _transactionRunner.ExecuteAsync(async () =>
+        {
+            await _organizationsRepository.UpdateAsync(organization);
+            await _invitationsRepository.UpdateAsync(invitation);
+            await _notificationService.EnqueueAsync(
+                organization.Id,
+                NotificationType.MemberJoined,
+                userId,
+                $"membership:joined:{invitation.Id:N}",
+                new NotificationEventPayload(
+                    MemberUserId: userId,
+                    MemberName: userEmail));
+        });
 
         return JoinOrganizationResult.Succeeded(organization);
     }
