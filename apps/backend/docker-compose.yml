@@ -16,7 +16,7 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__Database=Host=bitfinance-db;Port=5432;Database=${DB_NAME:-bitfinance};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
       - ConnectionStrings__Cache=${REDIS_CONNECTION_STRING:-bitfinance-cache:6379}
-      - AppSettings__CacheEnabled=${CACHE_ENABLED:-true}
+      - AppSettings__CacheEnabled=${CACHE_ENABLED:-false}
       - AppSettings__LoggingEnabled=true
       - Logging__LogLevel__Default=Warning
       - Logging__LogLevel__Microsoft.AspNetCore=Warning
@@ -61,6 +61,8 @@ services:
   bitfinance-cache:
     image: redis:7-alpine
     container_name: bitfinance-cache
+    profiles:
+      - cache
     networks:
       - bitfinance-network
     restart: unless-stopped

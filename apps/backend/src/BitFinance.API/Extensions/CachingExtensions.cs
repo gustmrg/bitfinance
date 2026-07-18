@@ -4,12 +4,21 @@ public static class CachingExtensions
 {
     public static IServiceCollection AddCaching(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddStackExchangeRedisCache(options =>
+        var cacheEnabled = configuration.GetValue<bool>("AppSettings:CacheEnabled");
+
+        if (cacheEnabled)
         {
-            options.Configuration = configuration.GetConnectionString("Cache");
-            options.InstanceName = "BitFinance";
-        });
-        
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = configuration.GetConnectionString("Cache");
+                options.InstanceName = "BitFinance";
+            });
+        }
+        else
+        {
+            services.AddDistributedMemoryCache();
+        }
+
         return services;
     }
 }
