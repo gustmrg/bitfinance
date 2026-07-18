@@ -4,7 +4,7 @@ import type { NotificationPage, NotificationPreferences } from "./notifications.
 
 export const notificationsService = {
   async listAsync(organizationId: string): Promise<NotificationPage> {
-    try { return (await authApi.get<NotificationPage>(`/organizations/${organizationId}/notifications`, { params: { page: 1, pageSize: 25 } })).data; }
+    try { return (await authApi.get<NotificationPage>(`/organizations/${organizationId}/notifications`, { params: { page: 1, pageSize: 25, unreadOnly: true } })).data; }
     catch (error) { throw normalizeApiError(error, "api.notifications.load"); }
   },
   async unreadCountAsync(organizationId: string): Promise<number> {

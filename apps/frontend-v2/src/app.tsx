@@ -57,7 +57,7 @@ function useSelectedOrganization() {
 
 function LoadingState({ label }: { label?: string }) {
   const { t } = useTranslation();
-  return <div className="empty-state" role="status"><span className="empty-state__icon"><Sparkles size={22} /></span><h3>{label ?? t("common.loading")}</h3></div>;
+  return <div className="empty-state" role="status"><span className="spinner" aria-hidden="true" /><h3>{label ?? t("common.loading")}</h3></div>;
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
