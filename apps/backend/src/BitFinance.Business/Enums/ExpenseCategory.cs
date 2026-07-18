@@ -93,5 +93,10 @@ public enum ExpenseCategory
     /// <summary>
     /// Tax payments or tax-related expenses.
     /// </summary>
-    Taxes = 17
+    Taxes = 17,
+
+    /// <summary>
+    /// Fees for professional services (e.g., accountants, lawyers, consultants).
+    /// </summary>
+    Services = 18
 }

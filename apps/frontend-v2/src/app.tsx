@@ -27,10 +27,10 @@ import { ActionMenu, AppShell, Avatar, Button, DataIcon, EmptyState, IconButton,
 import type { DashboardBill, DashboardExpense } from "./api/dashboard/dashboard.types";
 
 const categoryLabels: Record<string, string> = {
-  housing: "types.housing", utilities: "types.utilities", food: "types.food", transportation: "types.transportation", healthcare: "types.healthcare", subscriptions: "types.subscriptions", education: "types.education", insurance: "types.insurance", personal: "types.personal", taxes: "types.taxes", miscellaneous: "types.miscellaneous", travel: "types.travel", gifts: "types.gifts", pets: "types.pets",
+  housing: "types.housing", utilities: "types.utilities", food: "types.food", transportation: "types.transportation", healthcare: "types.healthcare", subscriptions: "types.subscriptions", education: "types.education", insurance: "types.insurance", personal: "types.personal", taxes: "types.taxes", miscellaneous: "types.miscellaneous", travel: "types.travel", gifts: "types.gifts", pets: "types.pets", services: "types.services",
 };
 const categories = Object.keys(categoryLabels) as [BillCategory, ...BillCategory[]];
-const documentCategories: FileCategory[] = ["Receipt", "Boleto", "Other"];
+const documentCategories: FileCategory[] = ["Invoice", "Receipt", "Boleto", "Other"];
 const acceptedDocumentTypes = ".pdf,.jpg,.jpeg,.png,.doc,.docx";
 const maxDocumentSizeBytes = 10 * 1024 * 1024;
 const acceptedAvatarTypes = ["image/jpeg", "image/png"];

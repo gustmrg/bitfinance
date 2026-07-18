@@ -83,5 +83,10 @@ public enum BillCategory
     /// <summary>
     /// Pet care, veterinary bills, or pet supplies.
     /// </summary>
-    Pets = 15
+    Pets = 15,
+
+    /// <summary>
+    /// Fees for professional services (e.g., accountants, lawyers, consultants).
+    /// </summary>
+    Services = 16
 }
