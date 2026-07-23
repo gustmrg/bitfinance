@@ -5,7 +5,6 @@ import {
   BarChart3,
   Building2,
   CalendarDays,
-  ChevronDown,
   ChevronRight,
   CircleDollarSign,
   CreditCard,
@@ -31,6 +30,7 @@ import { useOrganizationStore } from "./auth/auth-store";
 import { useOrganizationsQuery } from "./hooks/use-queries";
 import { useTheme } from "./hooks/use-theme";
 import { NotificationBell } from "./notification-bell";
+import { Select } from "./select";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -151,6 +151,11 @@ export function Modal({ title, description, onClose, children, wide = false }: {
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className={`modal ${wide ? "modal--wide" : ""}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1} ref={ref}><div className="modal__header"><div><h2 id="modal-title">{title}</h2>{description && <p>{description}</p>}</div><IconButton label={t("common.close")} onClick={onClose}><X size={18} /></IconButton></div>{children}</div></div>;
 }
 
+export function ConfirmDialog({ title, description, confirmLabel, tone = "danger", pending = false, onConfirm, onClose }: { title: string; description?: string; confirmLabel: string; tone?: "danger" | "primary"; pending?: boolean; onConfirm: () => void; onClose: () => void }) {
+  const { t } = useTranslation();
+  return <Modal title={title} description={description} onClose={onClose}><div className="modal-form__actions"><Button type="button" variant="ghost" disabled={pending} onClick={onClose}>{t("common.cancel")}</Button><Button type="button" variant={tone} disabled={pending} onClick={onConfirm}>{confirmLabel}</Button></div></Modal>;
+}
+
 export function ActionMenu({ onEdit, onPaid, onDelete, onUpload, detailHref, canPay = false }: { onEdit: () => void; onPaid?: () => void; onDelete: () => void; onUpload?: () => void; detailHref?: string; canPay?: boolean }) {
   const { t } = useTranslation();
   return <Suspense fallback={<IconButton label={t("common.moreActions")}><MoreHorizontal size={18} /></IconButton>}><LazyActionMenu onEdit={onEdit} onPaid={onPaid} onDelete={onDelete} onUpload={onUpload} detailHref={detailHref} canPay={canPay} /></Suspense>;
@@ -174,7 +179,7 @@ function OrganizationSwitcher() {
   const setSelectedId = useOrganizationStore((state) => state.setSelectedOrganizationId);
   const items = organizations.data ?? user?.organizations ?? [];
   const { t } = useTranslation();
-  return <label className="org-switcher"><Building2 size={16} /><select aria-label={t("common.selectOrganization")} value={selectedId ?? items[0]?.id ?? ""} onChange={(event) => setSelectedId(event.target.value)} disabled={!items.length}>{items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><ChevronDown size={14} /></label>;
+  return <div className="org-switcher"><Building2 size={16} /><Select ariaLabel={t("common.selectOrganization")} value={selectedId ?? items[0]?.id ?? null} onValueChange={(value) => setSelectedId(value)} disabled={!items.length} options={items.map((item) => ({ value: item.id, label: item.name }))} /></div>;
 }
 
 function ThemeSwitcher() {
