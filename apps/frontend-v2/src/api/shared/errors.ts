@@ -22,17 +22,23 @@ export function normalizeApiError(error: unknown, fallbackKey: string): ApiError
   if (isAxiosError(error)) {
     const data = error.response?.data as Record<string, unknown> | undefined;
     const errors = data?.errors;
-    const message = typeof data?.message === "string"
-      ? data.message
-      : typeof data?.error === "string"
-        ? data.error
-        : typeof data?.description === "string"
-          ? data.description
-          : errors
-            ? i18n.t("errors.validation")
-            : i18n.t(fallbackKey);
+    const message =
+      typeof data?.message === "string"
+        ? data.message
+        : typeof data?.error === "string"
+          ? data.error
+          : typeof data?.description === "string"
+            ? data.description
+            : errors
+              ? i18n.t("errors.validation")
+              : i18n.t(fallbackKey);
 
-    return new ApiError(message, error.response?.status, typeof data?.code === "string" ? data.code : undefined, errors);
+    return new ApiError(
+      message,
+      error.response?.status,
+      typeof data?.code === "string" ? data.code : undefined,
+      errors,
+    );
   }
 
   if (axios.isCancel(error)) return new ApiError(i18n.t("errors.requestCanceled"));

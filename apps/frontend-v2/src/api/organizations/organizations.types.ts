@@ -14,5 +14,15 @@ export interface OrganizationDetails extends OrganizationSummary {
   }>;
 }
 
-export interface InvitationResult { id: string; token: string; expiresAt: string }
-export interface Budget { id: string; organizationId?: string; amount: number; createdAt: string; updatedAt?: string | null }
+export interface InvitationResult {
+  id: string;
+  token: string;
+  expiresAt: string;
+}
+export interface Budget {
+  id: string;
+  organizationId?: string;
+  amount: number;
+  createdAt: string;
+  updatedAt?: string | null;
+}

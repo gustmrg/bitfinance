@@ -1,6 +1,12 @@
 import type { Paged } from "../bills/bills.types";
 
-export type NotificationType = "BillDueSoon" | "BillDueToday" | "BillOverdue" | "MemberJoined" | "MemberRoleChanged" | "MemberRemoved";
+export type NotificationType =
+  | "BillDueSoon"
+  | "BillDueToday"
+  | "BillOverdue"
+  | "MemberJoined"
+  | "MemberRoleChanged"
+  | "MemberRemoved";
 
 export interface NotificationParameters {
   billId?: string;
@@ -24,4 +30,7 @@ export interface AppNotification {
 }
 
 export type NotificationPage = Paged<AppNotification>;
-export interface NotificationPreferences { emailBillRemindersEnabled: boolean; emailAvailable: boolean }
+export interface NotificationPreferences {
+  emailBillRemindersEnabled: boolean;
+  emailAvailable: boolean;
+}

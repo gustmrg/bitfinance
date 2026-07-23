@@ -20,6 +20,7 @@ credentials. Health is requested from `/health`, not `/api/v1/health`.
 
 ```bash
 pnpm lint
+pnpm format:check
 pnpm build
 ```
 

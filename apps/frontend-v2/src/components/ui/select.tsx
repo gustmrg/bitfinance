@@ -16,20 +16,51 @@ type SelectProps<T extends string> = {
   className?: string;
 };
 
-export function Select<T extends string>({ options, value, defaultValue, onValueChange, name, disabled = false, required = false, ariaLabel, placeholder, className = "" }: SelectProps<T>) {
+export function Select<T extends string>({
+  options,
+  value,
+  defaultValue,
+  onValueChange,
+  name,
+  disabled = false,
+  required = false,
+  ariaLabel,
+  placeholder,
+  className = "",
+}: SelectProps<T>) {
   return (
-    <BaseSelect.Root<T> items={options} value={value} defaultValue={defaultValue} onValueChange={(next) => { if (next !== null) onValueChange?.(next); }} name={name} disabled={disabled} required={required}>
+    <BaseSelect.Root<T>
+      items={options}
+      value={value}
+      defaultValue={defaultValue}
+      onValueChange={(next) => {
+        if (next !== null) onValueChange?.(next);
+      }}
+      name={name}
+      disabled={disabled}
+      required={required}
+    >
       <BaseSelect.Trigger className={`select-trigger ${className}`} aria-label={ariaLabel}>
         <BaseSelect.Value placeholder={placeholder ?? ""} />
-        <BaseSelect.Icon className="select-trigger__icon"><ChevronDown size={14} /></BaseSelect.Icon>
+        <BaseSelect.Icon className="select-trigger__icon">
+          <ChevronDown size={14} />
+        </BaseSelect.Icon>
       </BaseSelect.Trigger>
       <BaseSelect.Portal>
-        <BaseSelect.Positioner className="select-positioner" sideOffset={6} alignItemWithTrigger={false}>
+        <BaseSelect.Positioner
+          className="select-positioner"
+          sideOffset={6}
+          alignItemWithTrigger={false}
+        >
           <BaseSelect.Popup className="select-popup">
             {options.map((option) => (
               <BaseSelect.Item key={option.value} value={option.value} className="select-option">
-                <BaseSelect.ItemText className="select-option__text">{option.label}</BaseSelect.ItemText>
-                <BaseSelect.ItemIndicator className="select-option__indicator"><Check size={13} /></BaseSelect.ItemIndicator>
+                <BaseSelect.ItemText className="select-option__text">
+                  {option.label}
+                </BaseSelect.ItemText>
+                <BaseSelect.ItemIndicator className="select-option__indicator">
+                  <Check size={13} />
+                </BaseSelect.ItemIndicator>
               </BaseSelect.Item>
             ))}
           </BaseSelect.Popup>

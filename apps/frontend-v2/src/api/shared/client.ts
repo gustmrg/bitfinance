@@ -12,7 +12,9 @@ export const authApi = axios.create({ baseURL: env.VITE_API_URL, withCredentials
 let refreshPromise: Promise<string> | null = null;
 
 async function refreshAccessToken() {
-  const response = await publicApi.post<{ accessToken: string; accessTokenExpiresAt: string }>("/identity/refresh");
+  const response = await publicApi.post<{ accessToken: string; accessTokenExpiresAt: string }>(
+    "/identity/refresh",
+  );
   setAccessToken(response.data.accessToken, response.data.accessTokenExpiresAt);
   return response.data.accessToken;
 }
@@ -32,7 +34,9 @@ authApi.interceptors.response.use(
     }
 
     request._authRetry = true;
-    refreshPromise ??= refreshAccessToken().finally(() => { refreshPromise = null; });
+    refreshPromise ??= refreshAccessToken().finally(() => {
+      refreshPromise = null;
+    });
 
     try {
       const token = await refreshPromise;
