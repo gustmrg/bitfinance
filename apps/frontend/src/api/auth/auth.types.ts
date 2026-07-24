@@ -1,36 +1,47 @@
-import type { User } from "@/auth/types";
-
-export interface AuthSessionUser {
+export interface OrganizationSummary {
   id: string;
+  name: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  fullName: string;
   email: string;
-  userName: string;
-  firstName: string;
-  lastName: string;
+  organizations: OrganizationSummary[];
+  avatarUrl?: string | null;
 }
 
 export interface AuthSessionResponse {
   accessToken: string;
   accessTokenExpiresAt: string;
-  user: AuthSessionUser;
+  user: { id: string; email: string; userName: string; firstName: string; lastName: string };
 }
 
-export interface SignInRequest {
+export interface AuthCredentials {
   email: string;
   password: string;
 }
 
-export interface SignUpRequest {
+export interface RegisterCredentials extends AuthCredentials {
   firstName: string;
   lastName: string;
-  email: string;
-  password: string;
 }
 
-export interface MeApiResponse {
+interface MeResponse {
   id: string;
-  username: string;
   fullName: string;
   email: string;
-  avatarUrl?: string | null;
-  organizations?: User["organizations"];
+  userName: string;
+  organizations?: OrganizationSummary[];
+}
+
+export function mapMeResponse(response: MeResponse): User {
+  return {
+    id: response.id,
+    username: response.userName,
+    fullName: response.fullName,
+    email: response.email,
+    organizations: response.organizations ?? [],
+  };
 }

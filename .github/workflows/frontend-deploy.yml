@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: frontend-production
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -54,20 +58,22 @@ jobs:
           set -euo pipefail
           PACKAGE_VERSION="$(node -p "require('./package.json').version")"
 
-          echo "Release version: $RELEASE_VERSION"
-          echo "package.json version: $PACKAGE_VERSION"
-
           if [ "$RELEASE_VERSION" != "$PACKAGE_VERSION" ]; then
             echo "::error::Version mismatch: frontend release '$RELEASE_VERSION' does not match package.json version '$PACKAGE_VERSION'."
             exit 1
           fi
 
-      - name: Set up environment file
-        run: |
-          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > .env.production
+      - name: Set up production environment
+        run: cp .env.production.example .env.production
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm run format:check
+
+      - name: Lint app
+        run: pnpm run lint
 
       - name: Build app
         run: pnpm run build
@@ -92,6 +98,19 @@ jobs:
           fs.writeFileSync("dist/version.json", `${JSON.stringify(version, null, 2)}\n`);
           NODE
 
+      - name: Package immutable release
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: tar -czf "$PWD/bitfinance-frontend-$RELEASE_VERSION.tar.gz" -C dist .
+
+      - name: Retain rollback artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: bitfinance-frontend-${{ steps.version.outputs.version }}
+          path: apps/frontend/bitfinance-frontend-${{ steps.version.outputs.version }}.tar.gz
+          retention-days: 90
+          if-no-files-found: error
+
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
         with:
@@ -99,8 +118,9 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Deploy files
+      - name: Deploy immutable release
         env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
           SSH_HOST_IP: ${{ secrets.SSH_HOST }}
           TAILSCALE_HOST: ${{ secrets.TAILSCALE_HOST }}
@@ -110,6 +130,8 @@ jobs:
           set -euo pipefail
 
           TARGET_HOST="${TAILSCALE_HOST:-$SSH_HOST_IP}"
+          ARCHIVE_NAME="bitfinance-frontend-$RELEASE_VERSION.tar.gz"
+          REMOTE_ARCHIVE="/tmp/$ARCHIVE_NAME-$GITHUB_RUN_ID"
 
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
@@ -121,16 +143,48 @@ jobs:
           printf '%s' "$SSH_PRIVATE_KEY" > "$KEY_FILE"
           chmod 600 "$KEY_FILE"
 
-          ssh -i "$KEY_FILE" \
-            -p "$SSH_PORT" \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            "$SSH_USERNAME@$TARGET_HOST" 'echo "SSH auth OK"'
-
           scp -i "$KEY_FILE" \
             -P "$SSH_PORT" \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
-            -r dist/* "$SSH_USERNAME@$TARGET_HOST:/var/www/bitfinance/"
+            "$ARCHIVE_NAME" "$SSH_USERNAME@$TARGET_HOST:$REMOTE_ARCHIVE"
+
+          ssh -i "$KEY_FILE" \
+            -p "$SSH_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USERNAME@$TARGET_HOST" \
+            "RELEASE_VERSION='$RELEASE_VERSION' REMOTE_ARCHIVE='$REMOTE_ARCHIVE' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          DEPLOY_ROOT=/var/www/bitfinance
+          RELEASE_PATH="$DEPLOY_ROOT/releases/$RELEASE_VERSION"
+          STAGING_PATH="$DEPLOY_ROOT/releases/.$RELEASE_VERSION-$RANDOM"
+
+          cleanup() {
+            rm -f "$REMOTE_ARCHIVE"
+            rm -rf "$STAGING_PATH"
+          }
+          trap cleanup EXIT
+
+          mkdir -p "$DEPLOY_ROOT/releases"
+          if [ -e "$RELEASE_PATH" ]; then
+            echo "Release already exists and is immutable: $RELEASE_PATH" >&2
+            exit 1
+          fi
+
+          mkdir "$STAGING_PATH"
+          tar -xzf "$REMOTE_ARCHIVE" -C "$STAGING_PATH"
+          test -f "$STAGING_PATH/index.html"
+          grep -F "\"version\": \"$RELEASE_VERSION\"" "$STAGING_PATH/version.json"
+          mv "$STAGING_PATH" "$RELEASE_PATH"
+
+          rm -f "$DEPLOY_ROOT/current.next"
+          ln -s "releases/$RELEASE_VERSION" "$DEPLOY_ROOT/current.next"
+          mv -Tf "$DEPLOY_ROOT/current.next" "$DEPLOY_ROOT/current"
+
+          test "$(readlink "$DEPLOY_ROOT/current")" = "releases/$RELEASE_VERSION"
+          test -f "$DEPLOY_ROOT/current/sw.js"
+          REMOTE

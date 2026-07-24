@@ -1,76 +1,49 @@
-import { api, authApi } from "@/lib/axios";
-
-import { normalizeError } from "@/api/shared/normalize-error";
-import type { User } from "@/auth/types";
-
-import type {
-  AuthSessionResponse,
-  MeApiResponse,
-  SignInRequest,
-  SignUpRequest,
-} from "./auth.types";
-
-function mapMeApiResponse(response: MeApiResponse): User {
-  return {
-    id: response.id,
-    username: response.username,
-    fullName: response.fullName,
-    email: response.email,
-    avatarUrl: response.avatarUrl ?? null,
-    organizations: response.organizations ?? [],
-  };
-}
+import { authApi, publicApi } from "../shared/client";
+import { normalizeApiError } from "../shared/errors";
+import type { AuthCredentials, AuthSessionResponse, RegisterCredentials, User } from "./auth.types";
+import { mapMeResponse } from "./auth.types";
 
 export const authService = {
-  async signInAsync(request: SignInRequest): Promise<AuthSessionResponse> {
+  async registerAsync(credentials: RegisterCredentials): Promise<AuthSessionResponse> {
     try {
-      const response = await api.post<AuthSessionResponse>(
-        "/identity/login",
-        request
-      );
-
-      return response.data;
+      return (await publicApi.post<AuthSessionResponse>("/identity/register", credentials)).data;
     } catch (error) {
-      throw normalizeError(error, "Failed to sign in.");
+      throw normalizeApiError(error, "api.auth.createAccount");
     }
   },
-
-  async signUpAsync(request: SignUpRequest): Promise<AuthSessionResponse> {
+  async loginAsync(credentials: AuthCredentials): Promise<AuthSessionResponse> {
     try {
-      const response = await api.post<AuthSessionResponse>(
-        "/identity/register",
-        request
-      );
-
-      return response.data;
+      return (await publicApi.post<AuthSessionResponse>("/identity/login", credentials)).data;
     } catch (error) {
-      throw normalizeError(error, "Failed to sign up.");
+      throw normalizeApiError(error, "api.auth.signIn");
     }
   },
-
   async refreshAsync(): Promise<AuthSessionResponse> {
     try {
-      const response = await api.post<AuthSessionResponse>("/identity/refresh");
-      return response.data;
+      return (await publicApi.post<AuthSessionResponse>("/identity/refresh")).data;
     } catch (error) {
-      throw normalizeError(error, "Failed to restore session.");
+      throw normalizeApiError(error, "api.auth.restoreSession");
     }
   },
-
-  async getMeAsync(): Promise<User> {
-    try {
-      const response = await authApi.get<MeApiResponse>("/identity/me");
-      return mapMeApiResponse(response.data);
-    } catch (error) {
-      throw normalizeError(error, "Failed to load current user.");
-    }
-  },
-
-  async logoutAsync(): Promise<void> {
+  async logoutAsync() {
     try {
       await authApi.post("/identity/logout");
     } catch (error) {
-      throw normalizeError(error, "Failed to sign out.");
+      throw normalizeApiError(error, "api.auth.signOut");
+    }
+  },
+  async logoutAllAsync() {
+    try {
+      await authApi.post("/identity/logout-all");
+    } catch (error) {
+      throw normalizeApiError(error, "api.auth.signOutAll");
+    }
+  },
+  async getMeAsync(): Promise<User> {
+    try {
+      return mapMeResponse((await authApi.get("/identity/me")).data);
+    } catch (error) {
+      throw normalizeApiError(error, "api.auth.loadAccount");
     }
   },
 };

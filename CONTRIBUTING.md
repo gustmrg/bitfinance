@@ -16,6 +16,7 @@ Frontend:
 ```bash
 cd apps/frontend
 pnpm install
+pnpm format:check
 pnpm lint
 pnpm build
 ```

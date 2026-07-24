@@ -1,59 +1,34 @@
-import { privateAPI } from "@/lib/axios";
-
-import { normalizeError } from "@/api/shared/normalize-error";
-
-import type { AvatarResponse, UpdateProfileRequest } from "./account.types";
-
-const authApi = privateAPI();
+import { authApi } from "../shared/client";
+import { normalizeApiError } from "../shared/errors";
+import type { User } from "../auth/auth.types";
 
 export const accountService = {
-  async updateProfileAsync(request: UpdateProfileRequest) {
+  async updateProfileAsync(firstName: string, lastName: string): Promise<User> {
     try {
-      const response = await authApi.post("/identity/manage/profile", {
-        firstName: request.firstName,
-        lastName: request.lastName,
-      });
-
-      return response.data;
+      return (await authApi.post<User>("/identity/manage/profile", { firstName, lastName })).data;
     } catch (error) {
-      throw normalizeError(error, "Failed to update profile.");
+      throw normalizeApiError(error, "api.account.updateProfile");
     }
   },
-
-  async uploadAvatarAsync(file: File): Promise<AvatarResponse> {
+  async uploadAvatarAsync(file: File) {
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await authApi.post<AvatarResponse>(
-        "/identity/manage/avatar",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      return response.data;
+      const form = new FormData();
+      form.append("file", file);
+      return (
+        await authApi.post<{ id: string; fileName: string; contentType: string }>(
+          "/identity/manage/avatar",
+          form,
+        )
+      ).data;
     } catch (error) {
-      throw normalizeError(error, "Failed to upload avatar.");
+      throw normalizeApiError(error, "api.account.uploadAvatar");
     }
   },
-
-  async deleteAvatarAsync(): Promise<void> {
+  async deleteAvatarAsync() {
     try {
       await authApi.delete("/identity/manage/avatar");
     } catch (error) {
-      throw normalizeError(error, "Failed to delete avatar.");
-    }
-  },
-
-  async logoutAllDevicesAsync(): Promise<void> {
-    try {
-      await authApi.post("/identity/logout-all");
-    } catch (error) {
-      throw normalizeError(error, "Failed to log out all devices.");
+      throw normalizeApiError(error, "api.account.removeAvatar");
     }
   },
 };

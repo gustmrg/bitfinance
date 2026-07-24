@@ -1,29 +1,24 @@
-let _accessToken: string | null = null;
-let _accessTokenExpiresAt: string | null = null;
+let accessToken: string | null = null;
+let accessTokenExpiresAt: string | null = null;
 
-export function getAccessToken(): string | null {
-  return _accessToken;
+export function getAccessToken() {
+  return accessToken;
 }
 
-export function setAccessToken(
-  token: string | null,
-  expiresAt?: string | null
-): void {
-  _accessToken = token;
-  _accessTokenExpiresAt = expiresAt ?? null;
+export function setAccessToken(token: string, expiresAt: string) {
+  accessToken = token;
+  accessTokenExpiresAt = expiresAt;
 }
 
-export function getAccessTokenExpiresAt(): string | null {
-  return _accessTokenExpiresAt;
+export function clearAccessToken() {
+  accessToken = null;
+  accessTokenExpiresAt = null;
 }
 
-export function clearAccessToken(): void {
-  _accessToken = null;
-  _accessTokenExpiresAt = null;
+export function getAccessTokenExpiresAt() {
+  return accessTokenExpiresAt;
 }
 
-export function isTokenExpired(): boolean {
-  if (!_accessTokenExpiresAt) return true;
-  const expiresAt = new Date(_accessTokenExpiresAt).getTime();
-  return Date.now() >= expiresAt - 30_000;
+export function isAccessTokenExpired() {
+  return !accessTokenExpiresAt || Date.now() >= new Date(accessTokenExpiresAt).getTime() - 30_000;
 }

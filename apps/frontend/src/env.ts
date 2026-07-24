@@ -1,17 +1,17 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  VITE_API_URL: z.string().refine(
-    (val) => {
-      // Accept relative paths starting with /
-      if (val.startsWith('/')) return true;
-      // Accept full URLs (http or https)
-      return z.string().url().safeParse(val).success;
-    },
-    {
-      message: "VITE_API_URL must be a valid URL or a path starting with '/'",
-    }
-  ),
+  VITE_API_URL: z.string().url().or(z.string().startsWith("/")),
+  VITE_HEALTH_URL: z.string().url().or(z.string().startsWith("/")),
 });
 
-export const env = envSchema.parse(import.meta.env);
+const parsed = envSchema.safeParse({
+  VITE_API_URL: import.meta.env.VITE_API_URL ?? "/api/v1",
+  VITE_HEALTH_URL: import.meta.env.VITE_HEALTH_URL ?? "/health",
+});
+
+if (!parsed.success) {
+  throw new Error(`Invalid frontend environment: ${parsed.error.message}`);
+}
+
+export const env = parsed.data;

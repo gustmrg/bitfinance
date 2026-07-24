@@ -1,277 +1,121 @@
-import { privateAPI } from "@/lib/axios";
+import { authApi } from "../shared/client";
+import { normalizeApiError } from "../shared/errors";
+import type { Expense, ExpenseInput, ExpenseListFilters, ExpensePage } from "./expenses.types";
+import type { BillDocument } from "../bills/bills.types";
 
-import { normalizeError } from "@/api/shared/normalize-error";
-
-import type {
-  CreateExpenseRequest,
-  CreateExpenseResponse,
-  DeleteExpenseDocumentRequest,
-  DownloadExpenseDocumentRequest,
-  Expense,
-  ExpenseDocument,
-  ExpensesListQuery,
-  ExpensesListResponse,
-  UpdateExpenseRequest,
-  UpdateExpenseResponse,
-  UploadExpenseDocumentResponse,
-  UploadExpenseDocumentsRequest,
-} from "./expenses.types";
-
-const authApi = privateAPI();
-
-interface ExpenseAttachmentApiResponse {
-  id: string;
-  fileName: string;
-  contentType: string;
-  fileCategory: UploadExpenseDocumentResponse["fileCategory"];
-  attachmentType: UploadExpenseDocumentResponse["attachmentType"];
-}
-
-interface ExpenseApiResponse extends Omit<Expense, "category" | "status" | "documents"> {
+type ExpenseWire = Omit<Expense, "category" | "status" | "documents"> & {
   category: string;
   status: string;
-  attachments?: ExpenseAttachmentApiResponse[];
-}
-
-interface ExpensesListApiResponse extends Omit<ExpensesListResponse, "data"> {
-  data: ExpenseApiResponse[];
-}
-
-interface CreateExpenseApiResponse {
-  id: string;
-  description: string;
-  category: string;
-  amount: number;
-  status: string;
-  occurredAt: string;
-  createdBy: string;
-}
-
-interface UpdateExpenseApiResponse {
-  id: string;
-  description: string;
-  category: string;
-  amount: number;
-  status: string;
-  occurredAt: string;
-  createdBy: string;
-}
-
-function mapStatus(status: string): Expense["status"] {
-  return status.toLowerCase() as Expense["status"];
-}
-
-function mapCategory(category: string): Expense["category"] {
-  return category.toLowerCase() as Expense["category"];
-}
-
-function mapAttachment(attachment: ExpenseAttachmentApiResponse): ExpenseDocument {
-  return {
-    id: attachment.id,
-    fileName: attachment.fileName,
-    contentType: attachment.contentType,
-    fileCategory: attachment.fileCategory,
-    attachmentType: attachment.attachmentType,
-  };
-}
-
-function mapExpense(expense: ExpenseApiResponse): Expense {
-  return {
-    ...expense,
-    category: mapCategory(expense.category),
-    documents: expense.attachments?.map(mapAttachment) ?? [],
-    status: mapStatus(expense.status),
-  };
-}
-
-function mapCreateExpenseResponse(
-  expense: CreateExpenseApiResponse
-): CreateExpenseResponse {
-  return {
-    id: expense.id,
-    description: expense.description,
-    category: mapCategory(expense.category),
-    amount: expense.amount,
-    status: mapStatus(expense.status),
-    occurredAt: expense.occurredAt,
-    createdBy: expense.createdBy,
-  };
-}
-
-function mapUpdateExpenseResponse(
-  expense: UpdateExpenseApiResponse
-): UpdateExpenseResponse {
-  return {
-    id: expense.id,
-    description: expense.description,
-    category: mapCategory(expense.category),
-    amount: expense.amount,
-    status: mapStatus(expense.status),
-    occurredAt: expense.occurredAt,
-    createdBy: expense.createdBy,
-  };
-}
-
-async function uploadDocumentAsync(
-  organizationId: string,
-  expenseId: string,
-  file: File,
-  fileCategory: UploadExpenseDocumentsRequest["fileCategory"]
-): Promise<UploadExpenseDocumentResponse> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("fileCategory", fileCategory);
-
-  const response = await authApi.post<UploadExpenseDocumentResponse>(
-    `/organizations/${organizationId}/expenses/${expenseId}/documents`,
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
-
-  return response.data;
-}
+  attachments?: BillDocument[];
+};
+const map = (wire: ExpenseWire): Expense => ({
+  ...wire,
+  category: wire.category.toLowerCase() as Expense["category"],
+  status: wire.status.toLowerCase() as Expense["status"],
+  documents: wire.attachments ?? [],
+});
 
 export const expensesService = {
-  async listAsync(query: ExpensesListQuery): Promise<ExpensesListResponse> {
+  async listAsync(filters: ExpenseListFilters): Promise<ExpensePage> {
     try {
-      const response = await authApi.get<ExpensesListApiResponse>(
-        `/organizations/${query.organizationId}/expenses`,
-        {
-          params: {
-            from: query.from,
-            to: query.to,
-          },
-        }
+      const response = await authApi.get<{
+        data: ExpenseWire[];
+        page: number;
+        pageSize: number;
+        totalRecords: number;
+        totalPages: number;
+      }>(`/organizations/${filters.organizationId}/expenses`, {
+        params: {
+          page: filters.page,
+          pageSize: filters.pageSize,
+          from: filters.from?.toISOString(),
+          to: filters.to?.toISOString(),
+        },
+      });
+      return { ...response.data, data: response.data.data.map(map) };
+    } catch (error) {
+      throw normalizeApiError(error, "api.expenses.load");
+    }
+  },
+  async getAsync(organizationId: string, expenseId: string) {
+    try {
+      return map(
+        (await authApi.get<ExpenseWire>(`/organizations/${organizationId}/expenses/${expenseId}`))
+          .data,
       );
-
-      return {
-        ...response.data,
-        data: response.data.data.map(mapExpense),
-      };
     } catch (error) {
-      throw normalizeError(error, "Failed to fetch expenses.");
+      throw normalizeApiError(error, "api.expenses.loadOne");
     }
   },
-
-  async getAsync(organizationId: string, expenseId: string): Promise<Expense> {
+  async createAsync(organizationId: string, input: ExpenseInput & { createdBy: string }) {
     try {
-      const response = await authApi.get<ExpenseApiResponse>(
-        `/organizations/${organizationId}/expenses/${expenseId}`
+      return map(
+        (await authApi.post<ExpenseWire>(`/organizations/${organizationId}/expenses`, input)).data,
       );
-
-      return mapExpense(response.data);
     } catch (error) {
-      throw normalizeError(error, "Failed to fetch expense.");
+      throw normalizeApiError(error, "api.expenses.create");
     }
   },
-
-  async createAsync(
-    request: CreateExpenseRequest
-  ): Promise<CreateExpenseResponse> {
+  async updateAsync(organizationId: string, expenseId: string, input: ExpenseInput) {
     try {
-      const response = await authApi.post<CreateExpenseApiResponse>(
-        `/organizations/${request.organizationId}/expenses`,
-        {
-          description: request.description,
-          category: request.category,
-          status: request.status,
-          amount: request.amount,
-          occurredAt: request.occurredAt,
-          createdBy: request.createdBy,
-        }
-      );
-
-      return mapCreateExpenseResponse(response.data);
-    } catch (error) {
-      throw normalizeError(error, "Failed to create expense.");
-    }
-  },
-
-  async updateAsync(
-    request: UpdateExpenseRequest
-  ): Promise<UpdateExpenseResponse> {
-    try {
-      const response = await authApi.patch<UpdateExpenseApiResponse>(
-        `/organizations/${request.organizationId}/expenses/${request.id}`,
-        {
-          description: request.description,
-          category: request.category,
-          status: request.status,
-          amount: request.amount,
-          occurredAt: request.occurredAt,
-          createdBy: request.createdBy,
-        }
-      );
-
-      return mapUpdateExpenseResponse(response.data);
-    } catch (error) {
-      throw normalizeError(error, "Failed to update expense.");
-    }
-  },
-
-  async deleteAsync(id: string, organizationId: string): Promise<void> {
-    try {
-      await authApi.delete(`/organizations/${organizationId}/expenses/${id}`);
-    } catch (error) {
-      throw normalizeError(error, "Failed to delete expense.");
-    }
-  },
-
-  async uploadDocumentsAsync(
-    payload: UploadExpenseDocumentsRequest
-  ): Promise<UploadExpenseDocumentResponse[]> {
-    try {
-      return await Promise.all(
-        payload.files.map((file) =>
-          uploadDocumentAsync(
-            payload.organizationId,
-            payload.expenseId,
-            file,
-            payload.fileCategory
+      return map(
+        (
+          await authApi.patch<ExpenseWire>(
+            `/organizations/${organizationId}/expenses/${expenseId}`,
+            input,
           )
-        )
+        ).data,
       );
     } catch (error) {
-      throw normalizeError(error, "Failed to upload expense documents.");
+      throw normalizeApiError(error, "api.expenses.update");
     }
   },
-
-  async downloadDocumentAsync(
-    payload: DownloadExpenseDocumentRequest
-  ): Promise<void> {
+  async deleteAsync(organizationId: string, expenseId: string) {
     try {
-      const response = await authApi.get(
-        `/organizations/${payload.organizationId}/expenses/${payload.expenseId}/documents/${payload.documentId}`,
-        {
-          responseType: "blob",
-        }
-      );
-
-      const blob = new Blob([response.data]);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = payload.fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      await authApi.delete(`/organizations/${organizationId}/expenses/${expenseId}`);
     } catch (error) {
-      throw normalizeError(error, "Failed to download expense document.");
+      throw normalizeApiError(error, "api.expenses.delete");
     }
   },
-
-  async deleteDocumentAsync(payload: DeleteExpenseDocumentRequest): Promise<void> {
+  async uploadDocumentAsync(
+    organizationId: string,
+    expenseId: string,
+    file: File,
+    fileCategory: string,
+  ) {
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("fileCategory", fileCategory);
+      return (
+        await authApi.post<BillDocument>(
+          `/organizations/${organizationId}/expenses/${expenseId}/documents`,
+          form,
+        )
+      ).data;
+    } catch (error) {
+      throw normalizeApiError(error, "api.expenses.uploadDocument");
+    }
+  },
+  async getDocumentAsync(organizationId: string, expenseId: string, attachmentId: string) {
+    try {
+      return (
+        await authApi.get<Blob>(
+          `/organizations/${organizationId}/expenses/${expenseId}/documents/${attachmentId}`,
+          { responseType: "blob" },
+        )
+      ).data;
+    } catch (error) {
+      throw normalizeApiError(error, "api.expenses.openDocument");
+    }
+  },
+  async deleteDocumentAsync(organizationId: string, expenseId: string, attachmentId: string) {
     try {
       await authApi.delete(
-        `/organizations/${payload.organizationId}/expenses/${payload.expenseId}/documents/${payload.documentId}`
+        `/organizations/${organizationId}/expenses/${expenseId}/documents/${attachmentId}`,
       );
     } catch (error) {
-      throw normalizeError(error, "Failed to delete expense document.");
+      throw normalizeApiError(error, "api.expenses.removeDocument");
     }
   },
 };

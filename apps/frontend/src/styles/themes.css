@@ -1,0 +1,79 @@
+[data-theme="dark"] {
+  --ink: #edf3ff;
+  --ink-soft: #aab8cb;
+  --muted: #8090a5;
+  --paper: #0e1828;
+  --surface: #142238;
+  --line: #263750;
+  --line-strong: #3b4d68;
+  --blue-soft: #1d315b;
+  --mint-soft: #133d3b;
+  --amber-soft: #45341e;
+  --coral-soft: #482733;
+  --ink-deep: #0c1626;
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+}
+[data-theme="dark"] body,
+[data-theme="dark"] .sidebar,
+[data-theme="dark"] .content-topbar,
+[data-theme="dark"] .mobile-topbar {
+  background: var(--paper);
+}
+[data-theme="dark"] .sidebar,
+[data-theme="dark"] .content-topbar {
+  background: #101c2e;
+}
+[data-theme="dark"] .nav-link:hover,
+[data-theme="dark"] .compact-row:hover {
+  background: #1b2a42;
+}
+[data-theme="dark"] .org-switcher,
+[data-theme="dark"] .button--secondary,
+[data-theme="dark"] .icon-button:hover,
+[data-theme="dark"] .search-field,
+[data-theme="dark"] .select-field,
+[data-theme="dark"] .modal-form input,
+[data-theme="dark"] .modal-form .select-trigger,
+[data-theme="dark"] .field-label input,
+[data-theme="dark"] .auth-form input,
+[data-theme="dark"] .account-form input,
+[data-theme="dark"] .inline-form input,
+[data-theme="dark"] .preference-row .select-trigger,
+[data-theme="dark"] .select-popup,
+[data-theme="dark"] .theme-pill,
+[data-theme="dark"] .health-badge button {
+  background: var(--surface);
+  color: var(--ink);
+}
+[data-theme="dark"] .health-badge,
+[data-theme="dark"] .sidebar__signal {
+  background: #142b3c;
+  border-color: #244d55;
+}
+[data-theme="dark"] .landing-hero__visual .hero-float {
+  background: #172944;
+  border-color: #2c4260;
+}
+[data-theme="dark"] .metric-card--mint {
+  background: linear-gradient(135deg, var(--surface) 36%, var(--mint-soft));
+}
+[data-theme="dark"] .metric-card--amber {
+  background: linear-gradient(135deg, var(--surface) 36%, var(--amber-soft));
+}
+[data-theme="dark"] .meter {
+  background: var(--line-strong);
+}
+[data-theme="dark"] .status-pill--upcoming,
+[data-theme="dark"] .status-pill--pending {
+  color: #9db4ff;
+}
+[data-theme="dark"] .status-pill--due {
+  color: #f0b45c;
+}
+[data-theme="dark"] .status-pill--overdue,
+[data-theme="dark"] .status-pill--cancelled {
+  color: #ff8f99;
+}
+[data-theme="dark"] .status-pill--paid {
+  color: #4fd6b8;
+}
