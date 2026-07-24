@@ -1,73 +1,28 @@
-export type OrganizationRole = "Owner" | "Admin" | "Member";
-export const inviteOrganizationRoles = ["Admin", "Member"] as const;
-export type InviteOrganizationRole = (typeof inviteOrganizationRoles)[number];
+import type { OrganizationSummary } from "../auth/auth.types";
+export type { OrganizationSummary } from "../auth/auth.types";
 
-export interface OrganizationSummary {
-  id: string;
-  name: string;
-}
-
-export interface OrganizationMember {
-  id: string;
-  username: string;
-  email: string;
-  role: OrganizationRole;
-  joinedAt: string;
-}
-
-export interface OrganizationBudgetDetails {
-  id: string;
-  amount: number;
+export interface OrganizationDetails extends OrganizationSummary {
   createdAt: string;
   updatedAt?: string | null;
+  budget: { id: string; amount: number; createdAt: string; updatedAt?: string | null } | null;
+  members: Array<{
+    id: string;
+    username: string;
+    email: string;
+    role: "Owner" | "Admin" | "Member";
+    joinedAt: string;
+  }>;
 }
 
-export interface OrganizationBudget extends OrganizationBudgetDetails {
-  organizationId: string;
-}
-
-export interface OrganizationDetails {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt?: string | null;
-  budget: OrganizationBudgetDetails | null;
-  members: OrganizationMember[];
-}
-
-export interface CreateOrganizationRequest {
-  name: string;
-}
-
-export interface UpdateOrganizationRequest {
-  organizationId: string;
-  name: string;
-}
-
-export interface UpsertOrganizationBudgetRequest {
-  organizationId: string;
-  amount: number;
-}
-
-export interface CreateInvitationRequest {
-  organizationId: string;
-  email: string;
-  role?: InviteOrganizationRole | null;
-}
-
-export interface CreateInvitationResponse {
+export interface InvitationResult {
   id: string;
   token: string;
   expiresAt: string;
 }
-
-export interface UpdateMemberRoleRequest {
-  organizationId: string;
-  userId: string;
-  role: InviteOrganizationRole;
-}
-
-export interface RemoveOrganizationMemberRequest {
-  organizationId: string;
-  userId: string;
+export interface Budget {
+  id: string;
+  organizationId?: string;
+  amount: number;
+  createdAt: string;
+  updatedAt?: string | null;
 }

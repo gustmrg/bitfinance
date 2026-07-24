@@ -1,23 +1,28 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ThemeProvider } from "next-themes";
-import { registerSW } from "virtual:pwa-register";
-import { App } from "./app";
-import "./i18n/config";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter } from "react-router-dom";
+import { Toaster } from "sonner";
 
-import "./index.css";
+import "@/i18n";
+import { App } from "@/app";
+import { AuthProvider } from "@/auth/auth-provider";
+import { queryClient } from "@/lib/query-client";
+import "@/styles/index.css";
 
-registerSW({ immediate: true });
+if (localStorage.getItem("bitfinance-theme") === "dark") {
+  document.documentElement.dataset.theme = "dark";
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      storageKey="bitfinance-theme"
-    >
-      <App />
-    </ThemeProvider>
-  </StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <BrowserRouter>
+          <App />
+          <Toaster position="bottom-right" toastOptions={{ className: "toast" }} />
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
+  </StrictMode>,
 );

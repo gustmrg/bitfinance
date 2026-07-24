@@ -1,171 +1,46 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-
-import {
-  billsService,
-  type BillFileCategory,
-  type CreateBillRequest,
-  type UpdateBillRequest,
-} from "@/api/bills";
+import { billsService } from "@/api/bills/bills.service";
+import { BillInput } from "@/api/bills/bills.types";
 import { queryKeys } from "@/lib/query-keys";
 
-interface UploadBillDocumentsPayload {
-  billId: string;
-  files: File[];
-  documentType: BillFileCategory;
-}
-
-interface DeleteBillDocumentPayload {
-  billId: string;
-  documentId: string;
-}
-
-interface StopBillSeriesPayload {
-  seriesId: string;
-}
-
-interface UseBillMutationsOptions {
-  organizationId: string | null;
-}
-
-function requireOrganizationId(organizationId: string | null): string {
-  if (!organizationId) {
-    throw new Error("No organization selected.");
-  }
-
-  return organizationId;
-}
-
-export function useBillMutations({ organizationId }: UseBillMutationsOptions) {
-  const queryClient = useQueryClient();
-
-  const invalidateBillQueries = async (orgId: string, billId?: string) => {
-    const promises: Promise<void>[] = [
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.bills.listByOrganization(orgId),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.dashboard.upcomingBills(orgId),
-      }),
-    ];
-
-    if (billId) {
-      promises.push(
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.bills.detail(orgId, billId),
-        })
-      );
-    }
-
-    await Promise.all(promises);
+export function useBillMutations(organizationId: string | null) {
+  const client = useQueryClient();
+  const invalidate = () => {
+    void client.invalidateQueries({ queryKey: queryKeys.bills.all });
+    void client.invalidateQueries({ queryKey: queryKeys.dashboard.all });
   };
-
-  const addBillMutation = useMutation({
-    mutationFn: async (request: Omit<CreateBillRequest, "organizationId">) => {
-      const orgId = requireOrganizationId(organizationId);
-
-      return billsService.createAsync({
-        ...request,
-        organizationId: orgId,
-      });
-    },
-    onSuccess: async () => {
-      if (organizationId) {
-        await invalidateBillQueries(organizationId);
-      }
-    },
-  });
-
-  const updateBillMutation = useMutation({
-    mutationFn: async (request: Omit<UpdateBillRequest, "organizationId">) => {
-      const orgId = requireOrganizationId(organizationId);
-
-      return billsService.updateAsync({
-        ...request,
-        organizationId: orgId,
-      });
-    },
-    onSuccess: async (_data, variables) => {
-      if (organizationId) {
-        await invalidateBillQueries(organizationId, variables.id);
-      }
-    },
-  });
-
-  const deleteBillMutation = useMutation({
-    mutationFn: async (billId: string) => {
-      const orgId = requireOrganizationId(organizationId);
-      return billsService.deleteAsync(billId, orgId);
-    },
-    onSuccess: async (_data, billId) => {
-      if (organizationId) {
-        await invalidateBillQueries(organizationId, billId);
-      }
-    },
-  });
-
-  const uploadBillDocumentsMutation = useMutation({
-    mutationFn: async (payload: UploadBillDocumentsPayload) => {
-      const orgId = requireOrganizationId(organizationId);
-
-      return billsService.uploadDocumentsAsync({
-        organizationId: orgId,
-        billId: payload.billId,
-        files: payload.files,
-        documentType: payload.documentType,
-      });
-    },
-    onSuccess: async (_data, variables) => {
-      if (organizationId) {
-        await invalidateBillQueries(organizationId, variables.billId);
-      }
-    },
-  });
-
-  const deleteBillDocumentMutation = useMutation({
-    mutationFn: async (payload: DeleteBillDocumentPayload) => {
-      const orgId = requireOrganizationId(organizationId);
-
-      return billsService.deleteDocumentAsync({
-        organizationId: orgId,
-        billId: payload.billId,
-        documentId: payload.documentId,
-      });
-    },
-    onSuccess: async (_data, variables) => {
-      if (organizationId) {
-        await invalidateBillQueries(organizationId, variables.billId);
-      }
-    },
-  });
-
-  const stopBillSeriesMutation = useMutation({
-    mutationFn: async (payload: StopBillSeriesPayload) => {
-      const orgId = requireOrganizationId(organizationId);
-
-      return billsService.stopSeriesAsync({
-        organizationId: orgId,
-        seriesId: payload.seriesId,
-      });
-    },
-    onSuccess: async () => {
-      if (organizationId) {
-        await invalidateBillQueries(organizationId);
-      }
-    },
-  });
-
   return {
-    addBillAsync: addBillMutation.mutateAsync,
-    deleteBillAsync: deleteBillMutation.mutateAsync,
-    deleteBillDocumentAsync: deleteBillDocumentMutation.mutateAsync,
-    stopBillSeriesAsync: stopBillSeriesMutation.mutateAsync,
-    updateBillAsync: updateBillMutation.mutateAsync,
-    uploadBillDocumentsAsync: uploadBillDocumentsMutation.mutateAsync,
-    isAddingBill: addBillMutation.isPending,
-    isDeletingBill: deleteBillMutation.isPending,
-    isDeletingBillDocument: deleteBillDocumentMutation.isPending,
-    isStoppingBillSeries: stopBillSeriesMutation.isPending,
-    isUpdatingBill: updateBillMutation.isPending,
-    isUploadingBillDocuments: uploadBillDocumentsMutation.isPending,
+    create: useMutation({
+      mutationFn: (input: BillInput) => billsService.createAsync(organizationId!, input),
+      onSuccess: invalidate,
+    }),
+    update: useMutation({
+      mutationFn: ({
+        id,
+        input,
+      }: {
+        id: string;
+        input: Omit<BillInput, "frequency" | "installments">;
+      }) => billsService.updateAsync(organizationId!, id, input),
+      onSuccess: invalidate,
+    }),
+    remove: useMutation({
+      mutationFn: (id: string) => billsService.deleteAsync(organizationId!, id),
+      onSuccess: invalidate,
+    }),
+    upload: useMutation({
+      mutationFn: ({ id, file, category }: { id: string; file: File; category: string }) =>
+        billsService.uploadDocumentAsync(organizationId!, id, file, category),
+      onSuccess: invalidate,
+    }),
+    removeDocument: useMutation({
+      mutationFn: ({ billId, documentId }: { billId: string; documentId: string }) =>
+        billsService.deleteDocumentAsync(organizationId!, billId, documentId),
+      onSuccess: invalidate,
+    }),
+    stopSeries: useMutation({
+      mutationFn: (seriesId: string) => billsService.stopSeriesAsync(organizationId!, seriesId),
+      onSuccess: invalidate,
+    }),
   };
 }

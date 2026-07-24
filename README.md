@@ -4,7 +4,7 @@ BitFinance is a finance platform for tracking bills, expenses, organizations, an
 
 ## Components
 
-- **Frontend**: React, TypeScript, Vite, Tailwind CSS, Radix UI, TanStack Query, and Zustand web application.
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS, TanStack Query, Zustand, and installable PWA support.
 - **Backend**: .NET API with PostgreSQL persistence, Redis caching support, object storage integration, authentication, and organization-based finance workflows.
 - **MCP server**: .NET Streamable HTTP MCP server that exposes BitFinance API capabilities to MCP-compatible agents and clients.
 

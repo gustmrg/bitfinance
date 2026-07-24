@@ -1,62 +1,20 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { persist } from "zustand/middleware";
 
-export interface AuthClientState {
-  token: string | null;
-  tokenExpiresAt: string | null;
-  isInitialized: boolean;
+interface OrganizationState {
   selectedOrganizationId: string | null;
+  setSelectedOrganizationId: (id: string | null) => void;
 }
 
-export interface AuthClientActions {
-  setSession: (token: string | null, tokenExpiresAt?: string | null) => void;
-  clearSession: () => void;
-  setInitialized: (isInitialized: boolean) => void;
-  setSelectedOrganizationId: (selectedOrganizationId: string | null) => void;
-  resetAuthClientState: () => void;
-}
-
-type AuthStore = AuthClientState & AuthClientActions;
-
-export const useAuthStore = create<AuthStore>()(
+export const useOrganizationStore = create<OrganizationState>()(
   persist(
     (set) => ({
-      token: null,
-      tokenExpiresAt: null,
-      isInitialized: false,
       selectedOrganizationId: null,
-      setSession: (token, tokenExpiresAt) =>
-        set({
-          token,
-          tokenExpiresAt: tokenExpiresAt ?? null,
-        }),
-      clearSession: () =>
-        set({
-          token: null,
-          tokenExpiresAt: null,
-        }),
-      setInitialized: (isInitialized) =>
-        set({
-          isInitialized,
-        }),
-      setSelectedOrganizationId: (selectedOrganizationId) =>
-        set({
-          selectedOrganizationId,
-        }),
-      resetAuthClientState: () =>
-        set({
-          token: null,
-          tokenExpiresAt: null,
-          isInitialized: false,
-          selectedOrganizationId: null,
-        }),
+      setSelectedOrganizationId: (selectedOrganizationId) => set({ selectedOrganizationId }),
     }),
     {
-      name: "bitfinance-auth",
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        selectedOrganizationId: state.selectedOrganizationId,
-      }),
-    }
-  )
+      name: "bitfinance-preferences",
+      partialize: (state) => ({ selectedOrganizationId: state.selectedOrganizationId }),
+    },
+  ),
 );

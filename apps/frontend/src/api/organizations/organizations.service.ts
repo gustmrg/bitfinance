@@ -1,173 +1,99 @@
-import { privateAPI } from "@/lib/axios";
+import { authApi } from "../shared/client";
+import { normalizeApiError } from "../shared/errors";
+import type { OrganizationSummary } from "../auth/auth.types";
+import type { Budget, InvitationResult, OrganizationDetails } from "./organizations.types";
 
-import { normalizeError } from "@/api/shared/normalize-error";
-
-import type {
-  CreateInvitationRequest,
-  CreateInvitationResponse,
-  InviteOrganizationRole,
-  CreateOrganizationRequest,
-  OrganizationBudget,
-  OrganizationDetails,
-  OrganizationMember,
-  OrganizationRole,
-  OrganizationSummary,
-  RemoveOrganizationMemberRequest,
-  UpdateMemberRoleRequest,
-  UpdateOrganizationRequest,
-  UpsertOrganizationBudgetRequest,
-} from "./organizations.types";
-
-const authApi = privateAPI();
-
-const organizationRoleToApiValue: Record<OrganizationRole, number> = {
-  Owner: 1,
-  Admin: 2,
-  Member: 3,
-};
-
-function mapInviteRole(role?: InviteOrganizationRole | null) {
-  if (!role) {
-    return undefined;
-  }
-
-  return organizationRoleToApiValue[role];
-}
+export type OrganizationMemberRole = "Owner" | "Admin" | "Member";
+export type EditableOrganizationMemberRole = "Admin" | "Member";
 
 export const organizationsService = {
   async listAsync(): Promise<OrganizationSummary[]> {
     try {
-      const response = await authApi.get<OrganizationSummary[]>("/organizations");
-      return response.data;
+      return (await authApi.get<OrganizationSummary[]>("/organizations")).data;
     } catch (error) {
-      throw normalizeError(error, "Failed to fetch organizations.");
+      throw normalizeApiError(error, "api.organizations.load");
     }
   },
-
   async getAsync(organizationId: string): Promise<OrganizationDetails> {
     try {
-      const response = await authApi.get<OrganizationDetails>(
-        `/organizations/${organizationId}`
-      );
-
-      return response.data;
+      return (await authApi.get<OrganizationDetails>(`/organizations/${organizationId}`)).data;
     } catch (error) {
-      throw normalizeError(error, "Failed to fetch organization details.");
+      throw normalizeApiError(error, "api.organizations.loadOne");
     }
   },
-
-  async createAsync(
-    request: CreateOrganizationRequest
-  ): Promise<OrganizationSummary> {
+  async createAsync(name: string): Promise<OrganizationSummary> {
     try {
-      const response = await authApi.post<OrganizationSummary>("/organizations", {
-        name: request.name,
-      });
-
-      return response.data;
+      return (await authApi.post<OrganizationSummary>("/organizations", { name })).data;
     } catch (error) {
-      throw normalizeError(error, "Failed to create organization.");
+      throw normalizeApiError(error, "api.organizations.create");
     }
   },
-
-  async updateAsync(
-    request: UpdateOrganizationRequest
-  ): Promise<OrganizationSummary> {
+  async updateAsync(organizationId: string, name: string): Promise<OrganizationSummary> {
     try {
-      const response = await authApi.patch<OrganizationSummary>(
-        `/organizations/${request.organizationId}`,
-        {
-          name: request.name,
-        }
-      );
-
-      return response.data;
+      return (
+        await authApi.patch<OrganizationSummary>(`/organizations/${organizationId}`, { name })
+      ).data;
     } catch (error) {
-      throw normalizeError(error, "Failed to update organization.");
+      throw normalizeApiError(error, "api.organizations.update");
     }
   },
-
-  async getBudgetAsync(organizationId: string): Promise<OrganizationBudget> {
+  async getBudgetAsync(organizationId: string): Promise<Budget | null> {
     try {
-      const response = await authApi.get<OrganizationBudget>(
-        `/organizations/${organizationId}/budget`
-      );
-
-      return response.data;
+      return (await authApi.get<Budget>(`/organizations/${organizationId}/budget`)).data;
     } catch (error) {
-      throw normalizeError(error, "Failed to fetch organization budget.");
+      const normalized = normalizeApiError(error, "api.organizations.loadBudget");
+      if (normalized.status === 404) return null;
+      throw normalized;
     }
   },
-
-  async upsertBudgetAsync(
-    request: UpsertOrganizationBudgetRequest
-  ): Promise<OrganizationBudget> {
+  async upsertBudgetAsync(organizationId: string, amount: number): Promise<Budget> {
     try {
-      const response = await authApi.put<OrganizationBudget>(
-        `/organizations/${request.organizationId}/budget`,
-        {
-          amount: request.amount,
-        }
-      );
-
-      return response.data;
+      return (await authApi.put<Budget>(`/organizations/${organizationId}/budget`, { amount }))
+        .data;
     } catch (error) {
-      throw normalizeError(error, "Failed to update organization budget.");
+      throw normalizeApiError(error, "api.organizations.saveBudget");
     }
   },
-
   async createInviteAsync(
-    request: CreateInvitationRequest
-  ): Promise<CreateInvitationResponse> {
+    organizationId: string,
+    email: string,
+    role: EditableOrganizationMemberRole,
+  ): Promise<InvitationResult> {
     try {
-      const response = await authApi.post<CreateInvitationResponse>(
-        `/organizations/${request.organizationId}/invite`,
-        {
-          email: request.email,
-          role: mapInviteRole(request.role),
-        }
-      );
-
-      return response.data;
+      const roleValue = { Admin: 2, Member: 3 }[role];
+      return (
+        await authApi.post<InvitationResult>(`/organizations/${organizationId}/invite`, {
+          email,
+          role: roleValue,
+        })
+      ).data;
     } catch (error) {
-      throw normalizeError(error, "Failed to create organization invite.");
+      throw normalizeApiError(error, "api.organizations.createInvitation");
     }
   },
-
   async updateMemberRoleAsync(
-    request: UpdateMemberRoleRequest
-  ): Promise<OrganizationMember> {
+    organizationId: string,
+    userId: string,
+    role: EditableOrganizationMemberRole,
+  ): Promise<void> {
     try {
-      const response = await authApi.patch<OrganizationMember>(
-        `/organizations/${request.organizationId}/members/${request.userId}/role`,
-        {
-          role: request.role,
-        }
-      );
-
-      return response.data;
+      await authApi.patch(`/organizations/${organizationId}/members/${userId}/role`, { role });
     } catch (error) {
-      throw normalizeError(error, "Failed to update organization member role.");
+      throw normalizeApiError(error, "api.organizations.updateRole");
     }
   },
-
-  async removeMemberAsync(request: RemoveOrganizationMemberRequest): Promise<void> {
+  async removeMemberAsync(organizationId: string, userId: string): Promise<void> {
     try {
-      await authApi.delete(
-        `/organizations/${request.organizationId}/members/${request.userId}`
-      );
+      await authApi.delete(`/organizations/${organizationId}/members/${userId}`);
     } catch (error) {
-      throw normalizeError(error, "Failed to remove organization member.");
+      throw normalizeApiError(error, "api.organizations.removeMember");
     }
   },
-
   async joinAsync(token: string): Promise<void> {
     try {
-      await authApi.post("/organizations/join", undefined, {
-        params: { token },
-      });
+      await authApi.post(`/organizations/join?token=${encodeURIComponent(token)}`);
     } catch (error) {
-      throw normalizeError(error, "Failed to join organization.");
+      throw normalizeApiError(error, "api.organizations.join");
     }
   },
 };
