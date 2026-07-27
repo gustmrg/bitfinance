@@ -60,6 +60,13 @@
 [data-theme="dark"] .metric-card--amber {
   background: linear-gradient(135deg, var(--surface) 36%, var(--amber-soft));
 }
+[data-theme="dark"] .budget-card {
+  background: linear-gradient(135deg, var(--surface) 36%, var(--blue-soft));
+}
+[data-theme="dark"] .budget-card__number span,
+[data-theme="dark"] .budget-card__footer {
+  color: var(--ink-soft);
+}
 [data-theme="dark"] .meter {
   background: var(--line-strong);
 }
@@ -76,4 +83,10 @@
 }
 [data-theme="dark"] .status-pill--paid {
   color: #4fd6b8;
+}
+[data-theme="dark"] .plan-badge--basic {
+  color: #9db4ff;
+}
+[data-theme="dark"] .plan-badge--premium {
+  color: #f0b45c;
 }

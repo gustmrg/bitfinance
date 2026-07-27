@@ -1,9 +1,11 @@
-import type { OrganizationSummary } from "../auth/auth.types";
-export type { OrganizationSummary } from "../auth/auth.types";
+import type { OrganizationSummary, PlanTier } from "../auth/auth.types";
+export type { OrganizationSummary, PlanTier } from "../auth/auth.types";
 
 export interface OrganizationDetails extends OrganizationSummary {
   createdAt: string;
   updatedAt?: string | null;
+  planTier: PlanTier;
+  planExpiresAt: string;
   budget: { id: string; amount: number; createdAt: string; updatedAt?: string | null } | null;
   members: Array<{
     id: string;

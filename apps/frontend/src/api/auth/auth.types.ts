@@ -1,6 +1,9 @@
+export type PlanTier = "Free" | "Basic" | "Premium";
+
 export interface OrganizationSummary {
   id: string;
   name: string;
+  planTier?: PlanTier;
 }
 
 export interface User {

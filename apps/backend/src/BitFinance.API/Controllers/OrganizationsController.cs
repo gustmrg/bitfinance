@@ -50,7 +50,7 @@ public class OrganizationsController : ControllerBase
         var organizations = await _organizationsService.GetAllByUserIdAsync(userId);
 
         var response = organizations
-            .Select(o => new OrganizationResponseModel(o.Id, o.Name))
+            .Select(o => new OrganizationResponseModel(o.Id, o.Name, o.EffectivePlanTier))
             .ToList();
 
         return Ok(response);
@@ -72,6 +72,8 @@ public class OrganizationsController : ControllerBase
             Name = organization.Name,
             CreatedAt = organization.CreatedAt,
             UpdatedAt = organization.UpdatedAt,
+            PlanTier = organization.EffectivePlanTier,
+            PlanExpiresAt = organization.PlanExpiresAt,
             Budget = organization.Budget is null
                 ? null
                 : new OrganizationBudgetResponse(
@@ -110,7 +112,7 @@ public class OrganizationsController : ControllerBase
 
         var organization = await _organizationsService.CreateAsync(request.Name, user.Id);
 
-        return CreatedAtAction(nameof(GetOrganizationById), new { organizationId = organization.Id }, new OrganizationResponseModel(organization.Id, organization.Name));
+        return CreatedAtAction(nameof(GetOrganizationById), new { organizationId = organization.Id }, new OrganizationResponseModel(organization.Id, organization.Name, organization.EffectivePlanTier));
     }
 
     [HttpPatch("{organizationId:guid}")]
@@ -123,7 +125,7 @@ public class OrganizationsController : ControllerBase
 
         if (organization is null) return NotFound();
 
-        return Ok(new OrganizationResponseModel(organization.Id, organization.Name));
+        return Ok(new OrganizationResponseModel(organization.Id, organization.Name, organization.EffectivePlanTier));
     }
 
     [HttpGet("{organizationId:guid}/budget")]

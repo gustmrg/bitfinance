@@ -222,6 +222,33 @@
   background: var(--mint-soft);
   color: #0c8b72;
 }
+.plan-badge {
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.plan-badge--free {
+  background: var(--line);
+  color: var(--ink-soft);
+}
+.plan-badge--basic {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+.plan-badge--premium {
+  background: var(--amber-soft);
+  color: #ac6d11;
+}
 .recent-summary {
   display: grid;
   gap: 22px;
@@ -936,12 +963,27 @@
   flex: 1;
 }
 .budget-card__footer {
-  display: flex;
-  align-items: center;
-  gap: 5px;
   margin-top: 18px;
   color: var(--muted);
   font-size: 10px;
+}
+.budget-card__footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.plan-card {
+  grid-column: 1 / -1;
+}
+.plan-card__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+.plan-card__expiry {
+  color: var(--muted);
+  font-size: 11px;
 }
 .member-stack {
   display: flex;

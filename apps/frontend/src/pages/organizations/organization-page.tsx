@@ -146,6 +146,22 @@ export function OrganizationPage() {
               </span>
             </div>
           </section>
+          <section className="surface-card plan-card">
+            <SectionHeading
+              title={t("organization.plan")}
+              description={t("organization.planBody")}
+            />
+            <div className="plan-card__row">
+              <span className={`plan-badge plan-badge--${organization.planTier.toLowerCase()}`}>
+                {t(`organization.planTiers.${organization.planTier.toLowerCase()}`)}
+              </span>
+              <span className="plan-card__expiry">
+                {t("organization.planExpires", {
+                  date: formatLongDate(organization.planExpiresAt, locale),
+                })}
+              </span>
+            </div>
+          </section>
         </div>
         <section className="surface-card organization-members-preview">
           <SectionHeading

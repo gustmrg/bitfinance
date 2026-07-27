@@ -2,6 +2,7 @@ import {
   Building2,
   CircleDollarSign,
   CreditCard,
+  Globe2,
   LayoutDashboard,
   LogOut,
   Moon,
@@ -36,16 +37,23 @@ function OrganizationSwitcher() {
   const setSelectedId = useOrganizationStore((state) => state.setSelectedOrganizationId);
   const items = organizations.data ?? user?.organizations ?? [];
   const { t } = useTranslation();
+  const activeId = selectedId ?? items[0]?.id ?? null;
+  const activePlan = items.find((item) => item.id === activeId)?.planTier;
   return (
     <div className="org-switcher">
       <Building2 size={16} />
       <Select
         ariaLabel={t("common.selectOrganization")}
-        value={selectedId ?? items[0]?.id ?? null}
+        value={activeId}
         onValueChange={(value) => setSelectedId(value)}
         disabled={!items.length}
         options={items.map((item) => ({ value: item.id, label: item.name }))}
       />
+      {activePlan && (
+        <span className={`plan-badge plan-badge--${activePlan.toLowerCase()}`}>
+          {t(`organization.planTiers.${activePlan.toLowerCase()}`)}
+        </span>
+      )}
     </div>
   );
 }
@@ -57,6 +65,23 @@ function ThemeSwitcher() {
   return (
     <IconButton label={label} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
       {theme === "dark" ? <SunMedium size={18} /> : <Moon size={18} />}
+    </IconButton>
+  );
+}
+
+function LanguageSwitcher() {
+  const { t, i18n } = useTranslation();
+  const label = t("common.language");
+  return (
+    <IconButton
+      label={label}
+      onClick={() => {
+        const next = i18n.language === "en-US" ? "pt-BR" : "en-US";
+        void i18n.changeLanguage(next);
+        localStorage.setItem("bitfinance-locale", next);
+      }}
+    >
+      <Globe2 size={18} />
     </IconButton>
   );
 }
@@ -163,6 +188,7 @@ export function AppShell() {
           <div className="mobile-topbar__actions">
             <OrganizationSwitcher />
             <ThemeSwitcher />
+            <LanguageSwitcher />
             <NotificationBell />
           </div>
         </div>
@@ -180,6 +206,7 @@ export function AppShell() {
           </div>
           <div className="content-topbar__actions">
             <ThemeSwitcher />
+            <LanguageSwitcher />
             <NotificationBell />
           </div>
         </header>
