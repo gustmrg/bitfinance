@@ -18,6 +18,11 @@ public class Bill
     public string Description { get; set; } = null!;
 
     /// <summary>
+    /// Optional additional context about the bill.
+    /// </summary>
+    public string? Notes { get; set; }
+
+    /// <summary>
     /// The category that classifies this bill (e.g., utilities, rent, subscriptions).
     /// </summary>
     public BillCategory Category { get; set; }

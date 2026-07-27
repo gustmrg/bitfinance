@@ -33,6 +33,7 @@
 [data-theme="dark"] .search-field,
 [data-theme="dark"] .select-field,
 [data-theme="dark"] .modal-form input,
+[data-theme="dark"] .modal-form textarea,
 [data-theme="dark"] .modal-form .select-trigger,
 [data-theme="dark"] .field-label input,
 [data-theme="dark"] .auth-form input,

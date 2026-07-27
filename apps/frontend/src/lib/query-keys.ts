@@ -45,8 +45,28 @@ export const queryKeys = {
   },
   expenses: {
     all: ["expenses"] as const,
-    list: (organizationId: string, page: number, pageSize: number, from?: Date, to?: Date) =>
-      ["expenses", "list", organizationId, page, pageSize, dateKey(from), dateKey(to)] as const,
+    list: (
+      organizationId: string,
+      page: number,
+      pageSize: number,
+      from?: Date,
+      to?: Date,
+      status?: string,
+      description?: string,
+      paymentMethod?: string,
+    ) =>
+      [
+        "expenses",
+        "list",
+        organizationId,
+        page,
+        pageSize,
+        dateKey(from),
+        dateKey(to),
+        status ?? null,
+        description ?? null,
+        paymentMethod ?? null,
+      ] as const,
     detail: (organizationId: string, expenseId: string) =>
       ["expenses", "detail", organizationId, expenseId] as const,
   },

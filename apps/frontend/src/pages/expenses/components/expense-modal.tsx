@@ -2,13 +2,24 @@ import { ArrowUpRight } from "lucide-react";
 import { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Expense, ExpenseCategory, ExpenseStatus } from "@/api/expenses/expenses.types";
+import {
+  Expense,
+  ExpenseCategory,
+  ExpenseInput,
+  ExpenseStatus,
+  PaymentMethod,
+} from "@/api/expenses/expenses.types";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { inputDate } from "@/lib/format";
 import { useExpenseMutations } from "@/hooks/mutations/use-expense-mutations";
-import { categories, categoryLabels } from "@/lib/finance-categories";
+import {
+  categories,
+  categoryLabels,
+  paymentMethodLabels,
+  paymentMethods,
+} from "@/lib/finance-categories";
 
 export function ExpenseModal({
   expense,
@@ -26,11 +37,14 @@ export function ExpenseModal({
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const input = {
+    const paymentMethod = String(data.get("paymentMethod") ?? "unspecified");
+    const input: ExpenseInput = {
       description: String(data.get("description") ?? ""),
+      notes: String(data.get("notes") ?? ""),
       category: String(data.get("category") ?? "miscellaneous") as ExpenseCategory,
       amount: Number(data.get("amount") ?? 0),
       status: (expense?.status ?? "paid") as ExpenseStatus,
+      paymentMethod: paymentMethod === "unspecified" ? "" : (paymentMethod as PaymentMethod),
       occurredAt: new Date(`${String(data.get("date"))}T12:00:00.000Z`).toISOString(),
     };
     const done = () => {
@@ -89,6 +103,30 @@ export function ExpenseModal({
               expense ? inputDate(expense.occurredAt) : inputDate(new Date().toISOString())
             }
             required
+          />
+        </label>
+        <label>
+          <span>{t("expenses.paymentMethod")}</span>
+          <Select
+            name="paymentMethod"
+            defaultValue={expense?.paymentMethod ?? "unspecified"}
+            options={[
+              { value: "unspecified", label: t("common.notSpecified") },
+              ...paymentMethods.map((value) => ({
+                value,
+                label: t(paymentMethodLabels[value]),
+              })),
+            ]}
+          />
+        </label>
+        <label>
+          <span>{t("common.notes")}</span>
+          <textarea
+            name="notes"
+            maxLength={2000}
+            rows={4}
+            defaultValue={expense?.notes ?? ""}
+            placeholder={t("common.notesPlaceholder")}
           />
         </label>
         <div className="modal-form__actions">

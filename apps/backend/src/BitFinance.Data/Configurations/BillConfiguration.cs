@@ -17,6 +17,10 @@ public class BillConfiguration : IEntityTypeConfiguration<Bill>
             .HasColumnName("description")
             .HasColumnType("text")
             .IsRequired();
+
+        builder.Property(b => b.Notes)
+            .HasColumnName("notes")
+            .HasMaxLength(2000);
         
         builder.Property(b => b.Category)
             .HasColumnName("category")

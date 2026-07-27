@@ -19,6 +19,11 @@ public class BillSeries
     public string Description { get; set; } = null!;
 
     /// <summary>
+    /// Optional context copied to every generated bill occurrence.
+    /// </summary>
+    public string? Notes { get; set; }
+
+    /// <summary>
     /// The category applied to every generated occurrence.
     /// </summary>
     public BillCategory Category { get; set; }

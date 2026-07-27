@@ -10,4 +10,6 @@ public record UpdateExpenseResponse(
     decimal Amount,
     [property: JsonConverter(typeof(JsonStringEnumConverter))] ExpenseStatus Status,
     DateTimeOffset OccurredAt,
-    string CreatedBy);
+    string CreatedBy,
+    string? Notes,
+    [property: JsonConverter(typeof(JsonStringEnumConverter))] PaymentMethod? PaymentMethod);

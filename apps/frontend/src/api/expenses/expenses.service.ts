@@ -3,15 +3,20 @@ import { normalizeApiError } from "../shared/errors";
 import type { Expense, ExpenseInput, ExpenseListFilters, ExpensePage } from "./expenses.types";
 import type { BillDocument } from "../bills/bills.types";
 
-type ExpenseWire = Omit<Expense, "category" | "status" | "documents"> & {
+type ExpenseWire = Omit<Expense, "category" | "status" | "paymentMethod" | "documents"> & {
   category: string;
   status: string;
+  paymentMethod?: string | null;
   attachments?: BillDocument[];
 };
 const map = (wire: ExpenseWire): Expense => ({
   ...wire,
   category: wire.category.toLowerCase() as Expense["category"],
   status: wire.status.toLowerCase() as Expense["status"],
+  paymentMethod: wire.paymentMethod
+    ? (`${wire.paymentMethod.charAt(0).toLowerCase()}${wire.paymentMethod.slice(1)}` as Expense["paymentMethod"])
+    : null,
+  notes: wire.notes ?? null,
   documents: wire.attachments ?? [],
 });
 
@@ -24,12 +29,19 @@ export const expensesService = {
         pageSize: number;
         totalRecords: number;
         totalPages: number;
+        summary: {
+          totalAmount: number;
+          averageAmount: number;
+        };
       }>(`/organizations/${filters.organizationId}/expenses`, {
         params: {
           page: filters.page,
           pageSize: filters.pageSize,
           from: filters.from?.toISOString(),
           to: filters.to?.toISOString(),
+          description: filters.description || undefined,
+          status: filters.status,
+          paymentMethod: filters.paymentMethod,
         },
       });
       return { ...response.data, data: response.data.data.map(map) };

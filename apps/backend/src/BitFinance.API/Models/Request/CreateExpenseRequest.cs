@@ -1,3 +1,11 @@
 namespace BitFinance.API.Models.Request;
 
-public record CreateExpenseRequest(string Description, string Category, decimal Amount, string Status, DateTime? OccurredAt, string CreatedBy);
+public record CreateExpenseRequest(
+    string Description,
+    string Category,
+    decimal Amount,
+    string Status,
+    DateTime? OccurredAt,
+    string CreatedBy,
+    string? Notes = null,
+    string? PaymentMethod = null);

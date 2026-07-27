@@ -21,7 +21,7 @@ function validDateInput(value: string | null) {
   return Number.isNaN(date.getTime()) ? null : value;
 }
 
-export function PeriodPicker() {
+export function PeriodPicker({ onChange }: { onChange?: () => void } = {}) {
   const { i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const defaults = currentMonthInputs();
@@ -67,6 +67,7 @@ export function PeriodPicker() {
     next.set("from", from);
     next.set("to", to);
     setSearchParams(next, { replace: true });
+    onChange?.();
     setOpen(false);
   };
   const reset = () => {
@@ -76,6 +77,7 @@ export function PeriodPicker() {
     setSearchParams(next, { replace: true });
     setFrom(defaults.from);
     setTo(defaults.to);
+    onChange?.();
     setOpen(false);
   };
 

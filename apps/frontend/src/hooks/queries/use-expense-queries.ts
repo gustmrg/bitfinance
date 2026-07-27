@@ -12,6 +12,9 @@ export function useExpensesQuery(filters: ExpenseListFilters | null) {
           filters.pageSize,
           filters.from,
           filters.to,
+          filters.status,
+          filters.description,
+          filters.paymentMethod,
         )
       : ["expenses", "disabled"],
     queryFn: () => expensesService.listAsync(filters!),

@@ -120,6 +120,7 @@ export function BillDetailsPage() {
                     id: bill.id,
                     input: {
                       description: bill.description,
+                      notes: bill.notes ?? "",
                       category: bill.category,
                       status: "paid",
                       dueDate: bill.dueDate,
@@ -159,6 +160,10 @@ export function BillDetailsPage() {
             <div>
               <dt>{t("common.schedule")}</dt>
               <dd>{scheduleLabel}</dd>
+            </div>
+            <div className="detail-list__notes">
+              <dt>{t("common.notes")}</dt>
+              <dd>{bill.notes || t("common.notSpecified")}</dd>
             </div>
           </dl>
           {bill.billSeriesId && bill.billSeriesIsActive && (

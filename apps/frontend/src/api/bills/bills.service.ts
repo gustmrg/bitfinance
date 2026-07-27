@@ -32,6 +32,7 @@ const map = (wire: BillWire): Bill => ({
   totalOccurrences: wire.totalOccurrences ?? null,
   billSeriesIsActive: wire.billSeriesIsActive ?? false,
   amountPaid: wire.amountPaid ?? null,
+  notes: wire.notes ?? null,
 });
 
 export const billsService = {

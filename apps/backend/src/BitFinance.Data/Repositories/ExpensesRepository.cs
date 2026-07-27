@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using BitFinance.Business.Entities;
+using BitFinance.Business.Enums;
 using BitFinance.Data.Contexts;
 using BitFinance.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +24,15 @@ public class ExpensesRepository : IExpensesRepository
             .ToListAsync();
     }
     
-    public async Task<List<Expense>> GetAllByOrganizationAsync(Guid organizationId, int page, int pageSize, DateTime? startDate = null, DateTime? endDate = null)
+    public async Task<(List<Expense> Items, int TotalCount, decimal TotalAmount)> GetAllByOrganizationAsync(
+        Guid organizationId,
+        int page,
+        int pageSize,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        ExpenseStatus? status = null,
+        string? description = null,
+        PaymentMethod? paymentMethod = null)
     {
         var query = _dbContext.Set<Expense>()
             .AsNoTracking()
@@ -31,21 +40,48 @@ public class ExpensesRepository : IExpensesRepository
 
         if (startDate.HasValue)
         {
-            query = query.Where(e => e.CreatedAt >= startDate);
+            query = query.Where(e => e.OccurredAt >= startDate);
         }
 
         if (endDate.HasValue)
         {
-            query = query.Where(e => e.CreatedAt <= endDate);
+            query = query.Where(e => e.OccurredAt <= endDate);
         }
-        
-        return await query
+
+        if (status.HasValue)
+        {
+            query = query.Where(e => e.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            var term = description.Trim();
+            query = query.Where(e => EF.Functions.ILike(e.Description, $"%{term}%"));
+        }
+
+        if (paymentMethod.HasValue)
+        {
+            query = query.Where(e => e.PaymentMethod == paymentMethod);
+        }
+
+        var summary = await query
+            .GroupBy(_ => 1)
+            .Select(group => new
+            {
+                TotalCount = group.Count(),
+                TotalAmount = group.Sum(expense => expense.Amount)
+            })
+            .FirstOrDefaultAsync();
+
+        var items = await query
             .Include(e => e.CreatedByUser)
             .Include(e => e.Attachments)
             .OrderBy(e => e.CreatedAt)
             .Skip(pageSize * (page - 1))
             .Take(pageSize)
             .ToListAsync();
+
+        return (items, summary?.TotalCount ?? 0, summary?.TotalAmount ?? 0);
     }
 
     public async Task<List<Expense>> GetRecentExpenses(Guid organizationId, DateTime? startDate = null, DateTime? endDate = null)
@@ -88,11 +124,6 @@ public class ExpensesRepository : IExpensesRepository
     {
         _dbContext.Set<Expense>().Remove(expense);
         await _dbContext.SaveChangesAsync();
-    }
-
-    public async Task<int> GetEntriesCountAsync()
-    {
-        return await _dbContext.Expenses.CountAsync();
     }
 
     public async Task<int> GetMonthlyCountByOrganizationAsync(Guid organizationId, DateTime monthStartUtc, DateTime monthEndUtc)

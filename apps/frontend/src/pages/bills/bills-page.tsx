@@ -83,6 +83,7 @@ export function BillsPage() {
         id: bill.id,
         input: {
           description: bill.description,
+          notes: bill.notes ?? "",
           category: bill.category,
           status: "paid",
           dueDate: bill.dueDate,

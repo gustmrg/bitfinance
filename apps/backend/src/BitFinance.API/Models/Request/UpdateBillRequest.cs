@@ -8,4 +8,5 @@ public record UpdateBillRequest(string Description,
     DateTime DueDate, 
     DateTime? PaymentDate, 
     decimal AmountDue, 
-    decimal? AmountPaid);
+    decimal? AmountPaid,
+    string? Notes = null);

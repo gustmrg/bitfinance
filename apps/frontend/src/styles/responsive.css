@@ -197,9 +197,22 @@
   }
   .table-row--expense > span:nth-child(2),
   .table-row--expense > span:nth-child(3),
+  .table-row--expense > span:nth-child(4),
   .table-row--expense > strong,
   .table-row--expense > .status-pill {
     grid-column: 2;
+  }
+  .table-row--expense > span:nth-child(4) {
+    grid-row: 3;
+  }
+  .table-row--expense > strong {
+    grid-row: 4;
+  }
+  .table-row--expense > .status-pill {
+    grid-row: 5;
+  }
+  .table-row--expense .row-actions {
+    grid-row: 6;
   }
   .filter-bar {
     flex-wrap: wrap;

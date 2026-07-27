@@ -30,7 +30,7 @@ public sealed class OrganizationDetailsResponse
 
 public sealed record OrganizationMemberResponse(string Id, string UserName, string Email);
 
-public sealed class PagedResponse<T>
+public class PagedResponse<T>
 {
     public List<T> Data { get; init; } = [];
     public int Page { get; init; }
@@ -52,6 +52,7 @@ public sealed class BillResponse
 {
     public Guid Id { get; init; }
     public string Description { get; init; } = string.Empty;
+    public string? Notes { get; init; }
     public string Category { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public decimal AmountDue { get; init; }
@@ -73,12 +74,25 @@ public sealed class ExpenseResponse
 {
     public Guid Id { get; init; }
     public string Description { get; init; } = string.Empty;
+    public string? Notes { get; init; }
     public string Category { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
+    public string? PaymentMethod { get; init; }
     public decimal Amount { get; init; }
     public DateTimeOffset OccurredAt { get; init; }
     public string CreatedBy { get; init; } = string.Empty;
     public List<AttachmentResponse> Attachments { get; init; } = [];
+}
+
+public sealed class ExpensePageResponse : PagedResponse<ExpenseResponse>
+{
+    public ExpenseSummaryResponse Summary { get; init; } = new();
+}
+
+public sealed class ExpenseSummaryResponse
+{
+    public decimal TotalAmount { get; init; }
+    public decimal AverageAmount { get; init; }
 }
 
 public sealed class UpcomingBillsResponse
@@ -128,7 +142,8 @@ public sealed record CreateBillRequest(
     decimal AmountDue,
     decimal? AmountPaid,
     BillFrequency? Frequency = null,
-    int? Installments = null);
+    int? Installments = null,
+    string? Notes = null);
 
 public sealed record UpdateBillRequest(
     string Description,
@@ -137,12 +152,14 @@ public sealed record UpdateBillRequest(
     DateTimeOffset DueDate,
     DateTimeOffset? PaymentDate,
     decimal AmountDue,
-    decimal? AmountPaid);
+    decimal? AmountPaid,
+    string? Notes = null);
 
 public sealed class UpdateBillResponse
 {
     public Guid Id { get; init; }
     public string Description { get; init; } = string.Empty;
+    public string? Notes { get; init; }
     public string Category { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public decimal AmountDue { get; init; }
@@ -183,7 +200,18 @@ public sealed record CreateExpenseRequest(
     decimal Amount,
     string Status,
     DateTimeOffset? OccurredAt,
-    string CreatedBy);
+    string CreatedBy,
+    string? Notes = null,
+    string? PaymentMethod = null);
+
+public sealed record UpdateExpenseRequest(
+    string Description,
+    string Category,
+    decimal Amount,
+    string Status,
+    DateTimeOffset? OccurredAt,
+    string? Notes = null,
+    string? PaymentMethod = null);
 
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
 [JsonSerializable(typeof(LoginRequest))]
@@ -192,6 +220,7 @@ public sealed record CreateExpenseRequest(
 [JsonSerializable(typeof(OrganizationDetailsResponse))]
 [JsonSerializable(typeof(PagedResponse<BillResponse>))]
 [JsonSerializable(typeof(PagedResponse<ExpenseResponse>))]
+[JsonSerializable(typeof(ExpensePageResponse))]
 [JsonSerializable(typeof(BillResponse))]
 [JsonSerializable(typeof(ExpenseResponse))]
 [JsonSerializable(typeof(UpcomingBillsResponse))]
@@ -203,4 +232,5 @@ public sealed record CreateExpenseRequest(
 [JsonSerializable(typeof(UploadDocumentResponse))]
 [JsonSerializable(typeof(DocumentDownloadUrlResponse))]
 [JsonSerializable(typeof(CreateExpenseRequest))]
+[JsonSerializable(typeof(UpdateExpenseRequest))]
 public partial class BitFinanceJsonContext : JsonSerializerContext;

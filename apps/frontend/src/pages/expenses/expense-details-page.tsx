@@ -23,7 +23,7 @@ import { useExpenseQuery } from "@/hooks/queries/use-expense-queries";
 import { useLocale } from "@/hooks/use-locale";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
 import { acceptedDocumentTypes, documentCategories } from "@/lib/file-validation";
-import { categoryLabels } from "@/lib/finance-categories";
+import { categoryLabels, paymentMethodLabels } from "@/lib/finance-categories";
 
 export function ExpenseDetailsPage() {
   const { t } = useTranslation();
@@ -110,6 +110,18 @@ export function ExpenseDetailsPage() {
             <div>
               <dt>{t("expenses.createdBy")}</dt>
               <dd>{expense.createdBy}</dd>
+            </div>
+            <div>
+              <dt>{t("expenses.paymentMethod")}</dt>
+              <dd>
+                {expense.paymentMethod
+                  ? t(paymentMethodLabels[expense.paymentMethod])
+                  : t("common.notSpecified")}
+              </dd>
+            </div>
+            <div className="detail-list__notes">
+              <dt>{t("common.notes")}</dt>
+              <dd>{expense.notes || t("common.notSpecified")}</dd>
             </div>
           </dl>
         </section>

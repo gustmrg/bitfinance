@@ -72,6 +72,9 @@ public class BillsController : ControllerBase
 
             if (!isValidCategory || !isValidStatus) return UnprocessableEntity();
 
+            if (request.Notes?.Length > 2000)
+                return UnprocessableEntity("Notes must be 2000 characters or fewer.");
+
             if (request.Installments is { } installments && installments < 1)
                 return UnprocessableEntity("Installments must be a positive integer.");
 
@@ -99,6 +102,7 @@ public class BillsController : ControllerBase
                 Bill bill = new()
                 {
                     Description = request.Description,
+                    Notes = NormalizeNotes(request.Notes),
                     Category = category,
                     Status = status,
                     CreatedAt = DateTime.UtcNow,
@@ -121,6 +125,7 @@ public class BillsController : ControllerBase
             {
                 Id = Guid.NewGuid(),
                 Description = request.Description,
+                Notes = NormalizeNotes(request.Notes),
                 Category = category,
                 Frequency = request.Frequency.Value,
                 AmountDue = request.AmountDue,
@@ -151,6 +156,7 @@ public class BillsController : ControllerBase
                 }, new CreateBillResponse
                 {
                     Description = series.Description,
+                    Notes = series.Notes,
                     Category = series.Category,
                     Status = BillStatus.Upcoming,
                     CreatedDate = series.CreatedAt,
@@ -272,6 +278,9 @@ public class BillsController : ControllerBase
 
             if (!isValidCategory || !isValidStatus) return UnprocessableEntity();
 
+            if (request.Notes?.Length > 2000)
+                return UnprocessableEntity("Notes must be 2000 characters or fewer.");
+
             var bill = await _context.Bills
                 .Include(b => b.BillSeries)
                 .FirstOrDefaultAsync(b => b.Id == billId);
@@ -282,6 +291,8 @@ public class BillsController : ControllerBase
             }
 
             bill.Description = request.Description;
+            if (request.Notes is not null)
+                bill.Notes = NormalizeNotes(request.Notes);
             bill.Category = category;
             bill.Status = status;
             bill.DueDate = DateOnly.FromDateTime(request.DueDate.ToUniversalTime());
@@ -291,6 +302,7 @@ public class BillsController : ControllerBase
 
             await _billsRepository.UpdateAsync(bill,
                 b => b.Description,
+                b => b.Notes!,
                 b => b.Category,
                 b => b.Status,
                 b => b.DueDate,
@@ -302,6 +314,7 @@ public class BillsController : ControllerBase
             {
                 Id = bill.Id,
                 Description = bill.Description,
+                Notes = bill.Notes,
                 Category = bill.Category,
                 Status = bill.Status,
                 DueDate = new DateTime(bill.DueDate, TimeOnly.MinValue),
@@ -551,6 +564,7 @@ public class BillsController : ControllerBase
         {
             Id = bill.Id,
             Description = bill.Description,
+            Notes = bill.Notes,
             Category = bill.Category,
             Status = bill.Status,
             CreatedDate = bill.CreatedAt,
@@ -571,6 +585,7 @@ public class BillsController : ControllerBase
         {
             Id = bill.Id,
             Description = bill.Description,
+            Notes = bill.Notes,
             Category = bill.Category,
             Status = bill.Status,
             CreatedAt = bill.CreatedAt,
@@ -593,5 +608,10 @@ public class BillsController : ControllerBase
             BillSeriesFrequency = bill.BillSeries?.Frequency,
             BillSeriesIsActive = bill.BillSeries?.IsActive ?? false
         };
+    }
+
+    private static string? NormalizeNotes(string? notes)
+    {
+        return string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
     }
 }

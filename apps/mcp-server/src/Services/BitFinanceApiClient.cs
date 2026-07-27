@@ -253,12 +253,15 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             cancellationToken);
     }
 
-    public Task<PagedResponse<ExpenseResponse>> ListExpensesAsync(
+    public Task<ExpensePageResponse> ListExpensesAsync(
         Guid? organizationId = null,
         int page = 1,
         int pageSize = 20,
         DateTimeOffset? from = null,
         DateTimeOffset? to = null,
+        string? status = null,
+        string? description = null,
+        string? paymentMethod = null,
         CancellationToken cancellationToken = default)
     {
         var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
@@ -267,9 +270,12 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             ("page", page.ToString()),
             ("pageSize", pageSize.ToString()),
             ("from", from?.UtcDateTime.ToString("O")),
-            ("to", to?.UtcDateTime.ToString("O")));
+            ("to", to?.UtcDateTime.ToString("O")),
+            ("status", status),
+            ("description", description),
+            ("paymentMethod", paymentMethod));
 
-        return SendAsync(HttpMethod.Get, path, BitFinanceJsonContext.Default.PagedResponseExpenseResponse, cancellationToken);
+        return SendAsync(HttpMethod.Get, path, BitFinanceJsonContext.Default.ExpensePageResponse, cancellationToken);
     }
 
     public Task<ExpenseResponse> GetExpenseAsync(Guid expenseId, Guid? organizationId = null, CancellationToken cancellationToken = default)
@@ -292,6 +298,22 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             cancellationToken,
             request,
             BitFinanceJsonContext.Default.CreateExpenseRequest);
+    }
+
+    public Task<ExpenseResponse> UpdateExpenseAsync(
+        Guid expenseId,
+        UpdateExpenseRequest request,
+        Guid? organizationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        return SendAsync(
+            HttpMethod.Patch,
+            ApiPath($"organizations/{resolvedOrganizationId}/expenses/{expenseId}"),
+            BitFinanceJsonContext.Default.ExpenseResponse,
+            cancellationToken,
+            request,
+            BitFinanceJsonContext.Default.UpdateExpenseRequest);
     }
 
     private async Task<TResponse> SendAsync<TResponse>(

@@ -27,6 +27,7 @@ export function BillModal({
     const series = String(data.get("series") ?? "one-time");
     const input = {
       description: String(data.get("description") ?? ""),
+      notes: String(data.get("notes") ?? ""),
       category: String(data.get("category") ?? "miscellaneous") as BillCategory,
       status: (bill?.status ?? "upcoming") as BillStatus,
       dueDate: new Date(`${String(data.get("date"))}T12:00:00.000Z`).toISOString(),
@@ -127,6 +128,16 @@ export function BillModal({
             </label>
           </>
         )}
+        <label>
+          <span>{t("common.notes")}</span>
+          <textarea
+            name="notes"
+            maxLength={2000}
+            rows={4}
+            defaultValue={bill?.notes ?? ""}
+            placeholder={t("common.notesPlaceholder")}
+          />
+        </label>
         <div className="modal-form__actions">
           <Button type="button" variant="ghost" onClick={onClose}>
             {t("common.cancel")}

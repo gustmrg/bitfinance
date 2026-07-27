@@ -37,6 +37,7 @@ public class BillGenerationService : IBillGenerationService
             {
                 Id = Guid.NewGuid(),
                 Description = series.Description,
+                Notes = series.Notes,
                 Category = series.Category,
                 Status = ComputeStatus(dueDate, today),
                 AmountDue = series.AmountDue,

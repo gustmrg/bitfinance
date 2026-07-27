@@ -13,6 +13,7 @@ public sealed class BitFinanceTools
     private const string BillFrequencies = "Daily, Weekly, Monthly, Annually";
     private const string ExpenseCategories = "Housing, Transportation, Food, Utilities, Clothing, Healthcare, Insurance, Personal, Debt, Savings, Education, Entertainment, Travel, Pets, Gifts, Miscellaneous, Subscriptions, Taxes";
     private const string ExpenseStatuses = "Pending, Paid, Cancelled";
+    private const string PaymentMethods = "Cash, CreditCard, DebitCard, Pix, BankTransfer, Boleto, Other";
     private const string FileCategories = "Boleto, Receipt, Other";
 
     private readonly IBitFinanceApiClient _apiClient;
@@ -96,6 +97,7 @@ public sealed class BitFinanceTools
         [Description("Optional amount already paid. Applies only to one-time bills.")] decimal? amountPaid = null,
         [Description("Optional recurrence frequency. Omit for a one-time bill. Valid values: " + BillFrequencies + ".")] BillFrequency? frequency = null,
         [Description("Optional positive installment count. Requires frequency; omit for an indefinite recurring series.")] int? installments = null,
+        [Description("Optional notes, up to 2000 characters. Copied to every generated occurrence for a bill series.")] string? notes = null,
         CancellationToken cancellationToken = default)
     {
         var request = new CreateBillRequest(
@@ -107,7 +109,8 @@ public sealed class BitFinanceTools
             amountDue,
             amountPaid,
             frequency,
-            installments);
+            installments,
+            notes);
         return _apiClient.CreateBillAsync(request, organizationId, cancellationToken);
     }
 
@@ -123,9 +126,10 @@ public sealed class BitFinanceTools
         [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
         [Description("Optional payment date/time as ISO 8601.")] DateTimeOffset? paymentDate = null,
         [Description("Optional amount already paid.")] decimal? amountPaid = null,
+        [Description("Optional notes, up to 2000 characters. Omit to preserve the current value; pass an empty string to clear.")] string? notes = null,
         CancellationToken cancellationToken = default)
     {
-        var request = new UpdateBillRequest(description, category, status, dueDate, paymentDate, amountDue, amountPaid);
+        var request = new UpdateBillRequest(description, category, status, dueDate, paymentDate, amountDue, amountPaid, notes);
         return _apiClient.UpdateBillAsync(billId, request, organizationId, cancellationToken);
     }
 
@@ -189,16 +193,19 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Lists expenses for an organization with optional paging and date filtering. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
-    public Task<PagedResponse<ExpenseResponse>> bitfinance_list_expenses(
+    [Description("Lists expenses for an organization with optional paging, date, status, description, and payment-method filtering. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    public Task<ExpensePageResponse> bitfinance_list_expenses(
         [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
         [Description("Page number, starting at 1.")] int page = 1,
         [Description("Page size. Default is 20.")] int pageSize = 20,
         [Description("Optional start date/time filter as ISO 8601.")] DateTimeOffset? from = null,
         [Description("Optional end date/time filter as ISO 8601.")] DateTimeOffset? to = null,
+        [Description("Optional expense status. Valid values: " + ExpenseStatuses + ".")] string? status = null,
+        [Description("Optional description search text (case-insensitive contains).")] string? description = null,
+        [Description("Optional payment method. Valid values: " + PaymentMethods + ".")] string? paymentMethod = null,
         CancellationToken cancellationToken = default)
     {
-        return _apiClient.ListExpensesAsync(organizationId, page, pageSize, from, to, cancellationToken);
+        return _apiClient.ListExpensesAsync(organizationId, page, pageSize, from, to, status, description, paymentMethod, cancellationToken);
     }
 
     [McpServerTool]
@@ -221,13 +228,40 @@ public sealed class BitFinanceTools
         [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
         [Description("Optional occurrence date/time as ISO 8601. Defaults to backend current UTC time when omitted.")] DateTimeOffset? occurredAt = null,
         [Description("Optional BitFinance user ID to set as creator. Defaults to the authenticated agent user.")] string? createdBy = null,
+        [Description("Optional notes, up to 2000 characters.")] string? notes = null,
+        [Description("Optional payment method. Valid values: " + PaymentMethods + ".")] string? paymentMethod = null,
         CancellationToken cancellationToken = default)
     {
         var resolvedCreatedBy = string.IsNullOrWhiteSpace(createdBy)
             ? await _tokenProvider.GetAgentUserIdAsync(cancellationToken)
             : createdBy;
 
-        var request = new CreateExpenseRequest(description, category, amount, status, occurredAt, resolvedCreatedBy);
+        var request = new CreateExpenseRequest(description, category, amount, status, occurredAt, resolvedCreatedBy, notes, paymentMethod);
         return await _apiClient.CreateExpenseAsync(request, organizationId, cancellationToken);
+    }
+
+    [McpServerTool]
+    [Description("Updates an expense. Omit notes or paymentMethod to preserve the current value; pass an empty string to clear. Valid categories: " + ExpenseCategories + ". Valid statuses: " + ExpenseStatuses + ". Valid payment methods: " + PaymentMethods + ".")]
+    public Task<ExpenseResponse> bitfinance_update_expense(
+        [Description("Expense ID.")] Guid expenseId,
+        [Description("Expense description.")] string description,
+        [Description("Expense category.")] string category,
+        [Description("Expense amount.")] decimal amount,
+        [Description("Expense status.")] string status,
+        [Description("Expense occurrence date/time as ISO 8601.")] DateTimeOffset occurredAt,
+        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional notes, up to 2000 characters.")] string? notes = null,
+        [Description("Optional payment method. Valid values: " + PaymentMethods + ".")] string? paymentMethod = null,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new UpdateExpenseRequest(
+            description,
+            category,
+            amount,
+            status,
+            occurredAt,
+            notes,
+            paymentMethod);
+        return _apiClient.UpdateExpenseAsync(expenseId, request, organizationId, cancellationToken);
     }
 }

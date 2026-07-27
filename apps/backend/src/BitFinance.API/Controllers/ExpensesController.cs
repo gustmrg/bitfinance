@@ -46,19 +46,39 @@ public class ExpensesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<PagedResponse<GetExpenseResponse>>> GetExpenses(
+    public async Task<ActionResult<ExpensePageResponse>> GetExpenses(
         [FromRoute] Guid organizationId,
-        [FromQuery] int page = 1, int pageSize = 100, DateTime? from = null, DateTime? to = null)
+        [FromQuery] int page = 1, int pageSize = 100, DateTime? from = null, DateTime? to = null,
+        string? status = null, string? description = null, string? paymentMethod = null)
     {
-        var totalRecords = await _expensesRepository.GetEntriesCountAsync();
+        if (page < 1 || pageSize < 1)
+            return BadRequest("Page and pageSize must be positive integers.");
+
+        if (!TryParseOptionalEnum(status, out ExpenseStatus? parsedStatus))
+            return BadRequest("Invalid expense status.");
+
+        if (!TryParseOptionalEnum(paymentMethod, out PaymentMethod? parsedPaymentMethod))
+            return BadRequest("Invalid payment method.");
+
+        var (expenses, totalRecords, totalAmount) =
+            await _expensesRepository.GetAllByOrganizationAsync(
+                organizationId,
+                page,
+                pageSize,
+                from,
+                to,
+                parsedStatus,
+                description,
+                parsedPaymentMethod);
         var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
-        var expenses = await _expensesRepository.GetAllByOrganizationAsync(organizationId, page, pageSize, from, to);
         var expensesDto = expenses.Select(expense => new GetExpenseResponse
         {
             Id = expense.Id,
             Amount = expense.Amount,
             Category = expense.Category,
             Description = expense.Description,
+            Notes = expense.Notes,
+            PaymentMethod = expense.PaymentMethod,
             Status = expense.Status,
             OccurredAt = expense.OccurredAt,
             CreatedBy = expense.CreatedByUser.FullName,
@@ -72,7 +92,14 @@ public class ExpensesController : ControllerBase
             }).ToList()
         }).ToList();
 
-        return Ok(new PagedResponse<GetExpenseResponse>(expensesDto, page, pageSize, totalRecords, totalPages));
+        var averageAmount = totalRecords == 0 ? 0 : totalAmount / totalRecords;
+        return Ok(new ExpensePageResponse(
+            expensesDto,
+            page,
+            pageSize,
+            totalRecords,
+            totalPages,
+            new ExpenseSummaryResponse(totalAmount, averageAmount)));
     }
 
     [HttpGet]
@@ -100,6 +127,8 @@ public class ExpensesController : ControllerBase
                 Amount = expense.Amount,
                 Category = expense.Category,
                 Description = expense.Description,
+                Notes = expense.Notes,
+                PaymentMethod = expense.PaymentMethod,
                 Status = expense.Status,
                 OccurredAt = expense.OccurredAt,
                 CreatedBy = expense.CreatedByUser.FullName,
@@ -148,6 +177,12 @@ public class ExpensesController : ControllerBase
             var isValidStatus = Enum.TryParse(request.Status, true, out ExpenseStatus status);
             if (!isValidStatus) return UnprocessableEntity();
 
+            if (request.Notes?.Length > 2000)
+                return UnprocessableEntity("Notes must be 2000 characters or fewer.");
+
+            if (!TryParseOptionalEnum(request.PaymentMethod, out PaymentMethod? paymentMethod))
+                return UnprocessableEntity("Invalid payment method.");
+
             var organization = await _organizationsRepository.GetByIdAsync(organizationId);
             if (organization is null) return NotFound();
 
@@ -162,6 +197,8 @@ public class ExpensesController : ControllerBase
             Expense expense = new()
             {
                 Description = request.Description,
+                Notes = NormalizeNotes(request.Notes),
+                PaymentMethod = paymentMethod,
                 Category = category,
                 Amount = request.Amount,
                 Status = status,
@@ -177,6 +214,8 @@ public class ExpensesController : ControllerBase
             {
                 Id = expense.Id,
                 Description = expense.Description,
+                Notes = expense.Notes,
+                PaymentMethod = expense.PaymentMethod,
                 Category = expense.Category,
                 Amount = expense.Amount,
                 Status = expense.Status,
@@ -213,6 +252,12 @@ public class ExpensesController : ControllerBase
             var isValidStatus = Enum.TryParse(request.Status, true, out ExpenseStatus status);
             if (!isValidStatus) return UnprocessableEntity();
 
+            if (request.Notes?.Length > 2000)
+                return UnprocessableEntity("Notes must be 2000 characters or fewer.");
+
+            if (!TryParseOptionalEnum(request.PaymentMethod, out PaymentMethod? paymentMethod))
+                return UnprocessableEntity("Invalid payment method.");
+
             var expense = await _expensesRepository.GetByIdAsync(expenseId);
 
             if (expense is null) return NotFound();
@@ -222,11 +267,24 @@ public class ExpensesController : ControllerBase
             expense.Amount = request.Amount;
             expense.Status = status;
             expense.OccurredAt = request.OccurredAt ?? DateTime.UtcNow;
+            if (request.Notes is not null)
+                expense.Notes = NormalizeNotes(request.Notes);
+            if (request.PaymentMethod is not null)
+                expense.PaymentMethod = paymentMethod;
             expense.UpdatedAt = DateTime.UtcNow;
 
             await _expensesRepository.UpdateAsync(expense);
 
-            return Ok(new UpdateExpenseResponse(expense.Id, expense.Description, expense.Category, expense.Amount, expense.Status, expense.OccurredAt, expense.CreatedByUser.FullName));
+            return Ok(new UpdateExpenseResponse(
+                expense.Id,
+                expense.Description,
+                expense.Category,
+                expense.Amount,
+                expense.Status,
+                expense.OccurredAt,
+                expense.CreatedByUser.FullName,
+                expense.Notes,
+                expense.PaymentMethod));
         }
         catch (Exception ex)
         {
@@ -371,5 +429,25 @@ public class ExpensesController : ControllerBase
                 ex.Message);
             return BadRequest();
         }
+    }
+
+    private static string? NormalizeNotes(string? notes)
+    {
+        return string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+    }
+
+    private static bool TryParseOptionalEnum<TEnum>(string? value, out TEnum? parsed)
+        where TEnum : struct, Enum
+    {
+        parsed = null;
+        if (string.IsNullOrWhiteSpace(value))
+            return true;
+
+        if (!Enum.TryParse<TEnum>(value.Trim(), true, out var candidate) ||
+            !Enum.IsDefined(candidate))
+            return false;
+
+        parsed = candidate;
+        return true;
     }
 }

@@ -1,4 +1,5 @@
 import type { BillCategory } from "@/api/bills/bills.types";
+import type { PaymentMethod } from "@/api/expenses/expenses.types";
 
 export const categoryLabels: Record<string, string> = {
   housing: "types.housing",
@@ -19,3 +20,18 @@ export const categoryLabels: Record<string, string> = {
 };
 
 export const categories = Object.keys(categoryLabels) as [BillCategory, ...BillCategory[]];
+
+export const paymentMethodLabels: Record<PaymentMethod, string> = {
+  cash: "paymentMethods.cash",
+  creditCard: "paymentMethods.creditCard",
+  debitCard: "paymentMethods.debitCard",
+  pix: "paymentMethods.pix",
+  bankTransfer: "paymentMethods.bankTransfer",
+  boleto: "paymentMethods.boleto",
+  other: "paymentMethods.other",
+};
+
+export const paymentMethods = Object.keys(paymentMethodLabels) as [
+  PaymentMethod,
+  ...PaymentMethod[],
+];

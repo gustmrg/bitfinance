@@ -28,6 +28,7 @@ export interface BillDocument {
 export interface Bill {
   id: string;
   description: string;
+  notes: string | null;
   category: BillCategory;
   status: BillStatus;
   amountDue: number;
@@ -60,6 +61,7 @@ export interface BillListFilters {
 }
 export interface BillInput {
   description: string;
+  notes: string;
   category: BillCategory;
   status: BillStatus;
   dueDate: string;

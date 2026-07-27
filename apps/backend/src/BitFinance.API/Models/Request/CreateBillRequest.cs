@@ -13,4 +13,5 @@ public record CreateBillRequest(
     decimal? AmountPaid,
     [property: JsonConverter(typeof(JsonStringEnumConverter))]
     Frequency? Frequency = null,
-    int? Installments = null);
+    int? Installments = null,
+    string? Notes = null);

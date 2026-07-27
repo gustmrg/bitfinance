@@ -8,6 +8,7 @@ public class UpdateBillResponse
     public Guid Id { get; set; }
     
     public string Description { get; set; } = null!;
+    public string? Notes { get; set; }
     
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public BillCategory Category { get; set; }

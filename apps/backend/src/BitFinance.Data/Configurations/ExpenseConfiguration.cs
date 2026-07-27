@@ -17,6 +17,15 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
             .HasColumnName("description")
             .HasColumnType("text")
             .IsRequired();
+
+        builder.Property(x => x.Notes)
+            .HasColumnName("notes")
+            .HasMaxLength(2000);
+
+        builder.Property(x => x.PaymentMethod)
+            .HasColumnName("payment_method")
+            .HasConversion<string>()
+            .HasMaxLength(32);
             
         builder.Property(x => x.Category)
             .HasColumnName("category")

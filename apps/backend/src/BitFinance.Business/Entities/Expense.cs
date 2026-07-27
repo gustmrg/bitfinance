@@ -33,6 +33,16 @@ public class Expense
     public ExpenseStatus Status { get; set; }
 
     /// <summary>
+    /// Optional additional context about the expense.
+    /// </summary>
+    public string? Notes { get; set; }
+
+    /// <summary>
+    /// The method used to pay the expense, when recorded.
+    /// </summary>
+    public PaymentMethod? PaymentMethod { get; set; }
+
+    /// <summary>
     /// The date and time when the expense occurred.
     /// </summary>
     public DateTime OccurredAt { get; set; }
