@@ -14,7 +14,7 @@ public sealed class BitFinanceTools
     private const string ExpenseCategories = "Housing, Transportation, Food, Utilities, Clothing, Healthcare, Insurance, Personal, Debt, Savings, Education, Entertainment, Travel, Pets, Gifts, Miscellaneous, Subscriptions, Taxes";
     private const string ExpenseStatuses = "Pending, Paid, Cancelled";
     private const string PaymentMethods = "Cash, CreditCard, DebitCard, Pix, BankTransfer, Boleto, Other";
-    private const string FileCategories = "Boleto, Receipt, Other";
+    private const string FileCategories = "Boleto, Receipt, Invoice, Other";
 
     private readonly IBitFinanceApiClient _apiClient;
     private readonly IBitFinanceTokenProvider _tokenProvider;
@@ -263,5 +263,57 @@ public sealed class BitFinanceTools
             notes,
             paymentMethod);
         return _apiClient.UpdateExpenseAsync(expenseId, request, organizationId, cancellationToken);
+    }
+
+    [McpServerTool]
+    [Description("Uploads a document to an expense from base64 content supplied by a remote agent. Available on Basic and Premium plans. Valid file categories: " + FileCategories + ". Allowed extensions: .pdf, .jpg, .jpeg, .png, .doc, .docx. Maximum decoded file size: 10 MB.")]
+    public Task<UploadDocumentResponse> bitfinance_upload_expense_document(
+        [Description("Expense ID.")] Guid expenseId,
+        [Description("Original file name, including extension.")] string fileName,
+        [Description("Base64-encoded file content. Data URLs are accepted.")] string base64Content,
+        [Description("File category.")] string fileCategory,
+        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional MIME content type. Inferred from file extension or data URL when omitted.")] string? contentType = null,
+        CancellationToken cancellationToken = default)
+    {
+        return _apiClient.UploadExpenseDocumentAsync(
+            expenseId,
+            fileName,
+            base64Content,
+            fileCategory,
+            organizationId,
+            contentType,
+            cancellationToken);
+    }
+
+    [McpServerTool]
+    [Description("Gets a temporary signed URL for downloading an expense document. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    public Task<DocumentDownloadUrlResponse> bitfinance_get_expense_document_download_url(
+        [Description("Expense ID.")] Guid expenseId,
+        [Description("Document/attachment ID.")] Guid documentId,
+        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        return _apiClient.GetExpenseDocumentDownloadUrlAsync(
+            expenseId,
+            documentId,
+            organizationId,
+            cancellationToken);
+    }
+
+    [McpServerTool]
+    [Description("Deletes a document attached to an expense. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    public async Task<DeleteExpenseDocumentResponse> bitfinance_delete_expense_document(
+        [Description("Expense ID.")] Guid expenseId,
+        [Description("Document/attachment ID.")] Guid documentId,
+        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        await _apiClient.DeleteExpenseDocumentAsync(
+            expenseId,
+            documentId,
+            organizationId,
+            cancellationToken);
+        return new DeleteExpenseDocumentResponse(true, documentId);
     }
 }

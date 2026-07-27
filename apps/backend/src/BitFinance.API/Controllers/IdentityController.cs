@@ -256,7 +256,13 @@ public class IdentityController : ControllerBase
         List<OrganizationViewModel> organizations = [];
         organizations.AddRange(user.OrganizationMemberships.Select(m => new OrganizationViewModel(m.Organization.Id, m.Organization.Name)));
 
-        return Ok(new UserViewModel(user.Id, user.FullName, user?.Email ?? string.Empty, ReplaceUserName(user?.UserName), organizations));
+        return Ok(new UserViewModel(
+            user.Id,
+            user.FullName,
+            user.Email ?? string.Empty,
+            ReplaceUserName(user.UserName),
+            organizations,
+            user.Avatar is not null));
     }
 
     [Authorize]
@@ -281,7 +287,13 @@ public class IdentityController : ControllerBase
         List<OrganizationViewModel> organizations = [];
         organizations.AddRange(user.OrganizationMemberships.Select(m => new OrganizationViewModel(m.Organization.Id, m.Organization.Name)));
 
-        return Ok(new UserViewModel(user.Id, user.FullName, user.Email ?? string.Empty, ReplaceUserName(user?.UserName), organizations));
+        return Ok(new UserViewModel(
+            user.Id,
+            user.FullName,
+            user.Email ?? string.Empty,
+            ReplaceUserName(user.UserName),
+            organizations,
+            user.Avatar is not null));
     }
 
     [Authorize]
@@ -306,11 +318,41 @@ public class IdentityController : ControllerBase
             var attachment = await _attachmentService.UploadUserAvatarAsync(
                 userId, stream, request.File.FileName, request.File.ContentType);
 
-            return Ok(new { attachment.Id, attachment.FileName, attachment.ContentType });
+            return Ok(new
+            {
+                attachment.Id,
+                FileName = attachment.OriginalFileName,
+                attachment.ContentType
+            });
         }
         catch (Exception e)
         {
             return BadRequest(new { error = e.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpGet("manage/avatar")]
+    [EndpointSummary("Get avatar")]
+    [EndpointDescription("Returns the authenticated user's avatar image.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> GetAvatar()
+    {
+        var userId = User.Claims.FirstOrDefault(a => a.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized("User is not authenticated.");
+
+        try
+        {
+            var (stream, _, contentType) = await _attachmentService.GetUserAvatarAsync(userId);
+            return File(stream, contentType);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
     }
 
@@ -327,12 +369,9 @@ public class IdentityController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized("User is not authenticated.");
 
-        var user = await _usersService.GetUserByIdAsync(userId);
-        if (user?.Avatar is null)
-            return NotFound();
-
-        await _attachmentService.DeleteAttachmentAsync(user.Avatar.Id);
-        return NoContent();
+        return await _attachmentService.DeleteUserAvatarAsync(userId)
+            ? NoContent()
+            : NotFound();
     }
 
     private static string ReplaceUserName(string? email)

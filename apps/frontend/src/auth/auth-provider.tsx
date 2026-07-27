@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { accountService } from "../api/account/account.service";
 import { authService } from "../api/auth/auth.service";
 import type { AuthCredentials, RegisterCredentials, User } from "../api/auth/auth.types";
 import { setSessionExpiredListener } from "../api/shared/session-events";
@@ -23,8 +24,6 @@ interface AuthContextValue {
   user: User | null;
   signIn: (credentials: AuthCredentials | RegisterCredentials) => Promise<User>;
   refreshUser: () => Promise<User>;
-  setAvatarPreview: (file: File) => void;
-  clearAvatarPreview: () => void;
   signOut: (allDevices?: boolean) => Promise<void>;
 }
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -41,35 +40,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<AuthStatus>("initializing");
   const [user, setUser] = useState<User | null>(null);
-  const avatarPreviewRef = useRef<string | null>(null);
+  const avatarObjectUrlRef = useRef<string | null>(null);
 
-  const clearAvatarPreview = useCallback(() => {
-    if (avatarPreviewRef.current) URL.revokeObjectURL(avatarPreviewRef.current);
-    avatarPreviewRef.current = null;
-    setUser((current) => (current ? { ...current, avatarUrl: null } : current));
-  }, []);
-
-  const setAvatarPreview = useCallback((file: File) => {
-    if (avatarPreviewRef.current) URL.revokeObjectURL(avatarPreviewRef.current);
-    const nextPreview = URL.createObjectURL(file);
-    avatarPreviewRef.current = nextPreview;
-    setUser((current) => (current ? { ...current, avatarUrl: nextPreview } : current));
+  const clearAvatarObjectUrl = useCallback(() => {
+    if (avatarObjectUrlRef.current) URL.revokeObjectURL(avatarObjectUrlRef.current);
+    avatarObjectUrlRef.current = null;
   }, []);
 
   const refreshUser = useCallback(async () => {
     const next = await authService.getMeAsync();
-    const withPreview = { ...next, avatarUrl: avatarPreviewRef.current };
-    setUser(withPreview);
-    selectInitialOrganization(withPreview);
+    let avatarUrl: string | null = null;
+
+    if (next.hasAvatar) {
+      try {
+        avatarUrl = URL.createObjectURL(await accountService.getAvatarAsync());
+      } catch {
+        avatarUrl = avatarObjectUrlRef.current;
+      }
+    }
+
+    if (avatarUrl !== avatarObjectUrlRef.current) {
+      clearAvatarObjectUrl();
+      avatarObjectUrlRef.current = avatarUrl;
+    }
+
+    const withAvatar = { ...next, avatarUrl };
+    setUser(withAvatar);
+    selectInitialOrganization(withAvatar);
     setStatus("authenticated");
-    queryClient.setQueryData(queryKeys.auth.me(), withPreview);
-    return withPreview;
-  }, [queryClient]);
+    queryClient.setQueryData(queryKeys.auth.me(), withAvatar);
+    return withAvatar;
+  }, [clearAvatarObjectUrl, queryClient]);
 
   useEffect(() => {
     const expire = () => {
       clearAccessToken();
-      clearAvatarPreview();
+      clearAvatarObjectUrl();
       setUser(null);
       setStatus("unauthenticated");
       void queryClient.clear();
@@ -83,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch(expire);
     return () => setSessionExpiredListener(null);
-  }, [clearAvatarPreview, queryClient, refreshUser]);
+  }, [clearAvatarObjectUrl, queryClient, refreshUser]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -98,14 +104,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return refreshUser();
       },
       refreshUser,
-      setAvatarPreview,
-      clearAvatarPreview,
       signOut: async (allDevices = false) => {
         try {
           await authService[allDevices ? "logoutAllAsync" : "logoutAsync"]();
         } finally {
           clearAccessToken();
-          clearAvatarPreview();
+          clearAvatarObjectUrl();
           setUser(null);
           setStatus("unauthenticated");
           useOrganizationStore.getState().setSelectedOrganizationId(null);
@@ -113,12 +117,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [clearAvatarPreview, queryClient, refreshUser, setAvatarPreview, status, user],
+    [clearAvatarObjectUrl, queryClient, refreshUser, status, user],
   );
 
   useEffect(
     () => () => {
-      if (avatarPreviewRef.current) URL.revokeObjectURL(avatarPreviewRef.current);
+      if (avatarObjectUrlRef.current) URL.revokeObjectURL(avatarObjectUrlRef.current);
     },
     [],
   );

@@ -17,7 +17,7 @@ public sealed record UserInfo(
     string FirstName,
     string LastName);
 
-public sealed record OrganizationSummaryResponse(Guid Id, string Name);
+public sealed record OrganizationSummaryResponse(Guid Id, string Name, string PlanTier);
 
 public sealed class OrganizationDetailsResponse
 {
@@ -25,6 +25,8 @@ public sealed class OrganizationDetailsResponse
     public string Name { get; init; } = string.Empty;
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; init; }
+    public string PlanTier { get; init; } = string.Empty;
+    public DateTimeOffset PlanExpiresAt { get; init; }
     public List<OrganizationMemberResponse> Members { get; init; } = [];
 }
 
@@ -193,6 +195,8 @@ public sealed record DeleteBillResponse(bool Deleted, Guid BillId);
 public sealed record StopBillSeriesResponse(bool Stopped, Guid SeriesId);
 
 public sealed record DeleteBillDocumentResponse(bool Deleted, Guid DocumentId);
+
+public sealed record DeleteExpenseDocumentResponse(bool Deleted, Guid DocumentId);
 
 public sealed record CreateExpenseRequest(
     string Description,

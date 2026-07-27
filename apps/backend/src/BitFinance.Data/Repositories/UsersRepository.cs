@@ -25,6 +25,7 @@ public class UsersRepository : IUsersRepository
         return await _dbContext.Set<User>()
             .Include(u => u.OrganizationMemberships)
                 .ThenInclude(m => m.Organization)
+            .Include(u => u.Avatar)
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 

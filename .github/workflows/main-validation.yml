@@ -120,9 +120,12 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-mcp-${{ hashFiles('apps/mcp-server/src/**/*.csproj') }}
+          key: ${{ runner.os }}-nuget-mcp-${{ hashFiles('apps/mcp-server/**/*.csproj') }}
           restore-keys: |
             ${{ runner.os }}-nuget-mcp-
 
       - name: Build MCP server
         run: dotnet build apps/mcp-server/src/BitFinance.MCP.csproj --disable-build-servers -v:minimal
+
+      - name: Test MCP server
+        run: dotnet test apps/mcp-server/tests/BitFinance.MCP.UnitTests/BitFinance.MCP.UnitTests.csproj --disable-build-servers -v:minimal

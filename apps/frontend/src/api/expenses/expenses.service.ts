@@ -121,6 +121,26 @@ export const expensesService = {
       throw normalizeApiError(error, "api.expenses.openDocument");
     }
   },
+  async getDocumentDownloadUrlAsync(
+    organizationId: string,
+    expenseId: string,
+    attachmentId: string,
+  ) {
+    try {
+      return (
+        await authApi.get<{
+          url: string;
+          fileName: string;
+          contentType: string;
+          expiresAt: string;
+        }>(
+          `/organizations/${organizationId}/expenses/${expenseId}/documents/${attachmentId}/download-url`,
+        )
+      ).data;
+    } catch (error) {
+      throw normalizeApiError(error, "api.expenses.openDocument");
+    }
+  },
   async deleteDocumentAsync(organizationId: string, expenseId: string, attachmentId: string) {
     try {
       await authApi.delete(

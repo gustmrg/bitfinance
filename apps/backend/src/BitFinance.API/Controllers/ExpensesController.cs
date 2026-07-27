@@ -85,7 +85,7 @@ public class ExpensesController : ControllerBase
             Attachments = expense.Attachments.Select(a => new AttachmentResponseModel
             {
                 Id = a.Id,
-                FileName = a.FileName,
+                FileName = a.OriginalFileName,
                 ContentType = a.ContentType,
                 FileCategory = a.FileCategory,
                 AttachmentType = a.AttachmentType
@@ -135,7 +135,7 @@ public class ExpensesController : ControllerBase
                 Attachments = expense.Attachments.Select(a => new AttachmentResponseModel
                 {
                     Id = a.Id,
-                    FileName = a.FileName,
+                    FileName = a.OriginalFileName,
                     ContentType = a.ContentType,
                     FileCategory = a.FileCategory,
                     AttachmentType = a.AttachmentType
@@ -365,7 +365,7 @@ public class ExpensesController : ControllerBase
             var response = new UploadDocumentResponse
             {
                 Id = attachment.Id,
-                FileName = attachment.FileName,
+                FileName = attachment.OriginalFileName,
                 ContentType = attachment.ContentType,
                 FileCategory = attachment.FileCategory,
                 AttachmentType = attachment.AttachmentType
@@ -376,6 +376,10 @@ public class ExpensesController : ControllerBase
         catch (PlanLimitExceededException ex)
         {
             return StatusCode(403, new { error = ex.Message });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
         catch (Exception e)
         {
@@ -388,13 +392,49 @@ public class ExpensesController : ControllerBase
     [EndpointDescription("Downloads a specific document attached to an expense.")]
     public async Task<IActionResult> GetDocument([FromRoute] Guid organizationId, Guid expenseId, Guid attachmentId)
     {
-        var expense = await _expensesRepository.GetByIdAsync(expenseId);
-
-        if (expense is null)
+        try
+        {
+            var (stream, fileName, contentType) = await _attachmentService.GetDocumentAsync(
+                organizationId,
+                expenseId,
+                attachmentId,
+                AttachmentType.ExpenseDocument);
+            return File(stream, contentType, fileName);
+        }
+        catch (KeyNotFoundException)
+        {
             return NotFound();
+        }
+    }
 
-        var (stream, fileName, contentType) = await _attachmentService.GetAttachmentAsync(attachmentId);
-        return File(stream, contentType, fileName);
+    [HttpGet("{expenseId:guid}/documents/{attachmentId:guid}/download-url")]
+    [EndpointSummary("Get expense document download URL")]
+    [EndpointDescription("Returns a temporary signed URL for downloading a specific document attached to an expense.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<DownloadDocumentUrlResponse>> GetDocumentDownloadUrl(
+        [FromRoute] Guid organizationId,
+        [FromRoute] Guid expenseId,
+        [FromRoute] Guid attachmentId)
+    {
+        try
+        {
+            var result = await _attachmentService.GetDocumentDownloadUrlAsync(
+                organizationId,
+                expenseId,
+                attachmentId,
+                AttachmentType.ExpenseDocument);
+
+            return Ok(new DownloadDocumentUrlResponse(
+                result.Url,
+                result.FileName,
+                result.ContentType,
+                result.ExpiresAt));
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 
     [HttpDelete("{expenseId:guid}/documents/{attachmentId:guid}")]
@@ -409,17 +449,20 @@ public class ExpensesController : ControllerBase
     {
         try
         {
-            var expense = await _expensesRepository.GetByIdAsync(expenseId);
-
-            if (expense is null)
-                return NotFound();
-
-            var result = await _attachmentService.DeleteAttachmentAsync(attachmentId);
+            var result = await _attachmentService.DeleteDocumentAsync(
+                organizationId,
+                expenseId,
+                attachmentId,
+                AttachmentType.ExpenseDocument);
 
             if (!result)
                 return NotFound();
 
             return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
         catch (Exception ex)
         {

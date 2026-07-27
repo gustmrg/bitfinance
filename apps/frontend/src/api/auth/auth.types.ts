@@ -12,6 +12,7 @@ export interface User {
   fullName: string;
   email: string;
   organizations: OrganizationSummary[];
+  hasAvatar: boolean;
   avatarUrl?: string | null;
 }
 
@@ -37,6 +38,7 @@ interface MeResponse {
   email: string;
   userName: string;
   organizations?: OrganizationSummary[];
+  hasAvatar?: boolean;
 }
 
 export function mapMeResponse(response: MeResponse): User {
@@ -46,5 +48,6 @@ export function mapMeResponse(response: MeResponse): User {
     fullName: response.fullName,
     email: response.email,
     organizations: response.organizations ?? [],
+    hasAvatar: response.hasAvatar ?? false,
   };
 }

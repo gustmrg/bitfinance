@@ -137,6 +137,8 @@ Primary route groups:
 - `GET /api/v1/identity/me`
 - `POST /api/v1/identity/manage/profile`
 - `POST /api/v1/identity/manage/avatar`
+- `GET /api/v1/identity/manage/avatar`
+- `DELETE /api/v1/identity/manage/avatar`
 - `GET /api/v1/organizations`
 - `POST /api/v1/organizations`
 - `PATCH /api/v1/organizations/{organizationId}`

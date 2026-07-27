@@ -22,4 +22,7 @@ public interface IBitFinanceApiClient
     Task<ExpenseResponse> GetExpenseAsync(Guid expenseId, Guid? organizationId = null, CancellationToken cancellationToken = default);
     Task<ExpenseResponse> CreateExpenseAsync(CreateExpenseRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default);
     Task<ExpenseResponse> UpdateExpenseAsync(Guid expenseId, UpdateExpenseRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default);
+    Task<UploadDocumentResponse> UploadExpenseDocumentAsync(Guid expenseId, string fileName, string base64Content, string fileCategory, Guid? organizationId = null, string? contentType = null, CancellationToken cancellationToken = default);
+    Task<DocumentDownloadUrlResponse> GetExpenseDocumentDownloadUrlAsync(Guid expenseId, Guid documentId, Guid? organizationId = null, CancellationToken cancellationToken = default);
+    Task DeleteExpenseDocumentAsync(Guid expenseId, Guid documentId, Guid? organizationId = null, CancellationToken cancellationToken = default);
 }

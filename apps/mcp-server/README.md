@@ -103,10 +103,13 @@ For production, bind the Docker port to the VPS Tailscale address and firewall p
 - `bitfinance_get_expense`
 - `bitfinance_create_expense`
 - `bitfinance_update_expense`
+- `bitfinance_upload_expense_document`
+- `bitfinance_get_expense_document_download_url`
+- `bitfinance_delete_expense_document`
 
-Bill document uploads accept base64 content from a remote agent, so the file does not need to exist on the MCP server filesystem. Supported document extensions are `.pdf`, `.jpg`, `.jpeg`, `.png`, `.doc`, and `.docx`, up to 10 MB decoded size.
+Bill and expense document uploads accept base64 content from a remote agent, so the file does not need to exist on the MCP server filesystem. Supported document extensions are `.pdf`, `.jpg`, `.jpeg`, `.png`, `.doc`, and `.docx`, up to 10 MB decoded size. File uploads require a Basic or Premium organization plan; Free and expired plans are rejected by the BitFinance API.
 
-Bill document downloads return a temporary signed URL with file metadata. The MCP server does not download the file to local disk; agents such as Hermes can use the returned URL directly before it expires.
+Bill and expense document downloads return a temporary signed URL with file metadata. The MCP server does not download the file to local disk; agents such as Hermes can use the returned URL directly before it expires.
 
 `bitfinance_create_bill` creates a one-time bill when `frequency` and `installments` are omitted, an indefinite recurring series when only `frequency` is provided, and a fixed installment series when both are provided. Valid frequencies are `Daily`, `Weekly`, `Monthly`, and `Annually`. For a series, `dueDate` is the first occurrence date and `amountDue` is the amount of each occurrence. Generated bill responses expose `billSeriesId`, `occurrenceNumber`, `totalOccurrences`, `billSeriesType`, and, where available, `billSeriesIsActive`.
 
@@ -331,6 +334,25 @@ Expected tool call:
   "arguments": {
     "billId": "00000000-0000-0000-0000-000000000000",
     "documentId": "11111111-1111-1111-1111-111111111111"
+  }
+}
+```
+
+```text
+Upload a receipt image to an expense.
+```
+
+Expected tool call:
+
+```json
+{
+  "tool": "bitfinance_upload_expense_document",
+  "arguments": {
+    "expenseId": "00000000-0000-0000-0000-000000000000",
+    "fileName": "receipt.png",
+    "base64Content": "iVBORw0KGgo...",
+    "fileCategory": "Receipt",
+    "contentType": "image/png"
   }
 }
 ```

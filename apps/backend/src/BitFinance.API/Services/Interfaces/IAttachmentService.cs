@@ -15,12 +15,27 @@ public interface IAttachmentService
 
     Task<Attachment> UploadUserAvatarAsync(string userId, Stream fileStream, string fileName, string contentType);
 
-    Task<(Stream stream, string fileName, string contentType)> GetAttachmentAsync(Guid attachmentId);
+    Task<(Stream stream, string fileName, string contentType)> GetUserAvatarAsync(string userId);
 
-    Task<AttachmentDownloadUrlResult> GetBillAttachmentDownloadUrlAsync(
+    Task<(Stream stream, string fileName, string contentType)> GetDocumentAsync(
         Guid organizationId,
-        Guid billId,
-        Guid attachmentId);
+        Guid ownerId,
+        Guid attachmentId,
+        AttachmentType attachmentType);
+
+    Task<AttachmentDownloadUrlResult> GetDocumentDownloadUrlAsync(
+        Guid organizationId,
+        Guid ownerId,
+        Guid attachmentId,
+        AttachmentType attachmentType);
+
+    Task<bool> DeleteDocumentAsync(
+        Guid organizationId,
+        Guid ownerId,
+        Guid attachmentId,
+        AttachmentType attachmentType);
+
+    Task<bool> DeleteUserAvatarAsync(string userId);
 
     Task<bool> DeleteAttachmentAsync(Guid attachmentId);
 }

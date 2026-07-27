@@ -90,6 +90,7 @@ export const ptBR = {
       role: "Função",
       documentCategory: "Categoria do documento",
       attachments: "Anexos",
+      attachmentsPaidPlan: "O envio de arquivos está disponível nos planos Basic e Premium.",
       addFile: "Adicionar arquivo",
       removeFile: "Remover {{name}}",
       selectPeriod: "Selecionar período do painel",

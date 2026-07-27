@@ -90,6 +90,7 @@ export const enUS = {
       role: "Role",
       documentCategory: "Document category",
       attachments: "Attachments",
+      attachmentsPaidPlan: "File uploads are available on Basic and Premium plans.",
       addFile: "Add file",
       removeFile: "Remove {{name}}",
       selectPeriod: "Select dashboard period",

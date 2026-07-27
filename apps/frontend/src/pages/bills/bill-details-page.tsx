@@ -20,6 +20,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { formatCurrency, formatLongDate } from "@/lib/format";
 import { useBillMutations } from "@/hooks/mutations/use-bill-mutations";
 import { useBillQuery } from "@/hooks/queries/use-bill-queries";
+import { useAttachmentUploadAvailability } from "@/hooks/queries/use-organization-queries";
 import { useLocale } from "@/hooks/use-locale";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
 import {
@@ -35,6 +36,7 @@ export function BillDetailsPage() {
   const organizationId = useSelectedOrganization();
   const locale = useLocale();
   const query = useBillQuery(organizationId, billId);
+  const attachmentUploads = useAttachmentUploadAvailability(organizationId);
   const mutations = useBillMutations(organizationId);
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileCategory, setFileCategory] = useState<FileCategory>("Other");
@@ -42,7 +44,7 @@ export function BillDetailsPage() {
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
   const bill = query.data;
   const upload = async (files: File[]) => {
-    if (files.some((file) => !isAcceptedDocument(file))) {
+    if (!attachmentUploads.available || files.some((file) => !isAcceptedDocument(file))) {
       toast.error(t("bills.invalidFile"));
       return;
     }
@@ -63,18 +65,26 @@ export function BillDetailsPage() {
     }
   };
   const open = async (documentId: string) => {
-    const blob = await billsService.getDocumentAsync(organizationId!, billId!, documentId);
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank", "noopener,noreferrer");
-    window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    try {
+      const blob = await billsService.getDocumentAsync(organizationId!, billId!, documentId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("api.bills.openDocument"));
+    }
   };
   const download = async (documentId: string) => {
-    const response = await billsService.getDocumentDownloadUrlAsync(
-      organizationId!,
-      billId!,
-      documentId,
-    );
-    window.open(response.url, "_blank", "noopener,noreferrer");
+    try {
+      const response = await billsService.getDocumentDownloadUrlAsync(
+        organizationId!,
+        billId!,
+        documentId,
+      );
+      window.open(response.url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("api.bills.prepareDownload"));
+    }
   };
   if (query.isPending)
     return (
@@ -179,7 +189,11 @@ export function BillDetailsPage() {
         <section className="surface-card detail-card">
           <SectionHeading
             title={t("common.attachments")}
-            description={t("bills.attachmentDescription")}
+            description={
+              attachmentUploads.isFree
+                ? t("common.attachmentsPaidPlan")
+                : t("bills.attachmentDescription")
+            }
             action={
               <div className="section-heading__actions">
                 <div className="select-field">
@@ -187,19 +201,25 @@ export function BillDetailsPage() {
                     ariaLabel={t("common.documentCategory")}
                     value={fileCategory}
                     onValueChange={setFileCategory}
+                    disabled={!attachmentUploads.available}
                     options={documentCategories.map((value) => ({
                       value,
                       label: t(`documents.${value}`),
                     }))}
                   />
                 </div>
-                <Button variant="secondary" onClick={() => inputRef.current?.click()}>
+                <Button
+                  variant="secondary"
+                  disabled={!attachmentUploads.available || mutations.upload.isPending}
+                  onClick={() => inputRef.current?.click()}
+                >
                   <FilePlus2 size={16} /> {t("common.addFile")}
                 </Button>
                 <input
                   ref={inputRef}
                   type="file"
                   accept={acceptedDocumentTypes}
+                  disabled={!attachmentUploads.available}
                   hidden
                   multiple
                   onChange={(event) => {

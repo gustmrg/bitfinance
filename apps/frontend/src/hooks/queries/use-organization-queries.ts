@@ -10,6 +10,18 @@ export function useOrganizationsQuery(enabled = true) {
   });
 }
 
+export function useAttachmentUploadAvailability(organizationId: string | null) {
+  const organizations = useOrganizationsQuery(Boolean(organizationId));
+  const planTier = organizations.data?.find(
+    (organization) => organization.id === organizationId,
+  )?.planTier;
+
+  return {
+    available: planTier === "Basic" || planTier === "Premium",
+    isFree: planTier === "Free",
+  };
+}
+
 export function useOrganizationQuery(organizationId: string | null) {
   return useQuery({
     queryKey: queryKeys.organizations.detail(organizationId ?? ""),

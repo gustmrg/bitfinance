@@ -183,46 +183,12 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         CancellationToken cancellationToken = default)
     {
         var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        var upload = ValidateUploadContent(fileName);
-        var base64Upload = ParseBase64Upload(base64Content, contentType, upload.InferredContentType);
-
-        if (base64Upload.Content.Length > MaxDocumentFileSizeBytes)
-        {
-            throw new InvalidOperationException("Bill document file must be 10 MB or smaller.");
-        }
-
-        await using var fileStream = new MemoryStream(base64Upload.Content, writable: false);
-        return await UploadBillDocumentContentAsync(
-            resolvedOrganizationId,
-            billId,
-            fileStream,
-            upload.FileName,
-            base64Upload.ContentType,
+        return await UploadDocumentAsync(
+            ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}/documents"),
+            fileName,
+            base64Content,
             fileCategory,
-            cancellationToken);
-    }
-
-    private async Task<UploadDocumentResponse> UploadBillDocumentContentAsync(
-        Guid organizationId,
-        Guid billId,
-        Stream fileStream,
-        string fileName,
-        string contentType,
-        string fileCategory,
-        CancellationToken cancellationToken)
-    {
-        using var multipart = new MultipartFormDataContent();
-        using var fileContent = new StreamContent(fileStream);
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-
-        multipart.Add(fileContent, "File", fileName);
-        multipart.Add(new StringContent(fileCategory), "FileCategory");
-
-        return await SendContentAsync(
-            HttpMethod.Post,
-            ApiPath($"organizations/{organizationId}/bills/{billId}/documents"),
-            multipart,
-            BitFinanceJsonContext.Default.UploadDocumentResponse,
+            contentType,
             cancellationToken);
     }
 
@@ -314,6 +280,84 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             cancellationToken,
             request,
             BitFinanceJsonContext.Default.UpdateExpenseRequest);
+    }
+
+    public async Task<UploadDocumentResponse> UploadExpenseDocumentAsync(
+        Guid expenseId,
+        string fileName,
+        string base64Content,
+        string fileCategory,
+        Guid? organizationId = null,
+        string? contentType = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        return await UploadDocumentAsync(
+            ApiPath($"organizations/{resolvedOrganizationId}/expenses/{expenseId}/documents"),
+            fileName,
+            base64Content,
+            fileCategory,
+            contentType,
+            cancellationToken);
+    }
+
+    public Task<DocumentDownloadUrlResponse> GetExpenseDocumentDownloadUrlAsync(
+        Guid expenseId,
+        Guid documentId,
+        Guid? organizationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        return SendAsync(
+            HttpMethod.Get,
+            ApiPath($"organizations/{resolvedOrganizationId}/expenses/{expenseId}/documents/{documentId}/download-url"),
+            BitFinanceJsonContext.Default.DocumentDownloadUrlResponse,
+            cancellationToken);
+    }
+
+    public Task DeleteExpenseDocumentAsync(
+        Guid expenseId,
+        Guid documentId,
+        Guid? organizationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        return SendNoContentAsync(
+            HttpMethod.Delete,
+            ApiPath($"organizations/{resolvedOrganizationId}/expenses/{expenseId}/documents/{documentId}"),
+            cancellationToken);
+    }
+
+    private async Task<UploadDocumentResponse> UploadDocumentAsync(
+        string path,
+        string fileName,
+        string base64Content,
+        string fileCategory,
+        string? contentType,
+        CancellationToken cancellationToken)
+    {
+        var upload = ValidateUploadContent(fileName);
+        var base64Upload = ParseBase64Upload(base64Content, contentType, upload.InferredContentType);
+
+        if (base64Upload.Content.Length > MaxDocumentFileSizeBytes)
+        {
+            throw new InvalidOperationException("Document file must be 10 MB or smaller.");
+        }
+
+        await using var fileStream = new MemoryStream(base64Upload.Content, writable: false);
+        using var multipart = new MultipartFormDataContent();
+        using var fileContent = new StreamContent(fileStream);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(base64Upload.ContentType);
+
+        multipart.Add(fileContent, "File", upload.FileName);
+        multipart.Add(new StringContent(fileCategory), "FileCategory");
+
+        return await SendContentAsync(
+            HttpMethod.Post,
+            path,
+            multipart,
+            BitFinanceJsonContext.Default.UploadDocumentResponse,
+            cancellationToken);
     }
 
     private async Task<TResponse> SendAsync<TResponse>(
@@ -432,7 +476,7 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         var extension = Path.GetExtension(fileName);
         if (!DocumentContentTypes.TryGetValue(extension, out var inferredContentType))
         {
-            throw new InvalidOperationException("Bill document file extension must be one of: .pdf, .jpg, .jpeg, .png, .doc, .docx.");
+            throw new InvalidOperationException("Document file extension must be one of: .pdf, .jpg, .jpeg, .png, .doc, .docx.");
         }
 
         return new UploadContent(

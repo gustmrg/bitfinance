@@ -51,8 +51,6 @@ export function AccountPage() {
     }
     try {
       await mutations.avatar.mutateAsync(file);
-      // The backend has no avatar-read endpoint, so the object URL is session-local.
-      auth.setAvatarPreview(file);
       await auth.refreshUser();
       toast.success(t("account.avatarUpdated"));
     } catch (error) {
@@ -123,9 +121,11 @@ export function AccountPage() {
               {t("common.save")} <Check size={16} />
             </Button>
           </form>
-          <Button variant="ghost" onClick={() => setRemoveAvatarConfirm(true)}>
-            {t("account.removeAvatar")}
-          </Button>
+          {user.hasAvatar ? (
+            <Button variant="ghost" onClick={() => setRemoveAvatarConfirm(true)}>
+              {t("account.removeAvatar")}
+            </Button>
+          ) : null}
         </section>
         <section className="surface-card preferences-card">
           <SectionHeading title={t("account.appearance")} description={t("account.reset")} />
@@ -228,7 +228,6 @@ export function AccountPage() {
             mutations.deleteAvatar.mutate(undefined, {
               onSuccess: () => {
                 setRemoveAvatarConfirm(false);
-                auth.clearAvatarPreview();
                 void auth.refreshUser();
                 toast.success(t("account.avatarRemoved"));
               },

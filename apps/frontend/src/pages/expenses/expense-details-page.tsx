@@ -19,10 +19,15 @@ import { Select } from "@/components/ui/select";
 import { StatusPill } from "@/components/ui/status-pill";
 import { formatCurrency, formatLongDate } from "@/lib/format";
 import { useExpenseMutations } from "@/hooks/mutations/use-expense-mutations";
+import { useAttachmentUploadAvailability } from "@/hooks/queries/use-organization-queries";
 import { useExpenseQuery } from "@/hooks/queries/use-expense-queries";
 import { useLocale } from "@/hooks/use-locale";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
-import { acceptedDocumentTypes, documentCategories } from "@/lib/file-validation";
+import {
+  acceptedDocumentTypes,
+  documentCategories,
+  isAcceptedDocument,
+} from "@/lib/file-validation";
 import { categoryLabels, paymentMethodLabels } from "@/lib/finance-categories";
 
 export function ExpenseDetailsPage() {
@@ -31,18 +36,14 @@ export function ExpenseDetailsPage() {
   const organizationId = useSelectedOrganization();
   const locale = useLocale();
   const query = useExpenseQuery(organizationId, expenseId);
+  const attachmentUploads = useAttachmentUploadAvailability(organizationId);
   const mutations = useExpenseMutations(organizationId);
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileCategory, setFileCategory] = useState<FileCategory>("Receipt");
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
   const expense = query.data;
   const upload = (file: File) => {
-    const valid =
-      acceptedDocumentTypes
-        .split(",")
-        .some((type) => file.name.toLowerCase().endsWith(type.replace(".", ""))) &&
-      file.size <= 10 * 1024 * 1024;
-    if (!valid) {
+    if (!attachmentUploads.available || !isAcceptedDocument(file)) {
       toast.error(t("bills.invalidFile"));
       return;
     }
@@ -55,14 +56,17 @@ export function ExpenseDetailsPage() {
         },
       );
   };
-  const open = async (documentId: string) => {
-    const blob = await expensesService.getDocumentAsync(organizationId!, expenseId!, documentId);
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "expense-document";
-    link.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  const download = async (documentId: string) => {
+    try {
+      const response = await expensesService.getDocumentDownloadUrlAsync(
+        organizationId!,
+        expenseId!,
+        documentId,
+      );
+      window.open(response.url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("api.expenses.openDocument"));
+    }
   };
   if (query.isPending)
     return (
@@ -128,7 +132,11 @@ export function ExpenseDetailsPage() {
         <section className="surface-card detail-card">
           <SectionHeading
             title={t("common.attachments")}
-            description={t("expenses.attachmentDescription")}
+            description={
+              attachmentUploads.isFree
+                ? t("common.attachmentsPaidPlan")
+                : t("expenses.attachmentDescription")
+            }
             action={
               <div className="section-heading__actions">
                 <div className="select-field">
@@ -136,19 +144,25 @@ export function ExpenseDetailsPage() {
                     ariaLabel={t("common.documentCategory")}
                     value={fileCategory}
                     onValueChange={setFileCategory}
+                    disabled={!attachmentUploads.available}
                     options={documentCategories.map((value) => ({
                       value,
                       label: t(`documents.${value}`),
                     }))}
                   />
                 </div>
-                <Button variant="secondary" onClick={() => inputRef.current?.click()}>
+                <Button
+                  variant="secondary"
+                  disabled={!attachmentUploads.available || mutations.upload.isPending}
+                  onClick={() => inputRef.current?.click()}
+                >
                   <FilePlus2 size={16} /> {t("common.addFile")}
                 </Button>
                 <input
                   ref={inputRef}
                   type="file"
                   accept={acceptedDocumentTypes}
+                  disabled={!attachmentUploads.available}
                   hidden
                   onChange={(event) => {
                     const file = event.target.files?.[0];
@@ -170,7 +184,7 @@ export function ExpenseDetailsPage() {
                 <Button
                   variant="ghost"
                   onClick={() => {
-                    void open(document.id);
+                    void download(document.id);
                   }}
                 >
                   {t("common.download")}

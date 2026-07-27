@@ -410,7 +410,7 @@ public class BillsController : ControllerBase
             var response = new UploadDocumentResponse
             {
                 Id = attachment.Id,
-                FileName = attachment.FileName,
+                FileName = attachment.OriginalFileName,
                 ContentType = attachment.ContentType,
                 FileCategory = attachment.FileCategory,
                 AttachmentType = attachment.AttachmentType
@@ -421,6 +421,10 @@ public class BillsController : ControllerBase
         catch (PlanLimitExceededException ex)
         {
             return StatusCode(403, new { error = ex.Message });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
         catch (Exception e)
         {
@@ -440,8 +444,19 @@ public class BillsController : ControllerBase
             return NotFound();
         }
 
-        var (stream, fileName, contentType) = await _attachmentService.GetAttachmentAsync(documentId);
-        return File(stream, contentType, fileName);
+        try
+        {
+            var (stream, fileName, contentType) = await _attachmentService.GetDocumentAsync(
+                organizationId,
+                billId,
+                documentId,
+                AttachmentType.BillDocument);
+            return File(stream, contentType, fileName);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 
     [HttpGet("{billId:guid}/documents/{documentId:guid}/download-url")]
@@ -456,10 +471,11 @@ public class BillsController : ControllerBase
     {
         try
         {
-            var result = await _attachmentService.GetBillAttachmentDownloadUrlAsync(
+            var result = await _attachmentService.GetDocumentDownloadUrlAsync(
                 organizationId,
                 billId,
-                documentId);
+                documentId,
+                AttachmentType.BillDocument);
 
             return Ok(new DownloadDocumentUrlResponse(
                 result.Url,
@@ -485,17 +501,20 @@ public class BillsController : ControllerBase
     {
         try
         {
-            Bill? bill = await _billsRepository.GetByIdAsync(billId);
-
-            if (bill is null)
-                return NotFound();
-
-            var result = await _attachmentService.DeleteAttachmentAsync(documentId);
+            var result = await _attachmentService.DeleteDocumentAsync(
+                organizationId,
+                billId,
+                documentId,
+                AttachmentType.BillDocument);
 
             if (!result)
                 return NotFound();
 
             return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
         catch (Exception ex)
         {
@@ -596,7 +615,7 @@ public class BillsController : ControllerBase
             Attachments = bill.Attachments.Select(a => new AttachmentResponseModel
             {
                 Id = a.Id,
-                FileName = a.FileName,
+                FileName = a.OriginalFileName,
                 ContentType = a.ContentType,
                 FileCategory = a.FileCategory,
                 AttachmentType = a.AttachmentType

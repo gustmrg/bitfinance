@@ -24,6 +24,17 @@ export const accountService = {
       throw normalizeApiError(error, "api.account.uploadAvatar");
     }
   },
+  async getAvatarAsync(): Promise<Blob> {
+    try {
+      return (
+        await authApi.get<Blob>("/identity/manage/avatar", {
+          responseType: "blob",
+        })
+      ).data;
+    } catch (error) {
+      throw normalizeApiError(error, "api.account.loadAvatar");
+    }
+  },
   async deleteAvatarAsync() {
     try {
       await authApi.delete("/identity/manage/avatar");

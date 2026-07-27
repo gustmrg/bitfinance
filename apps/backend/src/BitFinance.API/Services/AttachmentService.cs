@@ -9,7 +9,7 @@ namespace BitFinance.API.Services;
 
 public class AttachmentService : IAttachmentService
 {
-    private static readonly TimeSpan BillDocumentDownloadUrlExpiration = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan DocumentDownloadUrlExpiration = TimeSpan.FromMinutes(15);
 
     private readonly IFileStorageService _storageService;
     private readonly IFileValidationService _fileValidationService;
@@ -42,10 +42,13 @@ public class AttachmentService : IAttachmentService
         string contentType, FileCategory fileCategory, string? userId = null)
     {
         ValidateFile(fileStream, fileName, contentType, FileUploadRules.Documents());
-        await ValidateStorageEntitlement(organizationId, fileStream.Length);
 
         var bill = await _billsRepository.GetByIdAsync(billId)
             ?? throw new KeyNotFoundException($"Bill with ID {billId} not found.");
+        if (bill.OrganizationId != organizationId)
+            throw new KeyNotFoundException($"Bill with ID {billId} not found.");
+
+        await ValidateStorageEntitlement(organizationId, fileStream.Length);
 
         var directoryPath = StoragePathBuilder.ForBill(organizationId, billId);
         var storageResult = await SaveFileToStorage(fileStream, fileName, contentType, directoryPath);
@@ -76,10 +79,13 @@ public class AttachmentService : IAttachmentService
         string contentType, FileCategory fileCategory, string? userId = null)
     {
         ValidateFile(fileStream, fileName, contentType, FileUploadRules.Documents());
-        await ValidateStorageEntitlement(organizationId, fileStream.Length);
 
         var expense = await _expensesRepository.GetByIdAsync(expenseId)
             ?? throw new KeyNotFoundException($"Expense with ID {expenseId} not found.");
+        if (expense.OrganizationId != organizationId)
+            throw new KeyNotFoundException($"Expense with ID {expenseId} not found.");
+
+        await ValidateStorageEntitlement(organizationId, fileStream.Length);
 
         var directoryPath = StoragePathBuilder.ForExpense(organizationId, expenseId);
         var storageResult = await SaveFileToStorage(fileStream, fileName, contentType, directoryPath);
@@ -110,16 +116,37 @@ public class AttachmentService : IAttachmentService
     {
         ValidateFile(fileStream, fileName, contentType, FileUploadRules.Avatars());
 
-        // Delete existing avatar if any
         var existingAvatar = await _attachmentsRepository.GetUserAvatarAsync(userId);
-        if (existingAvatar is not null)
-        {
-            await _storageService.DeleteFileAsync(existingAvatar.StoragePath);
-            await _attachmentsRepository.DeleteAsync(existingAvatar);
-        }
-
         var directoryPath = StoragePathBuilder.ForUserAvatar(userId);
         var storageResult = await SaveFileToStorage(fileStream, fileName, contentType, directoryPath);
+
+        if (existingAvatar is not null)
+        {
+            var previousStoragePath = existingAvatar.StoragePath;
+            existingAvatar.FileName = storageResult.FileName!;
+            existingAvatar.OriginalFileName = fileName;
+            existingAvatar.ContentType = contentType;
+            existingAvatar.FileSizeInBytes = storageResult.FileSizeInBytes ?? 0;
+            existingAvatar.StoragePath = storageResult.StoragePath!;
+            existingAvatar.FileHash = storageResult.FileHash;
+            existingAvatar.UploadedAt = DateTime.UtcNow;
+            existingAvatar.UploadedByUserId = userId;
+
+            try
+            {
+                await _attachmentsRepository.UpdateAsync(existingAvatar);
+            }
+            catch
+            {
+                await DeleteStorageFileBestEffort(storageResult.StoragePath!);
+                throw;
+            }
+
+            if (!await _storageService.DeleteFileAsync(previousStoragePath))
+                _logger.LogWarning("Unable to delete previous avatar object {StoragePath}", previousStoragePath);
+
+            return existingAvatar;
+        }
 
         var attachment = new Attachment
         {
@@ -138,45 +165,88 @@ public class AttachmentService : IAttachmentService
             UploadedByUserId = userId
         };
 
-        await _attachmentsRepository.CreateAsync(attachment);
+        try
+        {
+            await _attachmentsRepository.CreateAsync(attachment);
+        }
+        catch
+        {
+            await DeleteStorageFileBestEffort(storageResult.StoragePath!);
+            throw;
+        }
+
         return attachment;
     }
 
-    public async Task<(Stream stream, string fileName, string contentType)> GetAttachmentAsync(Guid attachmentId)
+    public async Task<(Stream stream, string fileName, string contentType)> GetUserAvatarAsync(string userId)
     {
-        var attachment = await _attachmentsRepository.GetByIdAsync(attachmentId)
-            ?? throw new KeyNotFoundException($"Attachment {attachmentId} not found");
+        var attachment = await _attachmentsRepository.GetUserAvatarAsync(userId)
+            ?? throw new KeyNotFoundException("Avatar not found.");
 
         var stream = await _storageService.GetFileAsync(attachment.StoragePath);
         return (stream, attachment.OriginalFileName, attachment.ContentType);
     }
 
-    public async Task<AttachmentDownloadUrlResult> GetBillAttachmentDownloadUrlAsync(
+    public async Task<(Stream stream, string fileName, string contentType)> GetDocumentAsync(
         Guid organizationId,
-        Guid billId,
-        Guid attachmentId)
+        Guid ownerId,
+        Guid attachmentId,
+        AttachmentType attachmentType)
     {
-        var attachment = await _attachmentsRepository.GetByIdAsync(attachmentId)
-            ?? throw new KeyNotFoundException($"Attachment {attachmentId} not found");
+        var attachment = await GetOwnedDocumentAsync(
+            organizationId,
+            ownerId,
+            attachmentId,
+            attachmentType);
 
-        if (attachment.OrganizationId != organizationId ||
-            attachment.BillId != billId ||
-            attachment.AttachmentType != AttachmentType.BillDocument)
-        {
-            throw new KeyNotFoundException($"Bill attachment {attachmentId} not found.");
-        }
+        var stream = await _storageService.GetFileAsync(attachment.StoragePath);
+        return (stream, attachment.OriginalFileName, attachment.ContentType);
+    }
+
+    public async Task<AttachmentDownloadUrlResult> GetDocumentDownloadUrlAsync(
+        Guid organizationId,
+        Guid ownerId,
+        Guid attachmentId,
+        AttachmentType attachmentType)
+    {
+        var attachment = await GetOwnedDocumentAsync(
+            organizationId,
+            ownerId,
+            attachmentId,
+            attachmentType);
 
         var urlResult = await _storageService.CreateDownloadUrlAsync(
             attachment.StoragePath,
             attachment.OriginalFileName,
             attachment.ContentType,
-            BillDocumentDownloadUrlExpiration);
+            DocumentDownloadUrlExpiration);
 
         return new AttachmentDownloadUrlResult(
             urlResult.Url,
             attachment.OriginalFileName,
             attachment.ContentType,
             urlResult.ExpiresAt);
+    }
+
+    public async Task<bool> DeleteDocumentAsync(
+        Guid organizationId,
+        Guid ownerId,
+        Guid attachmentId,
+        AttachmentType attachmentType)
+    {
+        var attachment = await GetOwnedDocumentAsync(
+            organizationId,
+            ownerId,
+            attachmentId,
+            attachmentType);
+
+        return await DeleteAttachmentAsync(attachment.Id);
+    }
+
+    public async Task<bool> DeleteUserAvatarAsync(string userId)
+    {
+        var avatar = await _attachmentsRepository.GetUserAvatarAsync(userId);
+        return avatar is not null && await DeleteAttachmentAsync(avatar.Id);
     }
 
     public async Task<bool> DeleteAttachmentAsync(Guid attachmentId)
@@ -226,5 +296,39 @@ public class AttachmentService : IAttachmentService
             throw new Exception($"Failed to save file: {storageResult.ErrorMessage}");
 
         return storageResult;
+    }
+
+    private async Task<Attachment> GetOwnedDocumentAsync(
+        Guid organizationId,
+        Guid ownerId,
+        Guid attachmentId,
+        AttachmentType attachmentType)
+    {
+        var attachment = await _attachmentsRepository.GetByIdAsync(attachmentId);
+        var belongsToOwner = attachmentType switch
+        {
+            AttachmentType.BillDocument => attachment?.BillId == ownerId,
+            AttachmentType.ExpenseDocument => attachment?.ExpenseId == ownerId,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(attachmentType),
+                attachmentType,
+                "Only bill and expense documents are supported.")
+        };
+
+        if (attachment is null ||
+            attachment.OrganizationId != organizationId ||
+            attachment.AttachmentType != attachmentType ||
+            !belongsToOwner)
+        {
+            throw new KeyNotFoundException($"Attachment {attachmentId} not found.");
+        }
+
+        return attachment;
+    }
+
+    private async Task DeleteStorageFileBestEffort(string storagePath)
+    {
+        if (!await _storageService.DeleteFileAsync(storagePath))
+            _logger.LogWarning("Unable to clean up storage object {StoragePath}", storagePath);
     }
 }
