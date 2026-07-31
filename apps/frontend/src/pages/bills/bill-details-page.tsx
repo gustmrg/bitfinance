@@ -74,14 +74,17 @@ export function BillDetailsPage() {
       toast.error(error instanceof Error ? error.message : t("api.bills.openDocument"));
     }
   };
-  const download = async (documentId: string) => {
+  const download = async (documentId: string, fileName: string) => {
     try {
-      const response = await billsService.getDocumentDownloadUrlAsync(
-        organizationId!,
-        billId!,
-        documentId,
-      );
-      window.open(response.url, "_blank", "noopener,noreferrer");
+      const blob = await billsService.getDocumentAsync(organizationId!, billId!, documentId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("api.bills.prepareDownload"));
     }
@@ -250,7 +253,7 @@ export function BillDetailsPage() {
                 <Button
                   variant="ghost"
                   onClick={() => {
-                    void download(document.id);
+                    void download(document.id, document.fileName);
                   }}
                 >
                   {t("common.download")}
