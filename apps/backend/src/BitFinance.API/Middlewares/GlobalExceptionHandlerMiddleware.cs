@@ -1,11 +1,10 @@
 using System.Net;
-using System.Text.Json;
 using BitFinance.API.Models.Response;
-using Microsoft.AspNetCore.Mvc;
 
 namespace BitFinance.API.Middlewares;
 
-public class GlobalExceptionHandlerMiddleware : IMiddleware
+public class GlobalExceptionHandlerMiddleware(
+    ILogger<GlobalExceptionHandlerMiddleware> logger) : IMiddleware
 {
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
@@ -13,11 +12,14 @@ public class GlobalExceptionHandlerMiddleware : IMiddleware
         {
             await next(context);
         }
-        catch (Exception e)
+        catch (Exception exception)
         {
-            Console.WriteLine(e.Message);
+            logger.LogError(
+                new EventId(1000, "UnhandledRequestException"),
+                exception,
+                "Unhandled request exception.");
 
-            ExceptionResponse response = e switch
+            ExceptionResponse response = exception switch
             {
                 ApplicationException _ => new ExceptionResponse(HttpStatusCode.BadRequest, "Application error occurred."),
                 UnauthorizedAccessException _ => new ExceptionResponse(HttpStatusCode.Unauthorized, "Unauthorized."),

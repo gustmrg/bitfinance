@@ -53,7 +53,7 @@ public sealed class BitFinanceTokenProvider : IBitFinanceTokenProvider
                 return _currentAuthentication!;
             }
 
-            _logger.LogInformation("Logging in BitFinance MCP agent as {Email}.", _options.AgentEmail);
+            _logger.LogInformation("Authenticating BitFinance MCP agent.");
 
             var client = _httpClientFactory.CreateClient(BitFinanceApiClient.ClientName);
             var path = $"/api/v{_options.ApiVersion}/identity/login";
@@ -65,8 +65,7 @@ public sealed class BitFinanceTokenProvider : IBitFinanceTokenProvider
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                throw new BitFinanceApiException(response.StatusCode, HttpMethod.Post.Method, path, errorBody);
+                throw new BitFinanceApiException(response.StatusCode, HttpMethod.Post.Method, path);
             }
 
             _currentAuthentication = await response.Content.ReadFromJsonAsync(

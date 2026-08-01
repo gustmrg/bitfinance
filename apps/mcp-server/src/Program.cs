@@ -4,14 +4,38 @@ using System.Text;
 using BitFinance.MCP.Configuration;
 using BitFinance.MCP.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using ModelContextProtocol.Server;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Logging.AddConsole(consoleLogOptions =>
+builder.Logging.ClearProviders();
+builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
+builder.Services.Configure<ConsoleLoggerOptions>(options =>
 {
     // Keep logs away from MCP response bodies when running behind HTTP streaming.
-    consoleLogOptions.LogToStandardErrorThreshold = LogLevel.Trace;
+    options.LogToStandardErrorThreshold = LogLevel.Trace;
 });
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.AddSimpleConsole(options =>
+    {
+        options.ColorBehavior = LoggerColorBehavior.Enabled;
+        options.IncludeScopes = true;
+        options.SingleLine = true;
+        options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffzzz ";
+    });
+}
+else
+{
+    builder.Logging.AddFilter("Microsoft", LogLevel.Warning);
+    builder.Logging.AddFilter("System", LogLevel.Warning);
+    builder.Logging.AddJsonConsole(options =>
+    {
+        options.IncludeScopes = true;
+        options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffzzz";
+        options.UseUtcTimestamp = true;
+    });
+}
 
 var mcpBearerToken = builder.Configuration["BITFINANCE_MCP_BEARER_TOKEN"];
 if (string.IsNullOrWhiteSpace(mcpBearerToken))

@@ -128,9 +128,7 @@ public class BillStatusWorkerService : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex,
-                        "Error while generating scheduled bills for organization {OrgId} ({OrgName}) with timezone {TimeZone}",
-                        organization.Id, organization.Name, organization.TimeZoneId);
+                    _logger.LogError(ex, "Error while generating scheduled bills for an organization.");
                 }
             }
 
@@ -166,9 +164,7 @@ public class BillStatusWorkerService : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex,
-                        "Error while processing upcoming bills for organization {OrgId} ({OrgName}) with timezone {TimeZone}",
-                        organization.Id, organization.Name, organization.TimeZoneId);
+                    _logger.LogError(ex, "Error while processing upcoming bills for an organization.");
                 }
             }
             
@@ -201,9 +197,7 @@ public class BillStatusWorkerService : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex,
-                        "Error while processing due bills for organization {OrgId} ({OrgName}) with timezone {TimeZone}",
-                        organization.Id, organization.Name, organization.TimeZoneId);
+                    _logger.LogError(ex, "Error while processing due bills for an organization.");
                 }
             }
             
@@ -249,8 +243,7 @@ public class BillStatusWorkerService : BackgroundService
         {
             await billsRepository.UpdateRangeAsync(billsToUpdate);
             
-            _logger.LogInformation("Updated {BillCount} bills for organization {OrgId} ({OrgName}) in timezone {TimeZone}", 
-                billsToUpdate.Count, organization.Id, organization.Name, organization.TimeZoneId);
+            _logger.LogInformation("Updated {BillCount} upcoming bills for an organization.", billsToUpdate.Count);
         }
         
         return billsToUpdate.Count;
@@ -274,8 +267,7 @@ public class BillStatusWorkerService : BackgroundService
         if (billsToUpdate.Count <= 0) return billsToUpdate.Count;
         await billsRepository.UpdateRangeAsync(billsToUpdate);
             
-        _logger.LogInformation("Updated {BillCount} bills for organization {OrgId} ({OrgName}) in timezone {TimeZone}", 
-            billsToUpdate.Count, organization.Id, organization.Name, organization.TimeZoneId);
+        _logger.LogInformation("Updated {BillCount} due bills for an organization.", billsToUpdate.Count);
 
         return billsToUpdate.Count;
     }

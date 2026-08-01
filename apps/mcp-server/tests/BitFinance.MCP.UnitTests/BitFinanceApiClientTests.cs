@@ -124,12 +124,12 @@ public class BitFinanceApiClientTests
     }
 
     [Fact]
-    public async Task UploadExpenseDocument_FreePlanResponse_RemainsForbiddenToolError()
+    public async Task UploadExpenseDocument_FreePlanResponse_ReturnsSanitizedForbiddenError()
     {
         var handler = new RecordingHandler(_ =>
             JsonResponse(
                 HttpStatusCode.Forbidden,
-                """{"error":"File attachments are not available on your current plan."}"""));
+                """{"error":"PRIVATE_RESPONSE_BODY_SENTINEL"}"""));
         var client = CreateClient(handler, Guid.NewGuid());
 
         var exception = await Assert.ThrowsAsync<BitFinanceApiException>(() =>
@@ -140,7 +140,9 @@ public class BitFinanceApiClientTests
                 "Receipt"));
 
         Assert.Equal(HttpStatusCode.Forbidden, exception.StatusCode);
-        Assert.Contains("not available on your current plan", exception.Message);
+        Assert.Contains("403 Forbidden", exception.Message);
+        Assert.DoesNotContain("PRIVATE_RESPONSE_BODY_SENTINEL", exception.Message);
+        Assert.DoesNotContain("PRIVATE_RESPONSE_BODY_SENTINEL", exception.ToString());
     }
 
     private static BitFinanceApiClient CreateClient(RecordingHandler handler, Guid organizationId)

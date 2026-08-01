@@ -1,32 +1,34 @@
-using Microsoft.AspNetCore.HttpLogging;
-using Serilog;
-using Serilog.Events;
+using Microsoft.Extensions.Logging.Console;
 
 namespace BitFinance.API.Extensions;
 
 public static class LoggingExtensions
 {
-    public static ConfigureHostBuilder AddLogging(this ConfigureHostBuilder host, IConfiguration configuration)
+    public static WebApplicationBuilder AddSafeLogging(this WebApplicationBuilder builder)
     {
-        var connectionString = configuration.GetConnectionString("Database");
-        
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Information)
-            .WriteTo.Console()
-            .CreateLogger();
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
 
-        host.UseSerilog(Log.Logger);
-        
-        return host;
-    }
-    
-    public static IServiceCollection AddCustomHttpLogging(this IServiceCollection services)
-    {
-        services.AddHttpLogging(options =>
+        if (builder.Environment.IsDevelopment())
         {
-            options.LoggingFields = HttpLoggingFields.Request | HttpLoggingFields.Response;
-        });
+            builder.Logging.AddSimpleConsole(options =>
+            {
+                options.ColorBehavior = LoggerColorBehavior.Enabled;
+                options.IncludeScopes = true;
+                options.SingleLine = true;
+                options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffzzz ";
+            });
+        }
+        else
+        {
+            builder.Logging.AddJsonConsole(options =>
+            {
+                options.IncludeScopes = true;
+                options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffzzz";
+                options.UseUtcTimestamp = true;
+            });
+        }
 
-        return services;
+        return builder;
     }
 }

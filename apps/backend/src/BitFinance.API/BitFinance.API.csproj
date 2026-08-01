@@ -29,7 +29,6 @@
         <PackageReference Include="Microsoft.OpenApi" Version="2.11.0" />
         <PackageReference Include="Npgsql" Version="10.0.3" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-        <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
         <PackageReference Include="Scalar.AspNetCore" Version="2.16.15" />
         <PackageReference Include="Svix" Version="1.98.0" />
     </ItemGroup>

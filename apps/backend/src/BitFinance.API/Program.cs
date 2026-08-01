@@ -12,9 +12,7 @@ builder.Services.AddDatabaseContext(builder.Configuration);
 builder.Services.AddDependencyInjection(builder.Configuration);
 builder.Services.AddCaching(builder.Configuration);
 builder.Services.AddApiDocumentation();
-builder.Services.AddCustomHttpLogging();
-
-builder.Host.AddLogging(builder.Configuration);
+builder.AddSafeLogging();
 
 var app = builder.Build();
 
