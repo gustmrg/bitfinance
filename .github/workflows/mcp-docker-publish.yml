@@ -224,4 +224,4 @@ jobs:
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             "$SSH_USERNAME@$TARGET_HOST" \
-            "cd '$DEPLOY_PATH' && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml pull bitfinance-mcp-server && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps --no-build bitfinance-mcp-server"
+            "cd '$DEPLOY_PATH' && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml pull bitfinance-mcp-server && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps --no-build --wait --wait-timeout 120 bitfinance-mcp-server"

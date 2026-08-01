@@ -37,6 +37,9 @@ services:
     depends_on:
       bitfinance-db:
         condition: service_healthy
+      bitfinance-cache:
+        condition: service_healthy
+        required: false
     volumes:
       - api-logs:/app/logs
 

@@ -47,7 +47,8 @@ services:
       - BITFINANCE_API_VERSION=${MCP_API_VERSION:-1}
       - BITFINANCE_MCP_BEARER_TOKEN=${MCP_BEARER_TOKEN}
     depends_on:
-      - bitfinance-api
+      bitfinance-api:
+        condition: service_healthy
     networks:
       - bitfinance-network
     logging:

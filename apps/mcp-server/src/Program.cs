@@ -2,6 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using BitFinance.MCP.Configuration;
+using BitFinance.MCP.Extensions;
 using BitFinance.MCP.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
@@ -45,6 +46,7 @@ if (string.IsNullOrWhiteSpace(mcpBearerToken))
 
 var bitFinanceOptions = BitFinanceOptions.FromConfiguration(builder.Configuration);
 builder.Services.AddSingleton(bitFinanceOptions);
+builder.Services.AddMcpHealthChecks(bitFinanceOptions);
 builder.Services.AddHttpClient(BitFinanceApiClient.ClientName, client =>
 {
     client.BaseAddress = bitFinanceOptions.ApiBaseUrl;
@@ -64,7 +66,7 @@ builder.Services
 
 var app = builder.Build();
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+app.MapMcpHealthChecks();
 
 app.UseWhen(
     context => context.Request.Path.StartsWithSegments("/mcp"),
