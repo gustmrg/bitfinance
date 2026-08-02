@@ -1,5 +1,6 @@
 using System.Text.Json;
 using BitFinance.API.Services.Interfaces;
+using BitFinance.API.Observability;
 using BitFinance.API.Settings;
 using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
@@ -13,6 +14,7 @@ public sealed class NotificationDispatcher(
     ApplicationDbContext dbContext,
     IEmailSender emailSender,
     IOptions<NotificationOptions> options,
+    OutboxTelemetry telemetry,
     ILogger<NotificationDispatcher> logger)
 {
     private const int BatchSize = 50;
@@ -22,10 +24,16 @@ public sealed class NotificationDispatcher(
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
     {
-        foreach (var messageId in await ClaimOutboxAsync(cancellationToken))
+        await telemetry.TryRefreshBacklogAsync(dbContext, cancellationToken);
+
+        var messageIds = await ClaimOutboxAsync(cancellationToken);
+        telemetry.RecordFetched(messageIds.Count);
+        foreach (var messageId in messageIds)
             await ProcessOutboxMessageAsync(messageId, cancellationToken);
 
-        foreach (var deliveryId in await ClaimDeliveriesAsync(cancellationToken))
+        var deliveryIds = await ClaimDeliveriesAsync(cancellationToken);
+        telemetry.RecordFetched(deliveryIds.Count);
+        foreach (var deliveryId in deliveryIds)
             await ProcessDeliveryAsync(deliveryId, cancellationToken);
     }
 
@@ -88,6 +96,7 @@ public sealed class NotificationDispatcher(
                 message.ProcessedAt = DateTime.UtcNow;
                 message.LockedUntil = null;
                 await dbContext.SaveChangesAsync(cancellationToken);
+                telemetry.RecordDelivered();
                 return;
             }
 
@@ -134,10 +143,11 @@ public sealed class NotificationDispatcher(
             message.LockedUntil = null;
             message.LastError = null;
             await dbContext.SaveChangesAsync(cancellationToken);
+            telemetry.RecordDelivered();
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "Notification outbox message {MessageId} failed", messageId);
+            logger.LogError(exception, "Notification outbox message processing failed");
             dbContext.ChangeTracker.Clear();
             message = await dbContext.NotificationOutboxMessages.FirstAsync(item => item.Id == messageId, cancellationToken);
             message.Attempts++;
@@ -145,9 +155,15 @@ public sealed class NotificationDispatcher(
             message.LastError = $"{exception.GetType().Name}: notification dispatch failed";
             var nextAttempt = NotificationRetryPolicy.GetNextAttemptAt(message.Attempts, DateTime.UtcNow);
             if (nextAttempt is null)
+            {
                 message.ProcessedAt = DateTime.UtcNow;
+                telemetry.RecordTerminalFailure();
+            }
             else
+            {
                 message.NextAttemptAt = nextAttempt.Value;
+                telemetry.RecordRescheduled();
+            }
             await dbContext.SaveChangesAsync(cancellationToken);
         }
         finally
@@ -239,35 +255,53 @@ public sealed class NotificationDispatcher(
                 delivery.SentAt = DateTime.UtcNow;
                 delivery.LockedUntil = null;
                 delivery.LastError = null;
+                telemetry.RecordDelivered();
             }
             else
             {
-                ScheduleDeliveryRetry(delivery, result.Error ?? "Email provider rejected the request.");
+                RecordDeliveryRetry(ScheduleDeliveryRetry(
+                    delivery,
+                    result.Error ?? "Email provider rejected the request."));
             }
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "Notification delivery {DeliveryId} failed", deliveryId);
-            ScheduleDeliveryRetry(delivery, $"{exception.GetType().Name}: email delivery failed");
+            logger.LogError(exception, "Notification delivery failed");
+            RecordDeliveryRetry(ScheduleDeliveryRetry(
+                delivery,
+                $"{exception.GetType().Name}: email delivery failed"));
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
         dbContext.ChangeTracker.Clear();
     }
 
-    private static void ScheduleDeliveryRetry(NotificationDelivery delivery, string error)
+    private static bool ScheduleDeliveryRetry(NotificationDelivery delivery, string error)
     {
         delivery.Attempts++;
         delivery.LockedUntil = null;
         delivery.LastError = error.Length > 2000 ? error[..2000] : error;
         var nextAttempt = NotificationRetryPolicy.GetNextAttemptAt(delivery.Attempts, DateTime.UtcNow);
         if (nextAttempt is null)
+        {
             delivery.Status = NotificationDeliveryStatus.Failed;
+            return true;
+        }
         else
         {
             delivery.Status = NotificationDeliveryStatus.Pending;
             delivery.NextAttemptAt = nextAttempt.Value;
         }
+
+        return false;
+    }
+
+    private void RecordDeliveryRetry(bool terminalFailure)
+    {
+        if (terminalFailure)
+            telemetry.RecordTerminalFailure();
+        else
+            telemetry.RecordRescheduled();
     }
 
     private static bool IsBillType(NotificationType type) => type is

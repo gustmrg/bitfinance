@@ -27,6 +27,7 @@ public static class ObservabilityExtensions
             {
                 tracing
                     .SetSampler(new ParentBasedSampler(new TraceIdRatioBasedSampler(settings.TraceSamplingRatio)))
+                    .AddSource(BitFinanceMcpTelemetry.ActivitySourceName)
                     .AddProcessor(new TelemetryPrivacyProcessor())
                     .AddAspNetCoreInstrumentation(options =>
                     {
@@ -48,6 +49,7 @@ public static class ObservabilityExtensions
             .WithMetrics(metrics =>
             {
                 metrics
+                    .AddMeter(BitFinanceMcpTelemetry.MeterName)
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation();

@@ -3,6 +3,7 @@ using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 using BitFinance.Data.Repositories.Interfaces;
 using BitFinance.Data.Contexts;
+using BitFinance.API.Observability;
 using Microsoft.EntityFrameworkCore;
 
 namespace BitFinance.API.Services;
@@ -29,10 +30,16 @@ public class BillStatusWorkerService : BackgroundService
 
             try
             {
-                await GenerateScheduledBills();
-                await UpdateUpcomingBills();
-                await UpdateDueBills();
-                await EnqueueBillReminders();
+                await WorkerTelemetry.RunCycleAsync(
+                    WorkerTelemetry.BillStatus,
+                    async _ =>
+                    {
+                        await GenerateScheduledBills();
+                        await UpdateUpcomingBills();
+                        await UpdateDueBills();
+                        await EnqueueBillReminders();
+                    },
+                    stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using BitFinance.MCP.Configuration;
 using BitFinance.MCP.Extensions;
+using BitFinance.MCP.Observability;
 using BitFinance.MCP.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
@@ -62,6 +63,10 @@ builder.Services
     .WithHttpTransport(options =>
     {
         options.Stateless = true;
+    })
+    .WithRequestFilters(filters =>
+    {
+        filters.AddCallToolFilter(McpToolTelemetryFilter.Create());
     })
     .WithToolsFromAssembly();
 
