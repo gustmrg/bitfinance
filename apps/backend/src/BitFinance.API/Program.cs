@@ -3,6 +3,7 @@ using BitFinance.Data.Contexts;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+var isMigration = args.Contains("--migrate", StringComparer.OrdinalIgnoreCase);
 
 builder.AddAzureKeyVault();
 
@@ -14,10 +15,11 @@ builder.Services.AddCaching(builder.Configuration);
 builder.Services.AddBitFinanceHealthChecks(builder.Configuration);
 builder.Services.AddApiDocumentation();
 builder.AddSafeLogging();
+builder.AddBitFinanceObservability(disableExport: isMigration);
 
 var app = builder.Build();
 
-if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
+if (isMigration)
 {
     await using var scope = app.Services.CreateAsyncScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

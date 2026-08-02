@@ -37,6 +37,7 @@ else
         options.UseUtcTimestamp = true;
     });
 }
+builder.AddBitFinanceObservability();
 
 var mcpBearerToken = builder.Configuration["BITFINANCE_MCP_BEARER_TOKEN"];
 if (string.IsNullOrWhiteSpace(mcpBearerToken))
