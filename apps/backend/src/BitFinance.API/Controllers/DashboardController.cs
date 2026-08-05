@@ -103,7 +103,7 @@ public class DashboardController : ControllerBase
             Status = x.Status,
             AmountDue = x.AmountDue,
             CreatedAt = x.CreatedAt,
-            DueDate = new DateTimeOffset(x.DueDate, TimeOnly.MinValue, TimeSpan.Zero),
+            DueDate = x.DueDate,
         }).ToList();
 
         var response = new UpcomingBillsResponse(models);
