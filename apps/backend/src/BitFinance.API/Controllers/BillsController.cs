@@ -95,7 +95,7 @@ public class BillsController : ControllerBase
             if (currentBillCount >= entitlement.MaxBillsPerMonth)
                 return StatusCode(403, new { error = $"Monthly bill limit of {entitlement.MaxBillsPerMonth} reached." });
 
-            var dueDate = DateOnly.FromDateTime(request.DueDate.ToUniversalTime());
+            var dueDate = organization.GetLocalDate(request.DueDate);
 
             if (request.Frequency is null)
             {
@@ -209,8 +209,15 @@ public class BillsController : ControllerBase
                 if (statuses.Count == 0) statuses = null;
             }
 
+            var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+            DateOnly? fromDate = from.HasValue
+                ? organization?.GetLocalDate(from.Value) ?? DateOnly.FromDateTime(from.Value)
+                : null;
+            DateOnly? toDate = to.HasValue
+                ? organization?.GetLocalDate(to.Value) ?? DateOnly.FromDateTime(to.Value)
+                : null;
             var (bills, totalRecords) = await _billsRepository.GetAllByOrganizationAsync(
-                organizationId, page, pageSize, from, to, statuses, description);
+                organizationId, page, pageSize, fromDate, toDate, statuses, description);
             var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
 
             var billsDto = bills.Select(MapGetBillResponse)
@@ -283,6 +290,7 @@ public class BillsController : ControllerBase
 
             var bill = await _context.Bills
                 .Include(b => b.BillSeries)
+                .Include(b => b.Organization)
                 .FirstOrDefaultAsync(b => b.Id == billId);
 
             if (bill is null)
@@ -295,7 +303,7 @@ public class BillsController : ControllerBase
                 bill.Notes = NormalizeNotes(request.Notes);
             bill.Category = category;
             bill.Status = status;
-            bill.DueDate = DateOnly.FromDateTime(request.DueDate.ToUniversalTime());
+            bill.DueDate = bill.Organization.GetLocalDate(request.DueDate);
             bill.PaymentDate = request.PaymentDate?.ToUniversalTime();
             bill.AmountDue = request.AmountDue;
             bill.AmountPaid = request.AmountPaid;
