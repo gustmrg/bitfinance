@@ -1,6 +1,7 @@
 using BitFinance.Cli.Configuration;
 using BitFinance.Cli.Errors;
 using BitFinance.Cli.Output;
+using BitFinance.Cli.Services;
 using System.CommandLine;
 
 namespace BitFinance.Cli;
@@ -11,14 +12,21 @@ public sealed class CliApplication
     private readonly RootCommand _rootCommand;
     private readonly CliOutputWriter _output;
 
-    public CliApplication(IEnvironmentVariables environment, TextWriter standardOutput, TextWriter standardError)
+    public CliApplication(
+        IEnvironmentVariables environment,
+        TextWriter standardOutput,
+        TextWriter standardError,
+        IBitFinanceApiClientFactory? apiClientFactory = null)
     {
         ArgumentNullException.ThrowIfNull(environment);
         ArgumentNullException.ThrowIfNull(standardOutput);
         ArgumentNullException.ThrowIfNull(standardError);
 
         _output = new CliOutputWriter(standardOutput, standardError);
-        Services = new CliServices(environment, _output);
+        Services = new CliServices(
+            environment,
+            _output,
+            apiClientFactory ?? new BitFinanceApiClientFactory());
         _rootCommand = CliCommandFactory.Create(Services);
     }
 
@@ -58,6 +66,12 @@ public sealed class CliApplication
             _output.WriteError(exception.Error);
             return exception.ExitCode;
         }
+        catch (BitFinanceApiException exception)
+        {
+            var authenticationFailure = exception.StatusCode is 401 or 403;
+            _output.WriteError(CliError.Api(exception.StatusCode, exception.Details, authenticationFailure));
+            return authenticationFailure ? ExitCodes.AuthenticationFailure : ExitCodes.ApiFailure;
+        }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             _output.WriteError(CliError.Cancelled());
@@ -81,4 +95,7 @@ public sealed class CliApplication
     }
 }
 
-public sealed record CliServices(IEnvironmentVariables Environment, CliOutputWriter Output);
+public sealed record CliServices(
+    IEnvironmentVariables Environment,
+    CliOutputWriter Output,
+    IBitFinanceApiClientFactory ApiClientFactory);

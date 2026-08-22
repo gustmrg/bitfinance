@@ -20,11 +20,19 @@ public sealed class CliOutputWriter
 
     public TextWriter StandardError { get; }
 
-    public void WriteSuccess<T>(T value, OutputFormat format)
+    public void WriteSuccess<T>(T value, OutputFormat format, TableData? table = null)
     {
         if (format == OutputFormat.Table)
         {
-            WriteTable(JsonSerializer.SerializeToElement(value, JsonOptions));
+            if (table is not null)
+            {
+                WriteRows(table.Headers.ToArray(), table.Rows.Select(row => row.ToArray()).ToArray());
+            }
+            else
+            {
+                WriteTable(JsonSerializer.SerializeToElement(value, JsonOptions));
+            }
+
             return;
         }
 
@@ -90,6 +98,12 @@ public sealed class CliOutputWriter
 
     private void WriteRows(string[] headers, string[][] rows)
     {
+        if (rows.Length == 0)
+        {
+            StandardOutput.WriteLine("(no results)");
+            return;
+        }
+
         var widths = headers.Select(header => header.Length).ToArray();
         foreach (var row in rows)
         {

@@ -15,4 +15,7 @@ public sealed class CliException : Exception
 
     public static CliException Configuration(string message) =>
         new(CliError.Configuration(message), ExitCodes.InvalidInput);
+
+    public static CliException InvalidArguments(string message) =>
+        new(CliError.InvalidArguments(message), ExitCodes.InvalidInput);
 }
