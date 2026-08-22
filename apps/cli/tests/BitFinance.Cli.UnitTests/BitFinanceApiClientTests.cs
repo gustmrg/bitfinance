@@ -1,4 +1,5 @@
 using BitFinance.Cli.Configuration;
+using BitFinance.Cli.Models;
 using BitFinance.Cli.Services;
 using System.Net;
 using System.Net.Http.Headers;
@@ -159,6 +160,130 @@ public sealed class BitFinanceApiClientTests
         Assert.DoesNotContain("test-token", exception.ToString());
     }
 
+    [Fact]
+    public async Task BillMutations_UseExpectedMethodsRoutesAndJsonBodies()
+    {
+        var organizationId = Guid.NewGuid();
+        var billId = Guid.NewGuid();
+        var seriesId = Guid.NewGuid();
+        var handler = new RecordingHandler(request => request.Method == HttpMethod.Delete
+            || request.RequestUri!.AbsolutePath.EndsWith("/stop")
+                ? new HttpResponseMessage(HttpStatusCode.NoContent)
+                : request.Method == HttpMethod.Post
+                    ? JsonResponse(HttpStatusCode.Created, $$"""{"id":"{{billId}}"}""")
+                    : JsonResponse(
+                        HttpStatusCode.OK,
+                        $$"""{"id":"{{billId}}","dueDate":"2026-09-10T00:00:00Z"}"""));
+        var client = CreateClient(handler);
+
+        await client.CreateBillAsync(
+            organizationId,
+            new CreateBillRequest(
+                "Rent", "Housing", "Upcoming", DateTimeOffset.Parse("2026-09-10T00:00:00Z"),
+                null, 1500m, null, BillFrequency.Monthly, null, "Monthly rent"));
+        await client.UpdateBillAsync(
+            organizationId,
+            billId,
+            new UpdateBillRequest(
+                "Rent", "Housing", "Paid", DateTimeOffset.Parse("2026-09-10T00:00:00Z"),
+                DateTimeOffset.Parse("2026-09-08T00:00:00Z"), 1500m, 1500m, string.Empty));
+        await client.DeleteBillAsync(organizationId, billId);
+        await client.StopBillSeriesAsync(organizationId, seriesId);
+
+        Assert.Equal(HttpMethod.Post, handler.Requests[0].Method);
+        Assert.Equal($"/api/v1/organizations/{organizationId}/bills", handler.Requests[0].Uri.AbsolutePath);
+        Assert.Contains("\"frequency\":\"Monthly\"", handler.Requests[0].Body);
+        Assert.Contains("\"notes\":\"Monthly rent\"", handler.Requests[0].Body);
+        Assert.Equal(HttpMethod.Patch, handler.Requests[1].Method);
+        Assert.Contains("\"notes\":\"\"", handler.Requests[1].Body);
+        Assert.Equal(HttpMethod.Delete, handler.Requests[2].Method);
+        Assert.Equal($"/api/v1/organizations/{organizationId}/bills/{billId}", handler.Requests[2].Uri.AbsolutePath);
+        Assert.Equal(
+            $"/api/v1/organizations/{organizationId}/bills/series/{seriesId}/stop",
+            handler.Requests[3].Uri.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task ExpenseMutationsAndCurrentUser_UseExpectedRoutesAndBodies()
+    {
+        var organizationId = Guid.NewGuid();
+        var expenseId = Guid.NewGuid();
+        var handler = new RecordingHandler(request => request.RequestUri!.AbsolutePath.EndsWith("identity/me")
+            ? JsonResponse(HttpStatusCode.OK, """{"id":"user-123"}""")
+            : JsonResponse(
+                request.Method == HttpMethod.Post ? HttpStatusCode.Created : HttpStatusCode.OK,
+                $$"""{"id":"{{expenseId}}","occurredAt":"2026-08-20T12:00:00Z"}"""));
+        var client = CreateClient(handler);
+
+        var currentUser = await client.GetCurrentUserAsync();
+        await client.CreateExpenseAsync(
+            organizationId,
+            new CreateExpenseRequest(
+                "Lunch", "Food", 42.5m, "Paid", null, currentUser.Id, null, "Pix"));
+        await client.UpdateExpenseAsync(
+            organizationId,
+            expenseId,
+            new UpdateExpenseRequest(
+                "Lunch", "Food", 45m, "Paid", DateTimeOffset.Parse("2026-08-20T12:00:00Z"),
+                string.Empty, string.Empty));
+
+        Assert.Equal("/api/v1/identity/me", handler.Requests[0].Uri.AbsolutePath);
+        Assert.Equal(HttpMethod.Post, handler.Requests[1].Method);
+        Assert.Contains("\"createdBy\":\"user-123\"", handler.Requests[1].Body);
+        Assert.Contains("\"paymentMethod\":\"Pix\"", handler.Requests[1].Body);
+        Assert.Equal(HttpMethod.Patch, handler.Requests[2].Method);
+        Assert.Contains("\"paymentMethod\":\"\"", handler.Requests[2].Body);
+    }
+
+    [Fact]
+    public async Task DocumentOperations_SendMultipartAndExpectedRoutes()
+    {
+        var organizationId = Guid.NewGuid();
+        var billId = Guid.NewGuid();
+        var expenseId = Guid.NewGuid();
+        var documentId = Guid.NewGuid();
+        var handler = new RecordingHandler(request => request.Method == HttpMethod.Delete
+            ? new HttpResponseMessage(HttpStatusCode.NoContent)
+            : request.Method == HttpMethod.Post
+                ? JsonResponse(
+                    HttpStatusCode.OK,
+                    $$"""{"id":"{{documentId}}","fileName":"receipt.pdf"}""")
+                : JsonResponse(
+                    HttpStatusCode.OK,
+                    """{"url":"https://files.example/receipt","fileName":"receipt.pdf","contentType":"application/pdf","expiresAt":"2026-08-22T12:00:00Z"}"""));
+        var client = CreateClient(handler);
+
+        await client.UploadBillDocumentAsync(
+            organizationId,
+            billId,
+            new MemoryStream([1, 2, 3]),
+            "receipt.pdf",
+            "application/pdf",
+            "Receipt");
+        await client.GetBillDocumentDownloadUrlAsync(organizationId, billId, documentId);
+        await client.DeleteBillDocumentAsync(organizationId, billId, documentId);
+        await client.UploadExpenseDocumentAsync(
+            organizationId,
+            expenseId,
+            new MemoryStream([4, 5, 6]),
+            "receipt.pdf",
+            "application/pdf",
+            "Receipt");
+        await client.GetExpenseDocumentDownloadUrlAsync(organizationId, expenseId, documentId);
+        await client.DeleteExpenseDocumentAsync(organizationId, expenseId, documentId);
+
+        Assert.Contains("name=File", handler.Requests[0].Body);
+        Assert.Contains("filename=receipt.pdf", handler.Requests[0].Body);
+        Assert.Contains("name=FileCategory", handler.Requests[0].Body);
+        Assert.Equal(
+            $"/api/v1/organizations/{organizationId}/bills/{billId}/documents/{documentId}/download-url",
+            handler.Requests[1].Uri.AbsolutePath);
+        Assert.Equal(HttpMethod.Delete, handler.Requests[2].Method);
+        Assert.Contains($"/expenses/{expenseId}/documents", handler.Requests[3].Uri.AbsolutePath);
+        Assert.EndsWith($"/{documentId}/download-url", handler.Requests[4].Uri.AbsolutePath);
+        Assert.Equal(HttpMethod.Delete, handler.Requests[5].Method);
+    }
+
     private static BitFinanceApiClient CreateClient(RecordingHandler handler, string apiVersion = "1")
     {
         var httpClient = new HttpClient(handler)
@@ -182,20 +307,25 @@ public sealed class BitFinanceApiClientTests
     {
         public List<RecordedRequest> Requests { get; } = [];
 
-        protected override Task<HttpResponseMessage> SendAsync(
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
+            var body = request.Content is null
+                ? string.Empty
+                : await request.Content.ReadAsStringAsync(cancellationToken);
             Requests.Add(new RecordedRequest(
                 request.Method,
                 request.RequestUri!,
-                request.Headers.Authorization));
-            return Task.FromResult(responseFactory(request));
+                request.Headers.Authorization,
+                body));
+            return responseFactory(request);
         }
     }
 
     private sealed record RecordedRequest(
         HttpMethod Method,
         Uri Uri,
-        AuthenticationHeaderValue? Authorization);
+        AuthenticationHeaderValue? Authorization,
+        string Body);
 }

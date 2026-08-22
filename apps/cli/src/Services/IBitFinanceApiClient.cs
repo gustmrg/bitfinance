@@ -4,6 +4,8 @@ namespace BitFinance.Cli.Services;
 
 public interface IBitFinanceApiClient
 {
+    Task<CurrentUserResponse> GetCurrentUserAsync(CancellationToken cancellationToken = default);
+
     Task<List<OrganizationSummaryResponse>> ListOrganizationsAsync(CancellationToken cancellationToken = default);
 
     Task<OrganizationDetailsResponse> GetOrganizationAsync(
@@ -33,6 +35,48 @@ public interface IBitFinanceApiClient
         Guid billId,
         CancellationToken cancellationToken = default);
 
+    Task<BillResponse> CreateBillAsync(
+        Guid organizationId,
+        CreateBillRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<UpdateBillResponse> UpdateBillAsync(
+        Guid organizationId,
+        Guid billId,
+        UpdateBillRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteBillAsync(
+        Guid organizationId,
+        Guid billId,
+        CancellationToken cancellationToken = default);
+
+    Task StopBillSeriesAsync(
+        Guid organizationId,
+        Guid seriesId,
+        CancellationToken cancellationToken = default);
+
+    Task<UploadDocumentResponse> UploadBillDocumentAsync(
+        Guid organizationId,
+        Guid billId,
+        Stream content,
+        string fileName,
+        string contentType,
+        string fileCategory,
+        CancellationToken cancellationToken = default);
+
+    Task<DocumentDownloadUrlResponse> GetBillDocumentDownloadUrlAsync(
+        Guid organizationId,
+        Guid billId,
+        Guid documentId,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteBillDocumentAsync(
+        Guid organizationId,
+        Guid billId,
+        Guid documentId,
+        CancellationToken cancellationToken = default);
+
     Task<ExpensePageResponse> ListExpensesAsync(
         Guid organizationId,
         int page,
@@ -47,5 +91,37 @@ public interface IBitFinanceApiClient
     Task<ExpenseResponse> GetExpenseAsync(
         Guid organizationId,
         Guid expenseId,
+        CancellationToken cancellationToken = default);
+
+    Task<ExpenseResponse> CreateExpenseAsync(
+        Guid organizationId,
+        CreateExpenseRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<ExpenseResponse> UpdateExpenseAsync(
+        Guid organizationId,
+        Guid expenseId,
+        UpdateExpenseRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<UploadDocumentResponse> UploadExpenseDocumentAsync(
+        Guid organizationId,
+        Guid expenseId,
+        Stream content,
+        string fileName,
+        string contentType,
+        string fileCategory,
+        CancellationToken cancellationToken = default);
+
+    Task<DocumentDownloadUrlResponse> GetExpenseDocumentDownloadUrlAsync(
+        Guid organizationId,
+        Guid expenseId,
+        Guid documentId,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteExpenseDocumentAsync(
+        Guid organizationId,
+        Guid expenseId,
+        Guid documentId,
         CancellationToken cancellationToken = default);
 }

@@ -20,6 +20,7 @@ public static class CliCommandFactory
         var rootCommand = new RootCommand("Agent-oriented command-line client for BitFinance.");
         rootCommand.Options.Add(outputOption);
         ReadCommands.AddTo(rootCommand, services, outputOption);
+        MutationCommands.AddTo(rootCommand, services, outputOption);
 
         return rootCommand;
     }

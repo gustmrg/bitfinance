@@ -192,7 +192,7 @@ public sealed class ReadCommandTests
         }
     }
 
-    private sealed class FakeApiClient : IBitFinanceApiClient
+    private sealed class FakeApiClient : BitFinanceApiClientStub
     {
         public List<OrganizationSummaryResponse> Organizations { get; init; } = [];
         public Exception? ListOrganizationsException { get; init; }
@@ -200,28 +200,28 @@ public sealed class ReadCommandTests
         public ExpenseListCall? ExpenseListRequest { get; private set; }
         public ExpensePageResponse ExpensePage { get; init; } = new();
 
-        public Task<List<OrganizationSummaryResponse>> ListOrganizationsAsync(
+        public override Task<List<OrganizationSummaryResponse>> ListOrganizationsAsync(
             CancellationToken cancellationToken = default) =>
             ListOrganizationsException is null
                 ? Task.FromResult(Organizations)
                 : Task.FromException<List<OrganizationSummaryResponse>>(ListOrganizationsException);
 
-        public Task<OrganizationDetailsResponse> GetOrganizationAsync(
+        public override Task<OrganizationDetailsResponse> GetOrganizationAsync(
             Guid organizationId,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(new OrganizationDetailsResponse { Id = organizationId });
 
-        public Task<UpcomingBillsResponse> GetUpcomingBillsAsync(
+        public override Task<UpcomingBillsResponse> GetUpcomingBillsAsync(
             Guid organizationId,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(new UpcomingBillsResponse());
 
-        public Task<RecentExpensesResponse> GetRecentExpensesAsync(
+        public override Task<RecentExpensesResponse> GetRecentExpensesAsync(
             Guid organizationId,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(new RecentExpensesResponse());
 
-        public Task<PagedResponse<BillResponse>> ListBillsAsync(
+        public override Task<PagedResponse<BillResponse>> ListBillsAsync(
             Guid organizationId,
             int page,
             int pageSize,
@@ -242,13 +242,13 @@ public sealed class ReadCommandTests
             return Task.FromResult(new PagedResponse<BillResponse>());
         }
 
-        public Task<BillResponse> GetBillAsync(
+        public override Task<BillResponse> GetBillAsync(
             Guid organizationId,
             Guid billId,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(new BillResponse { Id = billId });
 
-        public Task<ExpensePageResponse> ListExpensesAsync(
+        public override Task<ExpensePageResponse> ListExpensesAsync(
             Guid organizationId,
             int page,
             int pageSize,
@@ -271,7 +271,7 @@ public sealed class ReadCommandTests
             return Task.FromResult(ExpensePage);
         }
 
-        public Task<ExpenseResponse> GetExpenseAsync(
+        public override Task<ExpenseResponse> GetExpenseAsync(
             Guid organizationId,
             Guid expenseId,
             CancellationToken cancellationToken = default) =>
