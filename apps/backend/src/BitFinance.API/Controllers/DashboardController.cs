@@ -49,7 +49,10 @@ public class DashboardController : ControllerBase
         var (effectiveFrom, effectiveTo) = GetEffectiveDateRange(organization, from, to);
         var monthlyBudget = organization?.Budget?.Amount;
         var spentThisMonth = await _expensesService.GetTotalAmountAsync(organizationId, effectiveFrom, effectiveTo);
-        var upcomingBillsSummary = await _billsService.GetUpcomingBillsSummaryAsync(organizationId, effectiveFrom, effectiveTo);
+        var upcomingBillsSummary = await _billsService.GetUpcomingBillsSummaryAsync(
+            organizationId,
+            GetLocalDate(organization, effectiveFrom),
+            GetLocalDate(organization, effectiveTo));
         var remainingBudget = monthlyBudget.HasValue
             ? Math.Max(monthlyBudget.Value - spentThisMonth, 0M)
             : (decimal?)null;
@@ -85,8 +88,12 @@ public class DashboardController : ControllerBase
             return BadRequest("The from date must be earlier than or equal to the to date.");
         }
 
-        var (effectiveFrom, effectiveTo) = await GetEffectiveDateRangeAsync(organizationId, from, to);
-        var bills = await _billsService.GetUpcomingBills(organizationId, effectiveFrom, effectiveTo);
+        var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+        var (effectiveFrom, effectiveTo) = GetEffectiveDateRange(organization, from, to);
+        var bills = await _billsService.GetUpcomingBills(
+            organizationId,
+            GetLocalDate(organization, effectiveFrom),
+            GetLocalDate(organization, effectiveTo));
 
         var models = bills.Select(x => new DashboardBillResponse
         {
@@ -96,7 +103,7 @@ public class DashboardController : ControllerBase
             Status = x.Status,
             AmountDue = x.AmountDue,
             CreatedAt = x.CreatedAt,
-            DueDate = new DateTimeOffset(x.DueDate, TimeOnly.MinValue, TimeSpan.Zero),
+            DueDate = x.DueDate,
         }).ToList();
 
         var response = new UpcomingBillsResponse(models);
@@ -170,5 +177,13 @@ public class DashboardController : ControllerBase
     private static bool IsInvalidDateRange(DateTime? from, DateTime? to)
     {
         return from.HasValue && to.HasValue && from.Value > to.Value;
+    }
+
+    private static DateOnly? GetLocalDate(Organization? organization, DateTime? dateTime)
+    {
+        if (!dateTime.HasValue)
+            return null;
+
+        return organization?.GetLocalDate(dateTime.Value) ?? DateOnly.FromDateTime(dateTime.Value);
     }
 }

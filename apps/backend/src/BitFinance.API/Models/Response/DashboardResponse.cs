@@ -31,7 +31,7 @@ public class DashboardBillResponse
 
     public DateTimeOffset CreatedAt { get; set; }
 
-    public DateTimeOffset DueDate { get; set; }
+    public DateOnly DueDate { get; set; }
 }
 
 public class DashboardExpenseResponse

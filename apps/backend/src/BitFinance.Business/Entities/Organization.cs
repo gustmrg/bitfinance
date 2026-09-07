@@ -93,7 +93,24 @@ public class Organization
     /// <returns>The current local <see cref="DateOnly"/> for this organization.</returns>
     public DateOnly GetCurrentLocalDate()
     {
-        return DateOnly.FromDateTime(GetCurrentLocalTime());
+        return GetLocalDate(DateTime.UtcNow);
+    }
+
+    /// <summary>
+    /// Returns the calendar date represented by a timestamp in the organization's time zone.
+    /// Date-only values, represented by an unspecified <see cref="DateTime"/>, are preserved.
+    /// </summary>
+    public DateOnly GetLocalDate(DateTime dateTime)
+    {
+        if (dateTime.Kind == DateTimeKind.Unspecified)
+            return DateOnly.FromDateTime(dateTime);
+
+        var utcDateTime = dateTime.Kind == DateTimeKind.Utc
+            ? dateTime
+            : dateTime.ToUniversalTime();
+        var localDateTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, ResolveTimeZone(TimeZoneId));
+
+        return DateOnly.FromDateTime(localDateTime);
     }
 
     /// <summary>

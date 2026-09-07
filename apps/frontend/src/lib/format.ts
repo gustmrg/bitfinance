@@ -1,6 +1,15 @@
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const dateOnlyPattern = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function parseDate(value: string) {
+  const dateOnly = dateOnlyPattern.exec(value);
+  if (!dateOnly) return new Date(value);
+
+  return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
+}
+
 export function formatCurrency(value: number, locale = "en-US") {
   return new Intl.NumberFormat(locale, {
     style: "currency",
@@ -11,25 +20,25 @@ export function formatCurrency(value: number, locale = "en-US") {
 
 export function formatDate(value: string, locale = "en-US") {
   return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(
-    new Date(value),
+    parseDate(value),
   );
 }
 
 export function formatLongDate(value: string, locale = "en-US") {
   return new Intl.DateTimeFormat(locale, { month: "long", day: "numeric", year: "numeric" }).format(
-    new Date(value),
+    parseDate(value),
   );
 }
 
 export function relativeDate(value: string, locale = "en-US") {
-  return formatDistanceToNow(new Date(value), {
+  return formatDistanceToNow(parseDate(value), {
     addSuffix: true,
     locale: locale === "pt-BR" ? ptBR : undefined,
   });
 }
 
 export function inputDate(value: string) {
-  return format(new Date(value), "yyyy-MM-dd");
+  return format(parseDate(value), "yyyy-MM-dd");
 }
 
 export function initials(firstName: string, lastName: string) {

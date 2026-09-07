@@ -42,7 +42,7 @@ public class BillsRepository : IBillsRepository
     }
     
     public async Task<(List<Bill> Items, int TotalCount)> GetAllByOrganizationAsync(Guid organizationId, int page, int pageSize,
-        DateTime? startDate = null, DateTime? endDate = null,
+        DateOnly? startDate = null, DateOnly? endDate = null,
         List<BillStatus>? statuses = null, string? description = null)
     {
         var query = _dbContext.Set<Bill>()
@@ -51,12 +51,12 @@ public class BillsRepository : IBillsRepository
 
         if (startDate.HasValue)
         {
-            query = query.Where(b => b.DueDate >= DateOnly.FromDateTime(startDate.Value));
+            query = query.Where(b => b.DueDate >= startDate.Value);
         }
 
         if (endDate.HasValue)
         {
-            query = query.Where(b => b.DueDate <= DateOnly.FromDateTime(endDate.Value));
+            query = query.Where(b => b.DueDate <= endDate.Value);
         }
 
         if (statuses is { Count: > 0 })
@@ -151,7 +151,7 @@ public class BillsRepository : IBillsRepository
         return bill;
     }
 
-    public async Task<List<Bill>> GetUpcomingBills(Guid organizationId, DateTime? startDate = null, DateTime? endDate = null)
+    public async Task<List<Bill>> GetUpcomingBills(Guid organizationId, DateOnly? startDate = null, DateOnly? endDate = null)
     {
         return await BuildUpcomingBillsQuery(organizationId, startDate, endDate)
             .OrderBy(x => x.DueDate)
@@ -160,8 +160,8 @@ public class BillsRepository : IBillsRepository
 
     public async Task<(decimal TotalAmount, int Count)> GetUpcomingBillsSummaryAsync(
         Guid organizationId,
-        DateTime? startDate = null,
-        DateTime? endDate = null)
+        DateOnly? startDate = null,
+        DateOnly? endDate = null)
     {
         var summary = await BuildUpcomingBillsQuery(organizationId, startDate, endDate)
             .GroupBy(_ => 1)
@@ -260,7 +260,7 @@ public class BillsRepository : IBillsRepository
         return Convert.ToBoolean(_configuration.GetSection("AppSettings:CacheEnabled").Value);
     }
 
-    private IQueryable<Bill> BuildUpcomingBillsQuery(Guid organizationId, DateTime? startDate, DateTime? endDate)
+    private IQueryable<Bill> BuildUpcomingBillsQuery(Guid organizationId, DateOnly? startDate, DateOnly? endDate)
     {
         var query = _dbContext.Set<Bill>()
             .AsNoTracking()
@@ -268,14 +268,12 @@ public class BillsRepository : IBillsRepository
 
         if (startDate.HasValue)
         {
-            var from = DateOnly.FromDateTime(startDate.Value);
-            query = query.Where(x => x.DueDate >= from);
+            query = query.Where(x => x.DueDate >= startDate.Value);
         }
 
         if (endDate.HasValue)
         {
-            var to = DateOnly.FromDateTime(endDate.Value);
-            query = query.Where(x => x.DueDate <= to);
+            query = query.Where(x => x.DueDate <= endDate.Value);
         }
 
         return query;
