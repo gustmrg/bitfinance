@@ -90,6 +90,40 @@ public sealed class WorkerTelemetryTests
         await action.Should().NotThrowAsync();
     }
 
+    [Fact]
+    public async Task HandledCycleFailures_AreNotReportedAsSuccess()
+    {
+        var measurements = new ConcurrentBag<CapturedMeasurement>();
+        using var listener = CreateMeterListener(measurements);
+        await WorkerTelemetry.RunCycleAsync(WorkerTelemetry.BillStatus, _ =>
+        {
+            WorkerTelemetry.MarkCurrentCycleFailed();
+            WorkerTelemetry.MarkCurrentCycleFailed();
+            return Task.CompletedTask;
+        }, default);
+        var runs = measurements.Where(item => item.Name == "bitfinance.worker.run.count").ToList();
+        Assert.Single(runs);
+        Assert.Equal("error", runs[0].Tag("outcome"));
+        Assert.Single(measurements, item => item.Name == "bitfinance.worker.failure.count");
+    }
+
+    [Fact]
+    public async Task FailedBacklogQueries_AlsoRespectOneMinuteBackoff()
+    {
+        using var telemetry = new OutboxTelemetry();
+        var queries = 0;
+        var start = DateTimeOffset.UtcNow;
+        Task<OutboxBacklogSnapshot> Query(CancellationToken _)
+        {
+            queries++;
+            throw new InvalidOperationException("unavailable");
+        }
+        await telemetry.TryRefreshBacklogAsync(Query, start);
+        await telemetry.TryRefreshBacklogAsync(Query, start.AddSeconds(15));
+        await telemetry.TryRefreshBacklogAsync(Query, start.AddMinutes(1));
+        Assert.Equal(2, queries);
+    }
+
     private static MeterListener CreateMeterListener(ConcurrentBag<CapturedMeasurement> measurements)
     {
         var listener = new MeterListener();

@@ -47,6 +47,7 @@ public class BillStatusWorkerService : BackgroundService
             }
             catch (Exception ex)
             {
+                WorkerTelemetry.MarkCurrentCycleFailed();
                 _logger.LogError(ex, "Unhandled error in bill status worker cycle");
             }
             
@@ -135,6 +136,7 @@ public class BillStatusWorkerService : BackgroundService
                 }
                 catch (Exception ex)
                 {
+                    WorkerTelemetry.MarkCurrentCycleFailed();
                     _logger.LogError(ex, "Error while generating scheduled bills for an organization.");
                 }
             }
@@ -147,6 +149,7 @@ public class BillStatusWorkerService : BackgroundService
         }
         catch (Exception ex)
         {
+            WorkerTelemetry.MarkCurrentCycleFailed();
             _logger.LogError(ex, "Error occurred while generating scheduled bills");
         }
     }
@@ -171,6 +174,7 @@ public class BillStatusWorkerService : BackgroundService
                 }
                 catch (Exception ex)
                 {
+                    WorkerTelemetry.MarkCurrentCycleFailed();
                     _logger.LogError(ex, "Error while processing upcoming bills for an organization.");
                 }
             }
@@ -180,6 +184,7 @@ public class BillStatusWorkerService : BackgroundService
         }
         catch (Exception ex)
         {
+            WorkerTelemetry.MarkCurrentCycleFailed();
             _logger.LogError(ex, "Error occurred while updating upcoming bills");
         }
     }
@@ -204,6 +209,7 @@ public class BillStatusWorkerService : BackgroundService
                 }
                 catch (Exception ex)
                 {
+                    WorkerTelemetry.MarkCurrentCycleFailed();
                     _logger.LogError(ex, "Error while processing due bills for an organization.");
                 }
             }
@@ -213,6 +219,7 @@ public class BillStatusWorkerService : BackgroundService
         }
         catch (Exception ex)
         {
+            WorkerTelemetry.MarkCurrentCycleFailed();
             _logger.LogError(ex, "Error occurred while updating due bills");
         }
     }

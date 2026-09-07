@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using BitFinance.MCP.Observability;
+using ModelContextProtocol.Protocol;
 using Xunit;
 
 namespace BitFinance.MCP.UnitTests;
@@ -61,7 +62,9 @@ public sealed class McpToolTelemetryFilterTests
         using var meterListener = CreateMeterListener(measurements);
         var toolName = McpToolTelemetryFilter.ToolNames.First();
         var failure = new InvalidOperationException("tool failed");
-        var cancellation = new OperationCanceledException();
+        using var cancellationSource = new CancellationTokenSource();
+        cancellationSource.Cancel();
+        var cancellation = new OperationCanceledException(cancellationSource.Token);
 
         var thrownFailure = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await McpToolTelemetryFilter.ExecuteAsync<string>(
@@ -70,7 +73,7 @@ public sealed class McpToolTelemetryFilterTests
         var thrownCancellation = await Assert.ThrowsAsync<OperationCanceledException>(async () =>
             await McpToolTelemetryFilter.ExecuteAsync<string>(
                 toolName,
-                () => ValueTask.FromException<string>(cancellation)));
+                () => ValueTask.FromException<string>(cancellation), cancellationSource.Token));
 
         Assert.Same(failure, thrownFailure);
         Assert.Same(cancellation, thrownCancellation);
@@ -110,6 +113,24 @@ public sealed class McpToolTelemetryFilterTests
             .ToList();
         Assert.Equal(["unknown|success"], series);
         Assert.DoesNotContain(values, value => Serialize(measurements, []).Contains(value, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ProtocolErrorResultsAndDependencyTimeouts_CountAsErrors()
+    {
+        var measurements = new ConcurrentBag<CapturedMeasurement>();
+        using var listener = CreateMeterListener(measurements);
+        var result = new CallToolResult { IsError = true, Content = [] };
+        var returned = await McpToolTelemetryFilter.ExecuteAsync(
+            McpToolTelemetryFilter.ToolNames.First(), () => ValueTask.FromResult(result));
+        Assert.Same(result, returned);
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await McpToolTelemetryFilter.ExecuteAsync<string>(
+                McpToolTelemetryFilter.ToolNames.First(),
+                () => ValueTask.FromException<string>(new TaskCanceledException("dependency timeout"))));
+        var invocations = measurements.Where(item => item.Name == "bitfinance.mcp.tool.invocation.count").ToList();
+        Assert.Equal(2, invocations.Count);
+        Assert.All(invocations, item => Assert.Equal("error", item.Tag("outcome")));
     }
 
     private static MeterListener CreateMeterListener(ConcurrentBag<CapturedMeasurement> measurements)

@@ -1,0 +1,1082 @@
+[
+  {
+    "uid": "bf-api-ready",
+    "title": "API readiness failing",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "2m",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "critical"
+    },
+    "annotations": {
+      "summary": "API private readiness probe has been failing for two minutes.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "1 - max(probe_success{job=\"bitfinance/bitfinance-alloy\",deployment_environment_name=\"production\",service=\"bitfinance-api\"})",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-mcp-ready",
+    "title": "MCP readiness failing",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "2m",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "critical"
+    },
+    "annotations": {
+      "summary": "MCP private readiness probe has been failing for two minutes.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "1 - max(probe_success{job=\"bitfinance/bitfinance-alloy\",deployment_environment_name=\"production\",service=\"bitfinance-mcp\"})",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-api-errors",
+    "title": "API HTTP errors",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "2m",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "high"
+    },
+    "annotations": {
+      "summary": "API 5xx exceeds 5% with at least five requests in five minutes.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "(sum(increase(http_server_request_duration_seconds_count{http_route!~\"/health.*\",job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"production\",http_response_status_code=~\"5..\"}[5m])) / sum(increase(http_server_request_duration_seconds_count{http_route!~\"/health.*\",job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"production\"}[5m])) > bool 0.05) and (sum(increase(http_server_request_duration_seconds_count{http_route!~\"/health.*\",job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"production\"}[5m])) >= 5)",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-api-latency",
+    "title": "API p95 latency",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "10m",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "medium"
+    },
+    "annotations": {
+      "summary": "API p95 exceeds one second with sufficient traffic.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "(histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{http_route!~\"/health.*\",job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"production\"}[5m]))) > bool 1) and (sum(increase(http_server_request_duration_seconds_count{http_route!~\"/health.*\",job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"production\"}[5m])) >= 5)",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-mcp-errors",
+    "title": "MCP tool errors",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "2m",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "high"
+    },
+    "annotations": {
+      "summary": "MCP tool errors exceed 5% with at least five calls in ten minutes.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "(sum(increase(bitfinance_mcp_tool_invocation_count_total{job=\"bitfinance/bitfinance-mcp\",deployment_environment_name=\"production\",outcome=\"error\"}[10m])) / sum(increase(bitfinance_mcp_tool_invocation_count_total{job=\"bitfinance/bitfinance-mcp\",deployment_environment_name=\"production\"}[10m])) > bool 0.05) and (sum(increase(bitfinance_mcp_tool_invocation_count_total{job=\"bitfinance/bitfinance-mcp\",deployment_environment_name=\"production\"}[10m])) >= 5)",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-worker-failures",
+    "title": "Worker failures",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "2m",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "high"
+    },
+    "annotations": {
+      "summary": "A worker failed during the last hour. Check the worker outcome and correlated logs.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "sum by (worker_name) (increase(bitfinance_worker_failure_count_total{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"production\"}[1h])) > bool 0",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-late-bill-status",
+    "title": "Worker delayed: bill_status",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "5m",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "high"
+    },
+    "annotations": {
+      "summary": "Worker bill_status has not completed successfully within its expected interval. Zero means no success since startup.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "time() - max(bitfinance_worker_last_success_seconds{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"production\",worker_name=\"bill_status\"}) > bool 7200",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-late-notification-dispatch",
+    "title": "Worker delayed: notification_dispatch",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "5m",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "high"
+    },
+    "annotations": {
+      "summary": "Worker notification_dispatch has not completed successfully within its expected interval. Zero means no success since startup.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "time() - max(bitfinance_worker_last_success_seconds{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"production\",worker_name=\"notification_dispatch\"}) > bool 300",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-late-refresh-token-cleanup",
+    "title": "Worker delayed: refresh_token_cleanup",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "5m",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "high"
+    },
+    "annotations": {
+      "summary": "Worker refresh_token_cleanup has not completed successfully within its expected interval. Zero means no success since startup.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "time() - max(bitfinance_worker_last_success_seconds{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"production\",worker_name=\"refresh_token_cleanup\"}) > bool 108000",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-outbox-age",
+    "title": "Notification outbox delayed",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "10m",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "high"
+    },
+    "annotations": {
+      "summary": "The oldest pending outbox message is more than five minutes old.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "max(bitfinance_notification_outbox_oldest_age_seconds{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"production\"}) > bool 300",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-outbox-growth",
+    "title": "Notification backlog growing",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "10m",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "high"
+    },
+    "annotations": {
+      "summary": "Pending notification backlog has been growing for ten minutes.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "sum(deriv(bitfinance_notification_outbox_backlog{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"production\"}[10m])) > bool 0",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-api-missing",
+    "title": "API telemetry absent",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "0s",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "medium"
+    },
+    "annotations": {
+      "summary": "API runtime telemetry has been absent for five minutes.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "absent_over_time(dotnet_process_memory_working_set_bytes{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"production\"}[5m])",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-mcp-missing",
+    "title": "MCP telemetry absent",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "0s",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "medium"
+    },
+    "annotations": {
+      "summary": "MCP runtime telemetry has been absent for five minutes.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "absent_over_time(dotnet_process_memory_working_set_bytes{job=\"bitfinance/bitfinance-mcp\",deployment_environment_name=\"production\"}[5m])",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-alloy-missing",
+    "title": "Collector telemetry absent",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "0s",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "high"
+    },
+    "annotations": {
+      "summary": "Collector self-monitoring has been absent for five minutes. Check host, Alloy and Cloud connectivity.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "absent_over_time(up{job=\"bitfinance/bitfinance-alloy\",deployment_environment_name=\"production\",service=\"bitfinance-alloy\"}[5m])",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "uid": "bf-alloy-export",
+    "title": "Collector export failures",
+    "ruleGroup": "bitfinance-operations",
+    "folderUID": "${FOLDER_UID}",
+    "condition": "B",
+    "for": "5m",
+    "noDataState": "OK",
+    "execErrState": "Error",
+    "labels": {
+      "application": "bitfinance",
+      "severity": "medium"
+    },
+    "annotations": {
+      "summary": "Alloy reports sustained export failures; inspect credentials, connectivity and queues.",
+      "runbook_url": "https://github.com/gustmrg/bitfinance/blob/main/apps/backend/observability/README.md"
+    },
+    "data": [
+      {
+        "refId": "A",
+        "relativeTimeRange": {
+          "from": 600,
+          "to": 0
+        },
+        "datasourceUid": "${PROMETHEUS_UID}",
+        "model": {
+          "refId": "A",
+          "expr": "sum(rate({__name__=~\"otelcol_exporter_send_failed_(spans|metric_points|log_records)_total\",job=\"bitfinance/bitfinance-alloy\",deployment_environment_name=\"production\"}[5m])) > bool 0",
+          "instant": true,
+          "range": false,
+          "intervalMs": 1000,
+          "maxDataPoints": 43200
+        }
+      },
+      {
+        "refId": "B",
+        "relativeTimeRange": {
+          "from": 0,
+          "to": 0
+        },
+        "datasourceUid": "__expr__",
+        "model": {
+          "refId": "B",
+          "type": "threshold",
+          "expression": "A",
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [
+                  0
+                ]
+              },
+              "operator": {
+                "type": "and"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "type": "query",
+              "query": {
+                "params": [
+                  "B"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

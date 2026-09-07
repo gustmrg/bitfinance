@@ -29,7 +29,17 @@ public static class WorkerTelemetry
         "bitfinance.worker.failure.count",
         unit: "{failure}",
         description: "Number of failed worker cycles.");
-    private static readonly ConcurrentDictionary<string, long> LastSuccess = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<string, long> LastSuccess =
+        new(WorkerNames.Select(name => new KeyValuePair<string, long>(name, 0)), StringComparer.Ordinal);
+    private static readonly AsyncLocal<CycleState?> CurrentCycle = new();
+
+    // Record recoverable errors without changing a worker's continue-on-error behavior.
+    public static void MarkCurrentCycleFailed()
+    {
+        if (CurrentCycle.Value is { } cycle) cycle.Failed = true;
+    }
+
+    private sealed class CycleState { public bool Failed { get; set; } }
     private static readonly ObservableGauge<long> LastSuccessGauge = BitFinanceTelemetry.Meter.CreateObservableGauge(
         "bitfinance.worker.last_success",
         ObserveLastSuccess,
@@ -47,6 +57,9 @@ public static class WorkerTelemetry
         }
         ArgumentNullException.ThrowIfNull(operation);
 
+        var previousCycle = CurrentCycle.Value;
+        var cycle = new CycleState();
+        CurrentCycle.Value = cycle;
         var startedAt = Stopwatch.GetTimestamp();
         var activity = StartActivitySafely(workerName);
         var outcome = "success";
@@ -55,7 +68,7 @@ public static class WorkerTelemetry
         {
             await operation(cancellationToken);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             outcome = "cancelled";
             throw;
@@ -68,6 +81,12 @@ public static class WorkerTelemetry
         }
         finally
         {
+            CurrentCycle.Value = previousCycle;
+            if (outcome == "success" && cycle.Failed)
+            {
+                outcome = "error";
+                SetErrorSafely(activity);
+            }
             CompleteActivitySafely(activity, outcome);
             RecordSafely(workerName, outcome, Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
         }

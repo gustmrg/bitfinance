@@ -117,14 +117,15 @@ public sealed class OutboxTelemetry : IDisposable
                 return;
             }
 
+            // Back off after failures too: observability must not hammer a failing DB.
+            _lastRefresh = now;
+            BacklogQueryCount++;
             var backlog = await query(cancellationToken);
 
             _backlog = backlog.Count;
             _oldestAgeSeconds = backlog.Oldest is { } oldest
                 ? Math.Max(0, (now.UtcDateTime - oldest).TotalSeconds)
                 : 0;
-            _lastRefresh = now;
-            BacklogQueryCount++;
         }
         finally
         {

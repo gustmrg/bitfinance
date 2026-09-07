@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using BitFinance.API.Observability;
 using Npgsql;
+using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -47,7 +48,7 @@ public static class ObservabilityExtensions
 
                 if (settings.ExportEnabled)
                 {
-                    tracing.AddOtlpExporter(options => ConfigureExporter(options, settings));
+                    tracing.AddOtlpExporter(options => ConfigureExporter(options, settings, "traces"));
                 }
             })
             .WithMetrics(metrics =>
@@ -57,24 +58,29 @@ public static class ObservabilityExtensions
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
+                    .AddView(_ => new MetricStreamConfiguration { TagKeys = MetricTagKeys })
                     .AddNpgsqlInstrumentation();
 
                 if (settings.ExportEnabled)
                 {
-                    metrics.AddOtlpExporter(options => ConfigureExporter(options, settings));
+                    metrics.AddOtlpExporter(options => ConfigureExporter(options, settings, "metrics"));
                 }
             });
 
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.SetResourceBuilder(resource);
-            logging.IncludeScopes = true;
+            // ASP.NET request scopes contain raw paths and user identifiers.
+            logging.IncludeScopes = false;
             logging.IncludeFormattedMessage = false;
             logging.ParseStateValues = true;
+            logging.AddProcessor(new LogPrivacyProcessor());
+            logging.AddProcessor(new SimpleLogRecordExportProcessor(
+                new SafeConsoleLogExporter(builder.Environment.IsDevelopment())));
 
             if (settings.ExportEnabled)
             {
-                logging.AddOtlpExporter(options => ConfigureExporter(options, settings));
+                logging.AddOtlpExporter(options => ConfigureExporter(options, settings, "logs"));
             }
         });
 
@@ -94,9 +100,9 @@ public static class ObservabilityExtensions
     public static bool IsHealthPath(PathString path) => IsHealthPath(path.Value);
 
     public static bool IsHealthPath(string? path) =>
-        string.Equals(path, "/health", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(path, "/health/live", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(path, "/health/ready", StringComparison.OrdinalIgnoreCase);
+        string.Equals(path?.TrimEnd('/'), "/health", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(path?.TrimEnd('/'), "/health/live", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(path?.TrimEnd('/'), "/health/ready", StringComparison.OrdinalIgnoreCase);
 
     private static ResolvedObservabilitySettings ResolveSettings(
         IConfiguration configuration,
@@ -108,7 +114,7 @@ public static class ObservabilityExtensions
             ? hostEnvironment.EnvironmentName.ToLowerInvariant()
             : options.Environment.Trim().ToLowerInvariant();
 
-        if (options.TraceSamplingRatio is < 0 or > 1)
+        if (!double.IsFinite(options.TraceSamplingRatio) || options.TraceSamplingRatio is < 0 or > 1)
         {
             throw new InvalidOperationException("Observability:TraceSamplingRatio must be between 0 and 1.");
         }
@@ -139,11 +145,24 @@ public static class ObservabilityExtensions
                 "OTEL_EXPORTER_OTLP_PROTOCOL must be 'grpc' or 'http/protobuf' when observability export is enabled.")
         };
 
+    private static readonly string[] MetricTagKeys =
+    [
+        "http.request.method", "http.response.status_code", "http.route",
+        "server.address", "server.port", "url.scheme", "network.protocol.version",
+        "error.type", "db.system.name", "state", "db.client.connection.state",
+        "dotnet.gc.heap.generation", "dotnet.gc.collection.generation",
+        "dotnet.gc.collection.reason", "dotnet.gc.collection.type",
+        "cpu.mode", "gc.heap.generation", "worker.name", "outcome", "mcp.tool.name"
+    ];
+
     private static void ConfigureExporter(
         OpenTelemetry.Exporter.OtlpExporterOptions exporter,
-        ResolvedObservabilitySettings settings)
+        ResolvedObservabilitySettings settings,
+        string signal)
     {
-        exporter.Endpoint = settings.Endpoint!;
+        exporter.Endpoint = settings.Protocol == OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf
+            ? new Uri($"{settings.Endpoint!.AbsoluteUri.TrimEnd('/')}/v1/{signal}")
+            : settings.Endpoint!;
         exporter.Protocol = settings.Protocol;
     }
 

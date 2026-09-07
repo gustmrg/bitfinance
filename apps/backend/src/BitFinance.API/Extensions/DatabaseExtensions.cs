@@ -17,7 +17,13 @@ public static class DatabaseExtensions
             throw new InvalidOperationException("Database connection string not found in configuration or Key Vault.");
         
         services.AddDbContext<ApplicationDbContext>(options => 
-            options.UseNpgsql(connectionString));
+            options.UseNpgsql(connectionString, npgsql => npgsql.ConfigureDataSource(dataSource =>
+            {
+                dataSource.Name = "bitfinance";
+                dataSource.ConfigureTracing(tracing => tracing
+                    .ConfigureCommandSpanNameProvider(_ => "postgresql.command")
+                    .ConfigureBatchSpanNameProvider(_ => "postgresql.batch"));
+            })));
 
         services.Configure<IdentityOptions>(options =>
         {

@@ -45,9 +45,17 @@ public static class McpToolTelemetryFilter
 
         try
         {
-            return await operation();
+            var result = await operation();
+            // The MCP SDK converts tool exceptions into protocol error results.
+            // Inspect only the flag, never arguments or response content.
+            if (result is CallToolResult { IsError: true })
+            {
+                outcome = "error";
+                SetErrorSafely(activity);
+            }
+            return result;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             outcome = "cancelled";
             throw;

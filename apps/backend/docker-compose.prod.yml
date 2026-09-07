@@ -19,6 +19,11 @@ services:
       - Notifications__ResendWebhookSecret=${RESEND_WEBHOOK_SECRET}
       - Notifications__FromAddress=${NOTIFICATIONS_FROM_ADDRESS}
       - Notifications__FrontendBaseUrl=${NOTIFICATIONS_FRONTEND_BASE_URL}
+      - Observability__Enabled=${OBSERVABILITY_ENABLED:-true}
+      - Observability__Environment=production
+      - Observability__TraceSamplingRatio=${OTEL_TRACE_SAMPLING_RATIO:-1.0}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://bitfinance-alloy:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
     deploy:
       resources:
         limits:
@@ -37,7 +42,7 @@ services:
     image: gustmrg/bitfinance-mcp-server:${MCP_IMAGE_TAG:-latest}
     restart: always
     ports:
-      - "${MCP_BIND_ADDRESS}:${MCP_PORT:-8090}:8090"
+      - "${MCP_BIND_ADDRESS:-127.0.0.1}:${MCP_PORT:-8090}:8090"
     environment:
       - ASPNETCORE_URLS=http://+:8090
       - BITFINANCE_API_BASE_URL=${MCP_API_BASE_URL:-http://bitfinance-api:8080}
@@ -46,11 +51,37 @@ services:
       - BITFINANCE_DEFAULT_ORGANIZATION_ID=${MCP_DEFAULT_ORGANIZATION_ID:-}
       - BITFINANCE_API_VERSION=${MCP_API_VERSION:-1}
       - BITFINANCE_MCP_BEARER_TOKEN=${MCP_BEARER_TOKEN}
+      - Observability__Enabled=${OBSERVABILITY_ENABLED:-true}
+      - Observability__Environment=production
+      - Observability__TraceSamplingRatio=${OTEL_TRACE_SAMPLING_RATIO:-1.0}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://bitfinance-alloy:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
     depends_on:
       bitfinance-api:
         condition: service_healthy
     networks:
       - bitfinance-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  bitfinance-alloy:
+    restart: always
+    environment:
+      - ALLOY_ENVIRONMENT=production
+      - GRAFANA_CLOUD_OTLP_ENDPOINT=${GRAFANA_CLOUD_OTLP_ENDPOINT:?GRAFANA_CLOUD_OTLP_ENDPOINT is required}
+      - GRAFANA_CLOUD_INSTANCE_ID=${GRAFANA_CLOUD_INSTANCE_ID:?GRAFANA_CLOUD_INSTANCE_ID is required}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY:?GRAFANA_CLOUD_API_KEY is required}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 192M
+        reservations:
+          cpus: '0.05'
+          memory: 64M
     logging:
       driver: "json-file"
       options:

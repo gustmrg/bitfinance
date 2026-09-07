@@ -52,7 +52,7 @@ public sealed class ObservabilityConfigurationTests
 
         attributes["service.name"].Should().Be("bitfinance-api");
         attributes["service.namespace"].Should().Be("bitfinance");
-        attributes["service.version"].Should().Be("1.12.0");
+        attributes["service.version"].Should().Be(typeof(ObservabilityExtensions).Assembly.GetName().Version!.ToString(3));
         attributes["deployment.environment.name"].Should().Be("test");
         attributes["service.instance.id"].Should().NotBeNull();
     }
