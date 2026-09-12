@@ -277,6 +277,8 @@ export const enUS = {
       notFound: "Bill not found.",
       detail: "Bill detail",
       amountDue: "Amount due",
+      paymentDate: "Payment date",
+      amountPaid: "Amount paid",
       stopFuture: "Stop future bills",
       futureStopped: "Future bills stopped",
       attachmentDescription: "Open a document in a new tab, or save a copy with download.",
@@ -520,6 +522,7 @@ export const enUS = {
       oneTime: "One time",
     },
     statuses: {
+      created: "Created",
       upcoming: "Upcoming",
       due: "Due",
       overdue: "Overdue",

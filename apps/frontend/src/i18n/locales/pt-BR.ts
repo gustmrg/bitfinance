@@ -277,6 +277,8 @@ export const ptBR = {
       notFound: "Conta não encontrada.",
       detail: "Detalhes da conta",
       amountDue: "Valor devido",
+      paymentDate: "Data de pagamento",
+      amountPaid: "Valor pago",
       stopFuture: "Parar contas futuras",
       futureStopped: "Contas futuras interrompidas",
       attachmentDescription: "Abra um documento em uma nova aba ou salve uma cópia com o download.",
@@ -520,6 +522,7 @@ export const ptBR = {
       oneTime: "Avulsa",
     },
     statuses: {
+      created: "Criada",
       upcoming: "Próxima",
       due: "Vence em breve",
       overdue: "Atrasada",
