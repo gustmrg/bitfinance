@@ -28,7 +28,7 @@ import {
   documentCategories,
   isAcceptedDocument,
 } from "@/lib/file-validation";
-import { categoryLabels } from "@/lib/finance-categories";
+import { categoryLabel } from "@/lib/finance-categories";
 import { BillModal } from "@/pages/bills/components/bill-modal";
 import { buildMarkPaidInput } from "@/pages/bills/mark-paid";
 
@@ -125,7 +125,7 @@ export function BillDetailsPage() {
       <PageHeader
         eyebrow={t("bills.detail")}
         title={bill.description}
-        description={`${t(categoryLabels[bill.category])} · ${formatLongDate(bill.dueDate, locale)}`}
+        description={`${t(categoryLabel(bill.category))} · ${formatLongDate(bill.dueDate, locale)}`}
         actions={
           <>
             <Button variant="secondary" onClick={() => setEditOpen(true)}>
@@ -164,7 +164,7 @@ export function BillDetailsPage() {
             </div>
             <div>
               <dt>{t("common.category")}</dt>
-              <dd>{t(categoryLabels[bill.category])}</dd>
+              <dd>{t(categoryLabel(bill.category))}</dd>
             </div>
             <div>
               <dt>{t("common.schedule")}</dt>

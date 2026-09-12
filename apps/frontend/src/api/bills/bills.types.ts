@@ -8,10 +8,12 @@ export type BillCategory =
   | "education"
   | "insurance"
   | "personal"
+  | "clothing"
+  | "debt"
+  | "savings"
+  | "entertainment"
   | "taxes"
   | "miscellaneous"
-  | "travel"
-  | "gifts"
   | "pets"
   | "services";
 export type BillStatus = "created" | "upcoming" | "due" | "overdue" | "paid" | "cancelled";
