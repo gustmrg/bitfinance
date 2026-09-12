@@ -6,6 +6,7 @@ import {
   Bill,
   BillCategory,
   BillFrequency,
+  BillInput,
   BillSeriesType,
   BillStatus,
 } from "@/api/bills/bills.types";
@@ -39,7 +40,7 @@ export function BillModal({
     const paid = selectedStatus === "paid";
     const paymentDateRaw = String(data.get("paymentDate") ?? "");
     const amountPaidRaw = String(data.get("amountPaid") ?? "").trim();
-    const input = {
+    const input: Omit<BillInput, "frequency" | "installments"> = {
       description: String(data.get("description") ?? ""),
       notes: String(data.get("notes") ?? ""),
       category: String(data.get("category") ?? "miscellaneous") as BillCategory,
@@ -53,11 +54,6 @@ export function BillModal({
           ? Number(data.get("amount") ?? 0)
           : Number(amountPaidRaw)
         : null,
-      frequency:
-        series === "one-time"
-          ? null
-          : (String(data.get("frequency") ?? "monthly") as BillFrequency),
-      installments: series === "installment" ? Number(data.get("installments") ?? 1) : null,
     };
     const done = () => {
       toast.success(bill ? t("bills.updated") : t("bills.created"));
@@ -69,10 +65,20 @@ export function BillModal({
         { onSuccess: done, onError: (error) => toast.error(error.message) },
       );
     else
-      mutations.create.mutate(input, {
-        onSuccess: done,
-        onError: (error) => toast.error(error.message),
-      });
+      mutations.create.mutate(
+        {
+          ...input,
+          frequency:
+            series === "one-time"
+              ? null
+              : (String(data.get("frequency") ?? "monthly") as BillFrequency),
+          installments: series === "installment" ? Number(data.get("installments") ?? 1) : null,
+        },
+        {
+          onSuccess: done,
+          onError: (error) => toast.error(error.message),
+        },
+      );
   };
   return (
     <Modal
@@ -173,6 +179,7 @@ export function BillModal({
                 name="frequency"
                 defaultValue="monthly"
                 options={[
+                  { value: "daily", label: t("bills.daily") },
                   { value: "weekly", label: t("bills.weekly") },
                   { value: "monthly", label: t("bills.monthly") },
                   { value: "annually", label: t("bills.annually") },

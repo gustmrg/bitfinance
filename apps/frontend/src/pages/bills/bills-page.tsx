@@ -161,9 +161,9 @@ export function BillsPage() {
             }}
             options={[
               { value: "all", label: t("bills.allStatuses") },
-              ...(["upcoming", "due", "overdue", "paid", "cancelled"] as BillStatus[]).map(
-                (value) => ({ value, label: t(`statuses.${value}`) }),
-              ),
+              ...(
+                ["created", "upcoming", "due", "overdue", "paid", "cancelled"] as BillStatus[]
+              ).map((value) => ({ value, label: t(`statuses.${value}`) })),
             ]}
           />
         </div>
