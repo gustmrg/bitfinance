@@ -244,7 +244,7 @@ export const enUS = {
       body: "Keep every commitment visible before it becomes urgent.",
       add: "Add bill",
       total: "Total scheduled",
-      due: "Due soon",
+      due: "To pay",
       paid: "Paid this month",
       search: "Search bills",
       empty: "No bills match these filters.",
