@@ -1,6 +1,12 @@
 import { authApi } from "../shared/client";
 import { normalizeApiError } from "../shared/errors";
-import type { Expense, ExpenseInput, ExpenseListFilters, ExpensePage } from "./expenses.types";
+import type {
+  Expense,
+  ExpenseBatchInput,
+  ExpenseInput,
+  ExpenseListFilters,
+  ExpensePage,
+} from "./expenses.types";
 import type { BillDocument } from "../bills/bills.types";
 
 type ExpenseWire = Omit<Expense, "category" | "status" | "paymentMethod" | "documents"> & {
@@ -66,6 +72,17 @@ export const expensesService = {
       );
     } catch (error) {
       throw normalizeApiError(error, "api.expenses.create");
+    }
+  },
+  async createBatchAsync(organizationId: string, input: ExpenseBatchInput): Promise<Expense[]> {
+    try {
+      const response = await authApi.post<{ data: ExpenseWire[] }>(
+        `/organizations/${organizationId}/expenses/batch`,
+        input,
+      );
+      return response.data.data.map(map);
+    } catch (error) {
+      throw normalizeApiError(error, "api.expenses.createBatch");
     }
   },
   async updateAsync(organizationId: string, expenseId: string, input: ExpenseInput) {

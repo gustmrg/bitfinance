@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { expensesService } from "@/api/expenses/expenses.service";
-import { ExpenseInput } from "@/api/expenses/expenses.types";
+import { ExpenseBatchInput, ExpenseInput } from "@/api/expenses/expenses.types";
 import { queryKeys } from "@/lib/query-keys";
 
 export function useExpenseMutations(organizationId: string | null) {
@@ -13,6 +13,11 @@ export function useExpenseMutations(organizationId: string | null) {
     create: useMutation({
       mutationFn: (input: ExpenseInput & { createdBy: string }) =>
         expensesService.createAsync(organizationId!, input),
+      onSuccess: invalidate,
+    }),
+    createBatch: useMutation({
+      mutationFn: (input: ExpenseBatchInput) =>
+        expensesService.createBatchAsync(organizationId!, input),
       onSuccess: invalidate,
     }),
     update: useMutation({
