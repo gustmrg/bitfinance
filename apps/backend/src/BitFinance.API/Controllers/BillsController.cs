@@ -189,6 +189,7 @@ public class BillsController : ControllerBase
     [EndpointDescription("Returns a paginated list of bills for the organization. Supports optional filtering by date range, status (comma-separated), and description (case-insensitive search).")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<GetBillResponse>>> GetBillsAsync(
         [FromRoute] Guid organizationId,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 100,
@@ -210,12 +211,13 @@ public class BillsController : ControllerBase
             }
 
             var organization = await _organizationsRepository.GetByIdAsync(organizationId);
-            DateOnly? fromDate = from.HasValue
-                ? organization?.GetLocalDate(from.Value) ?? DateOnly.FromDateTime(from.Value)
-                : null;
-            DateOnly? toDate = to.HasValue
-                ? organization?.GetLocalDate(to.Value) ?? DateOnly.FromDateTime(to.Value)
-                : null;
+            if (organization is null)
+            {
+                return NotFound();
+            }
+
+            DateOnly? fromDate = from.HasValue ? organization.GetLocalDate(from.Value) : null;
+            DateOnly? toDate = to.HasValue ? organization.GetLocalDate(to.Value) : null;
             var (bills, totalRecords) = await _billsRepository.GetAllByOrganizationAsync(
                 organizationId, page, pageSize, fromDate, toDate, statuses, description);
             var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);

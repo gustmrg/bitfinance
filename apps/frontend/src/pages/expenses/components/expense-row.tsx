@@ -4,7 +4,7 @@ import { ActionMenu } from "@/components/navigation/action-menu";
 import { DataIcon } from "@/components/ui/data-icon";
 import { StatusPill } from "@/components/ui/status-pill";
 import { formatCurrency, formatDate, relativeDate } from "@/lib/format";
-import { categoryLabels, paymentMethodLabels } from "@/lib/finance-categories";
+import { categoryLabel, paymentMethodLabels } from "@/lib/finance-categories";
 
 export function ExpenseRow({
   expense,
@@ -31,7 +31,7 @@ export function ExpenseRow({
       <span>
         <span className="type-label">
           <i className="tiny-dot tiny-dot--mint" />
-          {t(categoryLabels[expense.category])}
+          {t(categoryLabel(expense.category))}
         </span>
       </span>
       <span>

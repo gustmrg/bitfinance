@@ -28,7 +28,7 @@ import {
   documentCategories,
   isAcceptedDocument,
 } from "@/lib/file-validation";
-import { categoryLabels, paymentMethodLabels } from "@/lib/finance-categories";
+import { categoryLabel, paymentMethodLabels } from "@/lib/finance-categories";
 
 export function ExpenseDetailsPage() {
   const { t } = useTranslation();
@@ -93,7 +93,7 @@ export function ExpenseDetailsPage() {
       <PageHeader
         eyebrow={t("expenses.detail")}
         title={expense.description}
-        description={`${t(categoryLabels[expense.category])} · ${formatLongDate(expense.occurredAt, locale)}`}
+        description={`${t(categoryLabel(expense.category))} · ${formatLongDate(expense.occurredAt, locale)}`}
       />
       <div className="detail-grid">
         <section className="surface-card detail-card">
@@ -109,7 +109,7 @@ export function ExpenseDetailsPage() {
             </div>
             <div>
               <dt>{t("common.category")}</dt>
-              <dd>{t(categoryLabels[expense.category])}</dd>
+              <dd>{t(categoryLabel(expense.category))}</dd>
             </div>
             <div>
               <dt>{t("expenses.createdBy")}</dt>

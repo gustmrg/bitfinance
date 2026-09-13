@@ -23,6 +23,7 @@ import { useSelectedOrganization } from "@/hooks/use-selected-organization";
 import { isAcceptedDocument } from "@/lib/file-validation";
 import { BillModal } from "@/pages/bills/components/bill-modal";
 import { BillRow } from "@/pages/bills/components/bill-row";
+import { buildMarkPaidInput } from "@/pages/bills/mark-paid";
 
 export function BillsPage() {
   const { t } = useTranslation();
@@ -79,19 +80,7 @@ export function BillsPage() {
   };
   const markPaid = (bill: Bill) =>
     mutations.update.mutate(
-      {
-        id: bill.id,
-        input: {
-          description: bill.description,
-          notes: bill.notes ?? "",
-          category: bill.category,
-          status: "paid",
-          dueDate: bill.dueDate,
-          paymentDate: new Date().toISOString(),
-          amountDue: bill.amountDue,
-          amountPaid: bill.amountDue,
-        },
-      },
+      { id: bill.id, input: buildMarkPaidInput(bill) },
       {
         onSuccess: () => toast.success(t("bills.markedPaid")),
         onError: (error) => toast.error(error.message),
@@ -172,9 +161,9 @@ export function BillsPage() {
             }}
             options={[
               { value: "all", label: t("bills.allStatuses") },
-              ...(["upcoming", "due", "overdue", "paid", "cancelled"] as BillStatus[]).map(
-                (value) => ({ value, label: t(`statuses.${value}`) }),
-              ),
+              ...(
+                ["created", "upcoming", "due", "overdue", "paid", "cancelled"] as BillStatus[]
+              ).map((value) => ({ value, label: t(`statuses.${value}`) })),
             ]}
           />
         </div>

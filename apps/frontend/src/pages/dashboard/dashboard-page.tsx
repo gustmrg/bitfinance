@@ -27,7 +27,7 @@ import { useDashboardQueries } from "@/hooks/queries/use-dashboard-queries";
 import { useCurrentMonth } from "@/hooks/use-current-month";
 import { useLocale } from "@/hooks/use-locale";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
-import { categoryLabels } from "@/lib/finance-categories";
+import { categoryLabel } from "@/lib/finance-categories";
 import { CashflowTimeline, CategoryBar } from "@/pages/dashboard/components/dashboard-charts";
 import { categoryPercentage } from "@/pages/dashboard/dashboard-utils";
 
@@ -184,7 +184,7 @@ export function DashboardPage() {
                       <span>
                         <strong>{bill.description}</strong>
                         <small>
-                          {formatDate(bill.dueDate, locale)} · {t(categoryLabels[bill.category])}
+                          {formatDate(bill.dueDate, locale)} · {t(categoryLabel(bill.category))}
                         </small>
                       </span>
                       <span className="compact-row__amount">
@@ -236,7 +236,7 @@ export function DashboardPage() {
                     />
                     <CategoryBar
                       label={t("dashboard.personal")}
-                      value={categoryPercentage(recent, ["personal", "gifts"])}
+                      value={categoryPercentage(recent, ["personal"])}
                       color="amber"
                     />
                   </div>

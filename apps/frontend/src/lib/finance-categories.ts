@@ -11,13 +11,19 @@ export const categoryLabels: Record<string, string> = {
   education: "types.education",
   insurance: "types.insurance",
   personal: "types.personal",
+  clothing: "types.clothing",
+  debt: "types.debt",
+  savings: "types.savings",
+  entertainment: "types.entertainment",
   taxes: "types.taxes",
   miscellaneous: "types.miscellaneous",
-  travel: "types.travel",
-  gifts: "types.gifts",
   pets: "types.pets",
   services: "types.services",
 };
+
+export function categoryLabel(category: string): string {
+  return categoryLabels[category] ?? "types.miscellaneous";
+}
 
 export const categories = Object.keys(categoryLabels) as [BillCategory, ...BillCategory[]];
 

@@ -6,7 +6,7 @@ import { DataIcon } from "@/components/ui/data-icon";
 import { StatusPill } from "@/components/ui/status-pill";
 import { formatCurrency, formatDate, relativeDate } from "@/lib/format";
 import { acceptedDocumentTypes } from "@/lib/file-validation";
-import { categoryLabels } from "@/lib/finance-categories";
+import { categoryLabel } from "@/lib/finance-categories";
 
 export function BillRow({
   bill,
@@ -33,7 +33,7 @@ export function BillRow({
         <span>
           <strong>{bill.description}</strong>
           <small>
-            {t(categoryLabels[bill.category])}
+            {t(categoryLabel(bill.category))}
             {bill.billSeriesType === "installment" &&
               ` · ${t("common.installmentCount", { current: bill.occurrenceNumber, total: bill.totalOccurrences })}`}
           </small>

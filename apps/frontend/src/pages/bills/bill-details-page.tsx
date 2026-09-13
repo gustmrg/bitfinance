@@ -28,7 +28,9 @@ import {
   documentCategories,
   isAcceptedDocument,
 } from "@/lib/file-validation";
-import { categoryLabels } from "@/lib/finance-categories";
+import { categoryLabel } from "@/lib/finance-categories";
+import { BillModal } from "@/pages/bills/components/bill-modal";
+import { buildMarkPaidInput } from "@/pages/bills/mark-paid";
 
 export function BillDetailsPage() {
   const { t } = useTranslation();
@@ -42,6 +44,7 @@ export function BillDetailsPage() {
   const [fileCategory, setFileCategory] = useState<FileCategory>("Other");
   const [stopSeriesConfirm, setStopSeriesConfirm] = useState(false);
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const bill = query.data;
   const upload = async (files: File[]) => {
     if (!attachmentUploads.available || files.some((file) => !isAcceptedDocument(file))) {
@@ -122,36 +125,29 @@ export function BillDetailsPage() {
       <PageHeader
         eyebrow={t("bills.detail")}
         title={bill.description}
-        description={`${t(categoryLabels[bill.category])} · ${formatLongDate(bill.dueDate, locale)}`}
+        description={`${t(categoryLabel(bill.category))} · ${formatLongDate(bill.dueDate, locale)}`}
         actions={
-          bill.status !== "paid" ? (
-            <Button
-              disabled={mutations.update.isPending}
-              onClick={() =>
-                mutations.update.mutate(
-                  {
-                    id: bill.id,
-                    input: {
-                      description: bill.description,
-                      notes: bill.notes ?? "",
-                      category: bill.category,
-                      status: "paid",
-                      dueDate: bill.dueDate,
-                      paymentDate: new Date().toISOString(),
-                      amountDue: bill.amountDue,
-                      amountPaid: bill.amountDue,
-                    },
-                  },
-                  {
-                    onSuccess: () => toast.success(t("bills.markedPaid")),
-                    onError: (error) => toast.error(error.message),
-                  },
-                )
-              }
-            >
-              {t("bills.markPaid")} <Check size={16} />
+          <>
+            <Button variant="secondary" onClick={() => setEditOpen(true)}>
+              {t("bills.edit")}
             </Button>
-          ) : null
+            {bill.status !== "paid" && (
+              <Button
+                disabled={mutations.update.isPending}
+                onClick={() =>
+                  mutations.update.mutate(
+                    { id: bill.id, input: buildMarkPaidInput(bill) },
+                    {
+                      onSuccess: () => toast.success(t("bills.markedPaid")),
+                      onError: (error) => toast.error(error.message),
+                    },
+                  )
+                }
+              >
+                {t("bills.markPaid")} <Check size={16} />
+              </Button>
+            )}
+          </>
         }
       />
       <div className="detail-grid">
@@ -168,7 +164,7 @@ export function BillDetailsPage() {
             </div>
             <div>
               <dt>{t("common.category")}</dt>
-              <dd>{t(categoryLabels[bill.category])}</dd>
+              <dd>{t(categoryLabel(bill.category))}</dd>
             </div>
             <div>
               <dt>{t("common.schedule")}</dt>
@@ -275,6 +271,9 @@ export function BillDetailsPage() {
           )}
         </section>
       </div>
+      {editOpen && organizationId && (
+        <BillModal bill={bill} organizationId={organizationId} onClose={() => setEditOpen(false)} />
+      )}
       {stopSeriesConfirm && bill.billSeriesId && (
         <ConfirmDialog
           title={t("common.stopFutureBillsConfirm")}
