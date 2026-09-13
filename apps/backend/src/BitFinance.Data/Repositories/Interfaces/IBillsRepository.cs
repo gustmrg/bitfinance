@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 
@@ -13,6 +14,7 @@ public interface IBillsRepository : IRepository<Bill, Guid>
     Task<List<Bill>> GetUpcomingBills(Guid organizationId, DateOnly? startDate = null, DateOnly? endDate = null);
     Task<(decimal TotalAmount, int Count)> GetUpcomingBillsSummaryAsync(Guid organizationId, DateOnly? startDate = null,
         DateOnly? endDate = null);
+    Task UpdateAsync(Bill bill, params Expression<Func<Bill, object>>[] properties);
     Task UpdateRangeAsync(List<Bill> bills);
     Task<int> GetMonthlyCountByOrganizationAsync(Guid organizationId, DateTime monthStartUtc, DateTime monthEndUtc);
     Task<int> GetOneTimeMonthlyCountByOrganizationAsync(Guid organizationId, DateTime monthStartUtc, DateTime monthEndUtc);

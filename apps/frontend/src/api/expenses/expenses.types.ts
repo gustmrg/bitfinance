@@ -41,3 +41,8 @@ export interface ExpenseInput {
   occurredAt: string;
   createdBy?: string;
 }
+
+export interface ExpenseBatchInput {
+  createdBy: string;
+  items: Omit<ExpenseInput, "createdBy">[];
+}

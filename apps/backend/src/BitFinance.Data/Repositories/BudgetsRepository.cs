@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using BitFinance.Business.Entities;
 using BitFinance.Data.Contexts;
 using BitFinance.Data.Repositories.Interfaces;
@@ -46,20 +45,6 @@ public class BudgetsRepository : IBudgetsRepository
     public async Task UpdateAsync(Budget budget)
     {
         _dbContext.Budgets.Update(budget);
-        await _dbContext.SaveChangesAsync();
-    }
-
-    public async Task UpdateAsync(Budget budget, params Expression<Func<Budget, object>>[] properties)
-    {
-        _dbContext.Attach(budget);
-
-        var entry = _dbContext.Entry(budget);
-
-        foreach (var property in properties)
-        {
-            entry.Property(property).IsModified = true;
-        }
-
         await _dbContext.SaveChangesAsync();
     }
 

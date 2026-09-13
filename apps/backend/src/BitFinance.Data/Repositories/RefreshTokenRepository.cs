@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using BitFinance.Business.Entities;
 using BitFinance.Data.Contexts;
 using BitFinance.Data.Repositories.Interfaces;
@@ -88,16 +87,6 @@ public class RefreshTokenRepository : IRefreshTokenRepository
     public async Task UpdateAsync(RefreshToken entity)
     {
         _dbContext.RefreshTokens.Update(entity);
-        await _dbContext.SaveChangesAsync();
-    }
-
-    public async Task UpdateAsync(RefreshToken entity, params Expression<Func<RefreshToken, object>>[] properties)
-    {
-        var entry = _dbContext.Entry(entity);
-        foreach (var property in properties)
-        {
-            entry.Property(property).IsModified = true;
-        }
         await _dbContext.SaveChangesAsync();
     }
 

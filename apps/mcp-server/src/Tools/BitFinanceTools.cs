@@ -241,6 +241,22 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
+    [Description("Creates multiple expenses in a single atomic batch: either all are created or none are. Maximum 100 items per batch. Valid categories: " + ExpenseCategories + ". Valid statuses: " + ExpenseStatuses + ". Uses the authenticated agent user as createdBy when createdBy is omitted.")]
+    public async Task<CreateExpensesBatchResponse> bitfinance_create_expenses(
+        [Description("The expenses to create. Each item requires description, category, amount and status; occurredAt (ISO 8601), notes (up to 2000 characters) and paymentMethod (" + PaymentMethods + ") are optional.")] IReadOnlyList<CreateExpenseBatchItemRequest> items,
+        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional BitFinance user ID to set as creator for all expenses in the batch. Defaults to the authenticated agent user.")] string? createdBy = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedCreatedBy = string.IsNullOrWhiteSpace(createdBy)
+            ? await _tokenProvider.GetAgentUserIdAsync(cancellationToken)
+            : createdBy;
+
+        var request = new CreateExpensesBatchRequest(resolvedCreatedBy, items);
+        return await _apiClient.CreateExpensesBatchAsync(request, organizationId, cancellationToken);
+    }
+
+    [McpServerTool]
     [Description("Updates an expense. Omit notes or paymentMethod to preserve the current value; pass an empty string to clear. Valid categories: " + ExpenseCategories + ". Valid statuses: " + ExpenseStatuses + ". Valid payment methods: " + PaymentMethods + ".")]
     public Task<ExpenseResponse> bitfinance_update_expense(
         [Description("Expense ID.")] Guid expenseId,

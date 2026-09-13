@@ -21,6 +21,7 @@ public interface IBitFinanceApiClient
     Task<ExpensePageResponse> ListExpensesAsync(Guid? organizationId = null, int page = 1, int pageSize = 20, DateTimeOffset? from = null, DateTimeOffset? to = null, string? status = null, string? description = null, string? paymentMethod = null, CancellationToken cancellationToken = default);
     Task<ExpenseResponse> GetExpenseAsync(Guid expenseId, Guid? organizationId = null, CancellationToken cancellationToken = default);
     Task<ExpenseResponse> CreateExpenseAsync(CreateExpenseRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default);
+    Task<CreateExpensesBatchResponse> CreateExpensesBatchAsync(CreateExpensesBatchRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default);
     Task<ExpenseResponse> UpdateExpenseAsync(Guid expenseId, UpdateExpenseRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default);
     Task<UploadDocumentResponse> UploadExpenseDocumentAsync(Guid expenseId, string fileName, string base64Content, string fileCategory, Guid? organizationId = null, string? contentType = null, CancellationToken cancellationToken = default);
     Task<DocumentDownloadUrlResponse> GetExpenseDocumentDownloadUrlAsync(Guid expenseId, Guid documentId, Guid? organizationId = null, CancellationToken cancellationToken = default);
