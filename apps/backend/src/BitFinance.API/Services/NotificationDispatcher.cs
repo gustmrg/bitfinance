@@ -27,12 +27,12 @@ public sealed class NotificationDispatcher(
         await telemetry.TryRefreshBacklogAsync(dbContext, cancellationToken);
 
         var messageIds = await ClaimOutboxAsync(cancellationToken);
-        telemetry.RecordFetched(messageIds.Count);
+        telemetry.RecordOutboxFetched(messageIds.Count);
         foreach (var messageId in messageIds)
             await ProcessOutboxMessageAsync(messageId, cancellationToken);
 
         var deliveryIds = await ClaimDeliveriesAsync(cancellationToken);
-        telemetry.RecordFetched(deliveryIds.Count);
+        telemetry.RecordDeliveryFetched(deliveryIds.Count);
         foreach (var deliveryId in deliveryIds)
             await ProcessDeliveryAsync(deliveryId, cancellationToken);
     }
@@ -96,7 +96,7 @@ public sealed class NotificationDispatcher(
                 message.ProcessedAt = DateTime.UtcNow;
                 message.LockedUntil = null;
                 await dbContext.SaveChangesAsync(cancellationToken);
-                telemetry.RecordDelivered();
+                telemetry.RecordOutboxDelivered();
                 return;
             }
 
@@ -143,7 +143,7 @@ public sealed class NotificationDispatcher(
             message.LockedUntil = null;
             message.LastError = null;
             await dbContext.SaveChangesAsync(cancellationToken);
-            telemetry.RecordDelivered();
+            telemetry.RecordOutboxDelivered();
         }
         catch (Exception exception)
         {
@@ -157,12 +157,12 @@ public sealed class NotificationDispatcher(
             if (nextAttempt is null)
             {
                 message.ProcessedAt = DateTime.UtcNow;
-                telemetry.RecordTerminalFailure();
+                telemetry.RecordOutboxTerminalFailure();
             }
             else
             {
                 message.NextAttemptAt = nextAttempt.Value;
-                telemetry.RecordRescheduled();
+                telemetry.RecordOutboxRescheduled();
             }
             await dbContext.SaveChangesAsync(cancellationToken);
         }
@@ -255,7 +255,7 @@ public sealed class NotificationDispatcher(
                 delivery.SentAt = DateTime.UtcNow;
                 delivery.LockedUntil = null;
                 delivery.LastError = null;
-                telemetry.RecordDelivered();
+                telemetry.RecordDeliveryDelivered();
             }
             else
             {
@@ -299,9 +299,9 @@ public sealed class NotificationDispatcher(
     private void RecordDeliveryRetry(bool terminalFailure)
     {
         if (terminalFailure)
-            telemetry.RecordTerminalFailure();
+            telemetry.RecordDeliveryTerminalFailure();
         else
-            telemetry.RecordRescheduled();
+            telemetry.RecordDeliveryRescheduled();
     }
 
     private static bool IsBillType(NotificationType type) => type is

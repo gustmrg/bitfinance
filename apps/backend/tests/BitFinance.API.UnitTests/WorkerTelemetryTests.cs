@@ -124,6 +124,56 @@ public sealed class WorkerTelemetryTests
         Assert.Equal(2, queries);
     }
 
+    [Fact]
+    public async Task DeliveryRetriesAndTerminalFailures_MarkWorkerCycleFailedAndEmitDeliveryOutcomes()
+    {
+        var measurements = new ConcurrentBag<CapturedMeasurement>();
+        using var listener = CreateMeterListener(measurements);
+        using var telemetry = new OutboxTelemetry();
+
+        await WorkerTelemetry.RunCycleAsync(WorkerTelemetry.NotificationDispatch, _ =>
+        {
+            telemetry.RecordDeliveryRescheduled();
+            telemetry.RecordDeliveryTerminalFailure();
+            return Task.CompletedTask;
+        }, default);
+
+        var run = Assert.Single(measurements, item =>
+            item.Name == "bitfinance.worker.run.count"
+            && item.Tag("worker.name") == WorkerTelemetry.NotificationDispatch);
+        Assert.Equal("error", run.Tag("outcome"));
+
+        var deliveryFailures = measurements.Where(item =>
+            item.Name == "bitfinance.notification.dispatch.item.count"
+            && item.Tag("stage") == "delivery").ToList();
+        Assert.Equal(2, deliveryFailures.Count);
+        Assert.Contains(deliveryFailures, item => item.Tag("outcome") == "rescheduled");
+        Assert.Contains(deliveryFailures, item => item.Tag("outcome") == "terminal_failure");
+    }
+
+    [Fact]
+    public async Task BacklogTelemetry_TracksPendingDeliveriesAndTheirOldestAge()
+    {
+        var measurements = new ConcurrentBag<CapturedMeasurement>();
+        using var listener = CreateMeterListener(measurements);
+        using var telemetry = new OutboxTelemetry();
+        var now = new DateTimeOffset(2026, 8, 1, 12, 0, 0, TimeSpan.Zero);
+
+        await telemetry.RefreshBacklogAsync(
+            _ => Task.FromResult(new OutboxBacklogSnapshot(
+                2,
+                now.UtcDateTime.AddMinutes(-1),
+                3,
+                now.UtcDateTime.AddMinutes(-4))),
+            now);
+        listener.RecordObservableInstruments();
+
+        Assert.Contains(measurements, item =>
+            item.Name == "bitfinance.notification.delivery.backlog" && item.Value == 3);
+        Assert.Contains(measurements, item =>
+            item.Name == "bitfinance.notification.delivery.oldest_age" && item.Value == 240);
+    }
+
     private static MeterListener CreateMeterListener(ConcurrentBag<CapturedMeasurement> measurements)
     {
         var listener = new MeterListener();

@@ -68,11 +68,13 @@ public sealed class TelemetryPrivacyIntegrationTests
         {
             { "db.client.connection.pool.name", "Host=otel-secret-host;Username=otel-secret-user" },
             { "user.id", "otel-secret-id" },
+            { "stage", "delivery" },
             { "outcome", "success" }
         });
         provider.ForceFlush();
         Assert.NotEmpty(exporter.Tags);
         Assert.DoesNotContain("otel-secret", string.Join(' ', exporter.Tags));
+        Assert.Contains("stage=delivery", exporter.Tags);
         Assert.Contains("outcome=success", exporter.Tags);
     }
 

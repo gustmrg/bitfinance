@@ -1,0 +1,53 @@
+# Optional local observability overlay. Requires Grafana Cloud ingestion credentials.
+# Run with: docker compose -f docker-compose.yml -f docker-compose.override.yml \
+#   -f docker-compose.observability.yml --profile observability up -d --build
+services:
+  bitfinance-api:
+    environment:
+      - Observability__Enabled=${OBSERVABILITY_ENABLED:-true}
+      - Observability__Environment=${OBSERVABILITY_ENVIRONMENT:-development}
+      - Observability__TraceSamplingRatio=${OTEL_TRACE_SAMPLING_RATIO:-1.0}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://bitfinance-alloy:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+
+  bitfinance-mcp-server:
+    profiles:
+      - observability
+    build:
+      context: ../mcp-server
+      dockerfile: Dockerfile
+      args:
+        BUILD_CONFIGURATION: Debug
+    image: bitfinance-mcp-server:dev
+    container_name: bitfinance-mcp-server-dev
+    ports:
+      - "127.0.0.1:8090:8090"
+    environment:
+      - ASPNETCORE_URLS=http://+:8090
+      - BITFINANCE_API_BASE_URL=http://bitfinance-api:8080
+      - BITFINANCE_AGENT_EMAIL=${MCP_AGENT_EMAIL:-agent@example.com}
+      - BITFINANCE_AGENT_PASSWORD=${MCP_AGENT_PASSWORD:-local-development-password}
+      - BITFINANCE_DEFAULT_ORGANIZATION_ID=${MCP_DEFAULT_ORGANIZATION_ID:-}
+      - BITFINANCE_API_VERSION=1
+      - BITFINANCE_MCP_BEARER_TOKEN=${MCP_BEARER_TOKEN:-local-development-bearer-token}
+      - Observability__Enabled=${OBSERVABILITY_ENABLED:-true}
+      - Observability__Environment=${OBSERVABILITY_ENVIRONMENT:-development}
+      - Observability__TraceSamplingRatio=${OTEL_TRACE_SAMPLING_RATIO:-1.0}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://bitfinance-alloy:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+    depends_on:
+      bitfinance-api:
+        condition: service_healthy
+    networks:
+      - bitfinance-network
+    restart: unless-stopped
+
+  bitfinance-alloy:
+    ports:
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+    environment:
+      - GRAFANA_CLOUD_OTLP_ENDPOINT=${GRAFANA_CLOUD_OTLP_ENDPOINT:?Set GRAFANA_CLOUD_OTLP_ENDPOINT for local observability}
+      - GRAFANA_CLOUD_INSTANCE_ID=${GRAFANA_CLOUD_INSTANCE_ID:?Set GRAFANA_CLOUD_INSTANCE_ID for local observability}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY:?Set GRAFANA_CLOUD_API_KEY for local observability}
+      - ALLOY_ENVIRONMENT=${OBSERVABILITY_ENVIRONMENT:-development}

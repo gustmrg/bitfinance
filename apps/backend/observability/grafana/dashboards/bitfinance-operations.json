@@ -793,8 +793,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (outcome) (increase(bitfinance_notification_dispatch_item_count_total{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"$environment\"}[15m]))",
-          "legendFormat": "{{outcome}}",
+          "expr": "sum by (stage, outcome) (increase(bitfinance_notification_dispatch_item_count_total{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"$environment\"}[15m]))",
+          "legendFormat": "{{stage}} / {{outcome}}",
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
@@ -825,7 +825,7 @@
     },
     {
       "id": 17,
-      "title": "Pending outbox messages",
+      "title": "Pending notification queues",
       "type": "stat",
       "description": "",
       "datasource": {
@@ -842,7 +842,18 @@
         {
           "refId": "A",
           "expr": "bitfinance_notification_outbox_backlog{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"$environment\"}",
-          "legendFormat": "{{job}}",
+          "legendFormat": "outbox",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "range": false,
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "expr": "bitfinance_notification_delivery_backlog{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"$environment\"}",
+          "legendFormat": "deliveries",
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
@@ -873,7 +884,7 @@
     },
     {
       "id": 18,
-      "title": "Oldest pending outbox age",
+      "title": "Oldest pending notification age",
       "type": "stat",
       "description": "",
       "datasource": {
@@ -890,7 +901,18 @@
         {
           "refId": "A",
           "expr": "bitfinance_notification_outbox_oldest_age_seconds{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"$environment\"}",
-          "legendFormat": "{{job}}",
+          "legendFormat": "outbox",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "range": false,
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "expr": "bitfinance_notification_delivery_oldest_age_seconds{job=\"bitfinance/bitfinance-api\",deployment_environment_name=\"$environment\"}",
+          "legendFormat": "deliveries",
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"

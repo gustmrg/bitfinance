@@ -32,11 +32,13 @@ API + MCP ── OTLP ──> Alloy ── HTTPS OTLP ──> Grafana Cloud
    O padrão dos dois workflows é `/opt/bitfinance/apps/backend`. PostgreSQL/cache
    precisam estar previamente inicializados nesse host; a release não os recria.
 
-O deploy executa migrations com exportação desabilitada, tenta iniciar o Alloy e
-aguarda até 120 segundos pelo health check da aplicação. Depois, consulta
-`/health/ready` dentro do container. Falha ao baixar/iniciar o Alloy gera um aviso;
-falha da aplicação ou da migration encerra o job com erro. Configuração inválida
-ou credenciais de ingestão ausentes devem ser corrigidas antes do deploy.
+O deploy executa migrations com exportação desabilitada, valida `config.alloy` com
+a imagem implantada e compara seu SHA-256 com a última configuração pronta. Uma
+mudança força a recriação do Alloy; o hash só é persistido depois que
+`http://127.0.0.1:12345/-/ready` responde com sucesso. Em seguida, o script aguarda
+até 120 segundos pelo health check da aplicação e consulta `/health/ready` dentro
+do container. Falha de validação, download, inicialização ou readiness do Alloy
+gera um aviso; falha da aplicação ou da migration encerra o job com erro.
 
 Para executar manualmente, no diretório de deploy:
 
@@ -48,6 +50,42 @@ MCP_IMAGE_TAG=<versao-mcp> bash observability/deploy.sh mcp
 Não execute `docker compose config` sem `--quiet` ou `--services` em logs
 compartilhados: a configuração expandida contém segredos.
 
+## Observabilidade local opcional
+
+O Compose padrão mantém os exporters e o perfil `observability` desligados. Para
+usar o pipeline local, preencha no `.env` uma credencial de ingestão dedicada ao
+desenvolvimento (`GRAFANA_CLOUD_OTLP_ENDPOINT`, `GRAFANA_CLOUD_INSTANCE_ID` e
+`GRAFANA_CLOUD_API_KEY`) e defina `OBSERVABILITY_ENABLED=true`. Depois execute:
+
+```bash
+cd apps/backend
+docker compose -f docker-compose.yml -f docker-compose.override.yml \
+  -f docker-compose.observability.yml --profile observability up -d --build
+curl -fsS http://127.0.0.1:12345/-/ready
+```
+
+O overlay inclui API, MCP e Alloy, envia API/MCP ao endpoint interno
+`http://bitfinance-alloy:4317` e publica a administração e os receptores OTLP
+somente em loopback (`12345`, `4317` e `4318`). Ele exige um endpoint real e não
+usa o destino descartável da composição base.
+
+Para uma API ou um MCP iniciado com `dotnet run`, mantenha o Alloy do overlay em
+execução e exporte estas variáveis no processo:
+
+```bash
+export Observability__Enabled=true
+export Observability__Environment=development
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+```
+
+No Grafana Cloud, consulte `deployment_environment_name="development"`: em
+Application Observability selecione `bitfinance-api` ou `bitfinance-mcp`; em Tempo
+use `{ resource.deployment.environment.name = "development" }`; em Loki use
+`{service_name=~"bitfinance-(api|mcp)"}`; e em Explore/Prometheus consulte, por
+exemplo, `bitfinance_notification_delivery_backlog`. Remova o overlay ou volte
+`OBSERVABILITY_ENABLED=false` para retornar ao padrão sem exportação.
+
 ## Dashboard e alertas reproduzíveis
 
 `grafana/dashboards/bitfinance-operations.json` contém 26 painéis. Importe o JSON
@@ -56,7 +94,7 @@ abaixo. A variável `environment` começa em `production`. Os painéis abrangem
 readiness, RED HTTP, dependências, tools, workers, outbox, runtime .NET e coletor.
 As consultas HTTP excluem os endpoints de health.
 
-`grafana/alerts/bitfinance-alerts.json` contém 15 regras **gerenciadas pelo
+`grafana/alerts/bitfinance-alerts.json` contém 17 regras **gerenciadas pelo
 Grafana**, em formato de payload da API de provisioning. Não é um arquivo para
 importação direta no Mimir nem um arquivo de provisioning do servidor Grafana.
 O script cria/atualiza os UIDs `bf-*` no grupo `bitfinance-operations` e verifica
@@ -88,6 +126,8 @@ verifique um alerta de teste antes de considerar a ativação operacional conclu
 | Workers atrasados | Bill > 2 h, dispatcher > 5 min, cleanup > 30 h; tolerância de 5 min |
 | Outbox atrasado | Idade > 5 min, sustentada por 10 min |
 | Outbox crescendo | Tendência positiva por 10 min, sustentada por 10 min |
+| Entregas falhando | Retry ou falha terminal nos últimos 15 min, sustentado por 2 min |
+| Entregas atrasadas | Idade da entrega pendente mais antiga > 5 min, sustentada por 10 min |
 | API/MCP sem telemetria | Sem métricas de memória por 5 min |
 | Alloy sem telemetria | Sem self-scrape por 5 min |
 | Alloy degradado | Falhas de exportação persistentes por 5 min |
@@ -121,8 +161,10 @@ podem ser consultados no `target_info`.
   eles são campos de correlação próprios do protocolo.
 - Ferramentas usam somente `mcp.tool.name` e `outcome`. Workers usam `worker.name`
   e `outcome`, limitados aos nomes e resultados previstos no código.
-- O backlog é obtido por uma consulta agregada, no máximo uma vez por minuto,
-  inclusive quando a consulta falha. Não existem consultas no callback de métricas.
+- Os backlogs de outbox e entregas são obtidos por consultas agregadas, no máximo
+  uma vez por minuto, inclusive quando a consulta falha. Não existem consultas no
+  callback de métricas. Resultados do dispatcher têm a dimensão limitada `stage`
+  (`outbox` ou `delivery`).
 
 ## Privacidade e limites
 
@@ -156,6 +198,7 @@ fila persistente. O produto permanece independente da disponibilidade do coletor
 | Alloy pronto, dados ausentes | Prontidão valida a configuração, não o sucesso do envio. Verifique filas, falhas/retries, endpoint/região e chave de ingestão. |
 | Worker atrasado | Verifique falhas e duração do ciclo; erros tratados no worker de bills também marcam o ciclo como falho. |
 | Outbox crescente | Verifique dispatcher, banco e provedor de e-mail; não apague/reprocesse filas indiscriminadamente. |
+| Entregas falhando/atrasadas | Consulte `stage="delivery"`, `outcome`, backlog, idade e `LastError`; valide o provedor antes de reprocessar. |
 
 `/health` permanece um alias de `/health/ready`. Nenhum health check escreve em
 DB/cache, e `/health/live` não consulta dependências. `docker compose ps` e logs

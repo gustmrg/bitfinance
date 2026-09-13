@@ -15,6 +15,8 @@ public sealed class OutboxTelemetry : IDisposable
     private DateTimeOffset _lastRefresh = DateTimeOffset.MinValue;
     private long _backlog;
     private double _oldestAgeSeconds;
+    private long _deliveryBacklog;
+    private double _oldestDeliveryAgeSeconds;
 
     public OutboxTelemetry()
     {
@@ -28,17 +30,35 @@ public sealed class OutboxTelemetry : IDisposable
             () => _oldestAgeSeconds,
             unit: "s",
             description: "Age of the oldest pending notification outbox message.");
+        BitFinanceTelemetry.Meter.CreateObservableGauge(
+            "bitfinance.notification.delivery.backlog",
+            () => _deliveryBacklog,
+            unit: "{item}",
+            description: "Pending or processing notification deliveries.");
+        BitFinanceTelemetry.Meter.CreateObservableGauge(
+            "bitfinance.notification.delivery.oldest_age",
+            () => _oldestDeliveryAgeSeconds,
+            unit: "s",
+            description: "Age of the oldest pending or processing notification delivery.");
     }
 
     public int BacklogQueryCount { get; private set; }
 
-    public void RecordFetched(int count) => Record("fetched", count);
+    public void RecordOutboxFetched(int count) => Record("outbox", "fetched", count);
 
-    public void RecordDelivered(int count = 1) => Record("delivered", count);
+    public void RecordOutboxDelivered(int count = 1) => Record("outbox", "delivered", count);
 
-    public void RecordRescheduled(int count = 1) => Record("rescheduled", count);
+    public void RecordOutboxRescheduled(int count = 1) => RecordFailure("outbox", "rescheduled", count);
 
-    public void RecordTerminalFailure(int count = 1) => Record("terminal_failure", count);
+    public void RecordOutboxTerminalFailure(int count = 1) => RecordFailure("outbox", "terminal_failure", count);
+
+    public void RecordDeliveryFetched(int count) => Record("delivery", "fetched", count);
+
+    public void RecordDeliveryDelivered(int count = 1) => Record("delivery", "delivered", count);
+
+    public void RecordDeliveryRescheduled(int count = 1) => RecordFailure("delivery", "rescheduled", count);
+
+    public void RecordDeliveryTerminalFailure(int count = 1) => RecordFailure("delivery", "terminal_failure", count);
 
     public async Task RefreshBacklogAsync(ApplicationDbContext dbContext, CancellationToken cancellationToken)
     {
@@ -46,7 +66,7 @@ public sealed class OutboxTelemetry : IDisposable
         await RefreshBacklogAsync(
             async token =>
             {
-                var result = await dbContext.NotificationOutboxMessages
+                var outbox = await dbContext.NotificationOutboxMessages
                     .AsNoTracking()
                     .Where(message => message.ProcessedAt == null)
                     .GroupBy(_ => 1)
@@ -54,7 +74,20 @@ public sealed class OutboxTelemetry : IDisposable
                         group.Count(),
                         group.Min(message => (DateTime?)message.CreatedAt)))
                     .SingleOrDefaultAsync(token);
-                return result ?? new OutboxBacklogSnapshot(0, null);
+                var deliveries = await dbContext.NotificationDeliveries
+                    .AsNoTracking()
+                    .Where(delivery => delivery.Status == BitFinance.Business.Enums.NotificationDeliveryStatus.Pending
+                        || delivery.Status == BitFinance.Business.Enums.NotificationDeliveryStatus.Processing)
+                    .GroupBy(_ => 1)
+                    .Select(group => new DeliveryBacklogSnapshot(
+                        group.Count(),
+                        group.Min(delivery => (DateTime?)delivery.Notification.CreatedAt)))
+                    .SingleOrDefaultAsync(token);
+                return (outbox ?? new OutboxBacklogSnapshot(0, null)) with
+                {
+                    DeliveryCount = deliveries?.Count ?? 0,
+                    OldestDelivery = deliveries?.Oldest
+                };
             },
             now,
             cancellationToken);
@@ -126,6 +159,10 @@ public sealed class OutboxTelemetry : IDisposable
             _oldestAgeSeconds = backlog.Oldest is { } oldest
                 ? Math.Max(0, (now.UtcDateTime - oldest).TotalSeconds)
                 : 0;
+            _deliveryBacklog = backlog.DeliveryCount;
+            _oldestDeliveryAgeSeconds = backlog.OldestDelivery is { } oldestDelivery
+                ? Math.Max(0, (now.UtcDateTime - oldestDelivery).TotalSeconds)
+                : 0;
         }
         finally
         {
@@ -138,7 +175,13 @@ public sealed class OutboxTelemetry : IDisposable
         _refreshLock.Dispose();
     }
 
-    private static void Record(string outcome, int count)
+    private static void RecordFailure(string stage, string outcome, int count)
+    {
+        WorkerTelemetry.MarkCurrentCycleFailed();
+        Record(stage, outcome, count);
+    }
+
+    private static void Record(string stage, string outcome, int count)
     {
         if (count <= 0)
         {
@@ -147,7 +190,9 @@ public sealed class OutboxTelemetry : IDisposable
 
         try
         {
-            ItemCount.Add(count, new KeyValuePair<string, object?>("outcome", outcome));
+            ItemCount.Add(count,
+                new KeyValuePair<string, object?>("stage", stage),
+                new KeyValuePair<string, object?>("outcome", outcome));
         }
         catch
         {
@@ -156,4 +201,10 @@ public sealed class OutboxTelemetry : IDisposable
     }
 }
 
-public sealed record OutboxBacklogSnapshot(int Count, DateTime? Oldest);
+public sealed record OutboxBacklogSnapshot(
+    int Count,
+    DateTime? Oldest,
+    int DeliveryCount = 0,
+    DateTime? OldestDelivery = null);
+
+public sealed record DeliveryBacklogSnapshot(int Count, DateTime? Oldest);
