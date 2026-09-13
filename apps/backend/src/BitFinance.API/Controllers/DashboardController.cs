@@ -35,6 +35,7 @@ public class DashboardController : ControllerBase
     [EndpointDescription("Returns aggregate dashboard metrics for the selected organization and period.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DashboardSummaryResponse>> GetSummary(
         [FromRoute] Guid organizationId,
         [FromQuery] DateTime? from = null,
@@ -46,8 +47,13 @@ public class DashboardController : ControllerBase
         }
 
         var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+        if (organization is null)
+        {
+            return NotFound();
+        }
+
         var (effectiveFrom, effectiveTo) = GetEffectiveDateRange(organization, from, to);
-        var monthlyBudget = organization?.Budget?.Amount;
+        var monthlyBudget = organization.Budget?.Amount;
         var spentThisMonth = await _expensesService.GetTotalAmountAsync(organizationId, effectiveFrom, effectiveTo);
         var upcomingBillsSummary = await _billsService.GetUpcomingBillsSummaryAsync(
             organizationId,
@@ -78,6 +84,7 @@ public class DashboardController : ControllerBase
     [EndpointDescription("Returns a list of upcoming bills for the organization dashboard.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UpcomingBillsResponse>> GetUpcomingBills(
         [FromRoute] Guid organizationId,
         [FromQuery] DateTime? from = null,
@@ -89,6 +96,11 @@ public class DashboardController : ControllerBase
         }
 
         var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+        if (organization is null)
+        {
+            return NotFound();
+        }
+
         var (effectiveFrom, effectiveTo) = GetEffectiveDateRange(organization, from, to);
         var bills = await _billsService.GetUpcomingBills(
             organizationId,
@@ -116,6 +128,7 @@ public class DashboardController : ControllerBase
     [EndpointDescription("Returns a list of recent expenses for the organization dashboard.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RecentExpensesResponse>> GetRecentExpenses(
         [FromRoute] Guid organizationId,
         [FromQuery] DateTime? from = null,
@@ -126,7 +139,13 @@ public class DashboardController : ControllerBase
             return BadRequest("The from date must be earlier than or equal to the to date.");
         }
 
-        var (effectiveFrom, effectiveTo) = await GetEffectiveDateRangeAsync(organizationId, from, to);
+        var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+        if (organization is null)
+        {
+            return NotFound();
+        }
+
+        var (effectiveFrom, effectiveTo) = GetEffectiveDateRange(organization, from, to);
         var expenses = await _expensesService.GetRecentExpenses(organizationId, effectiveFrom, effectiveTo);
 
         var models = expenses.Select(x => new DashboardExpenseResponse
@@ -143,22 +162,8 @@ public class DashboardController : ControllerBase
         return Ok(response);
     }
 
-    private async Task<(DateTime? From, DateTime? To)> GetEffectiveDateRangeAsync(
-        Guid organizationId,
-        DateTime? from,
-        DateTime? to)
-    {
-        if (from.HasValue || to.HasValue)
-        {
-            return (from, to);
-        }
-
-        var organization = await _organizationsRepository.GetByIdAsync(organizationId);
-        return GetEffectiveDateRange(organization, from, to);
-    }
-
     private static (DateTime? From, DateTime? To) GetEffectiveDateRange(
-        Organization? organization,
+        Organization organization,
         DateTime? from,
         DateTime? to)
     {
@@ -167,7 +172,7 @@ public class DashboardController : ControllerBase
             return (from, to);
         }
 
-        var localNow = organization?.GetCurrentLocalTime() ?? DateTime.UtcNow;
+        var localNow = organization.GetCurrentLocalTime();
         var monthStart = new DateTime(localNow.Year, localNow.Month, 1, 0, 0, 0, localNow.Kind);
         var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
 
@@ -179,11 +184,11 @@ public class DashboardController : ControllerBase
         return from.HasValue && to.HasValue && from.Value > to.Value;
     }
 
-    private static DateOnly? GetLocalDate(Organization? organization, DateTime? dateTime)
+    private static DateOnly? GetLocalDate(Organization organization, DateTime? dateTime)
     {
         if (!dateTime.HasValue)
             return null;
 
-        return organization?.GetLocalDate(dateTime.Value) ?? DateOnly.FromDateTime(dateTime.Value);
+        return organization.GetLocalDate(dateTime.Value);
     }
 }
