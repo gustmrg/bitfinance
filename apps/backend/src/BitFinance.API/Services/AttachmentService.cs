@@ -143,7 +143,7 @@ public class AttachmentService : IAttachmentService
             }
 
             if (!await _storageService.DeleteFileAsync(previousStoragePath))
-                _logger.LogWarning("Unable to delete previous avatar object {StoragePath}", previousStoragePath);
+                _logger.LogWarning("Unable to delete previous avatar object.");
 
             return existingAvatar;
         }
@@ -266,7 +266,7 @@ public class AttachmentService : IAttachmentService
 
         if (!validationResult.IsValid)
         {
-            _logger.LogWarning("File validation failed for {FileName}: {Errors}", fileName, validationResult.ErrorMessage);
+            _logger.LogWarning("File validation failed.");
             throw new RequestValidationException(validationResult.ErrorMessage);
         }
     }
@@ -329,6 +329,6 @@ public class AttachmentService : IAttachmentService
     private async Task DeleteStorageFileBestEffort(string storagePath)
     {
         if (!await _storageService.DeleteFileAsync(storagePath))
-            _logger.LogWarning("Unable to clean up storage object {StoragePath}", storagePath);
+            _logger.LogWarning("Unable to clean up storage object.");
     }
 }

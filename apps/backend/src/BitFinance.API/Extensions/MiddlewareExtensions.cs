@@ -56,8 +56,7 @@ public static class MiddlewareExtensions
         app.UseHttpsRedirection();
         app.MapControllers();
 
-        app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
-            .ExcludeFromDescription();
+        app.MapBitFinanceHealthChecks();
 
         return app;
     }

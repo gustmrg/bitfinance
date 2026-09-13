@@ -1,4 +1,5 @@
 using BitFinance.Data.Repositories.Interfaces;
+using BitFinance.API.Observability;
 
 namespace BitFinance.API.Services;
 
@@ -22,14 +23,28 @@ public class RefreshTokenCleanupService : BackgroundService
         {
             try
             {
-                await CleanupExpiredTokensAsync();
+                await WorkerTelemetry.RunCycleAsync(
+                    WorkerTelemetry.RefreshTokenCleanup,
+                    _ => CleanupExpiredTokensAsync(),
+                    stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during refresh token cleanup");
             }
 
-            await Task.Delay(_cleanupInterval, stoppingToken);
+            try
+            {
+                await Task.Delay(_cleanupInterval, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
         }
     }
 

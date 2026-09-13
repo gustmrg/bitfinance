@@ -18,7 +18,7 @@ services:
       - ConnectionStrings__Cache=${REDIS_CONNECTION_STRING:-bitfinance-cache:6379}
       - AppSettings__CacheEnabled=${CACHE_ENABLED:-false}
       - AppSettings__LoggingEnabled=true
-      - Logging__LogLevel__Default=Warning
+      - Logging__LogLevel__Default=Information
       - Logging__LogLevel__Microsoft.AspNetCore=Warning
       - Jwt__Key=${JWT_KEY:-}
       - Jwt__Issuer=${JWT_ISSUER:-bitfinance}
@@ -37,6 +37,9 @@ services:
     depends_on:
       bitfinance-db:
         condition: service_healthy
+      bitfinance-cache:
+        condition: service_healthy
+        required: false
     volumes:
       - api-logs:/app/logs
 
@@ -72,6 +75,32 @@ services:
       timeout: 5s
       retries: 5
 
+  bitfinance-alloy:
+    image: grafana/alloy:v1.18.0
+    container_name: bitfinance-alloy
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    ports:
+      - "127.0.0.1:12345:12345"
+    expose:
+      - "4317"
+      - "4318"
+    environment:
+      - GRAFANA_CLOUD_OTLP_ENDPOINT=${GRAFANA_CLOUD_OTLP_ENDPOINT:-http://127.0.0.1:9}
+      - GRAFANA_CLOUD_INSTANCE_ID=${GRAFANA_CLOUD_INSTANCE_ID:-local-validation}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY:-local-validation}
+      - GOMEMLIMIT=150MiB
+      - ALLOY_ENVIRONMENT=${OBSERVABILITY_ENVIRONMENT:-development}
+    volumes:
+      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy-data:/var/lib/alloy/data
+    networks:
+      - bitfinance-network
+    restart: unless-stopped
+
 networks:
   bitfinance-network:
     driver: bridge
@@ -79,3 +108,4 @@ networks:
 volumes:
   postgres-data:
   api-logs:
+  alloy-data:

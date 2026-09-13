@@ -1,5 +1,3 @@
-using System.ComponentModel;
-using System.Globalization;
 using System.Security.Claims;
 using Asp.Versioning;
 using BitFinance.API.Attributes;
@@ -16,7 +14,6 @@ using BitFinance.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Serilog;
 
 namespace BitFinance.API.Controllers;
 
@@ -176,10 +173,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(CreateBillAsync),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(CreateBillAsync));
             return BadRequest();
         }
     }
@@ -231,10 +225,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(GetBillsAsync),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(GetBillsAsync));
             return BadRequest();
         }
     }
@@ -263,10 +254,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(GetBillById),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(GetBillById));
             return BadRequest();
         }
     }
@@ -342,10 +330,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(UpdateBill),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(UpdateBill));
             return BadRequest();
         }
     }
@@ -376,10 +361,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(DeleteBillById),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(DeleteBillById));
             return BadRequest();
         }
     }
@@ -528,10 +510,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(DeleteDocument),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(DeleteDocument));
             return BadRequest();
         }
     }
@@ -566,10 +545,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(StopBillSeriesAsync),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(StopBillSeriesAsync));
             return BadRequest();
         }
     }

@@ -71,7 +71,7 @@ public class S3FileStorageService : IFileStorageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving file {FileName} to S3", fileName);
+            _logger.LogError(ex, "S3 file save failed.");
             return new FileStorageResult
             {
                 Success = false,
@@ -128,7 +128,7 @@ public class S3FileStorageService : IFileStorageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting file {StoragePath} from S3", storagePath);
+            _logger.LogError(ex, "S3 file deletion failed.");
             return false;
         }
     }

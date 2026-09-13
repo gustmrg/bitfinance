@@ -23,9 +23,11 @@ public sealed class BitFinanceOptions
             throw new InvalidOperationException("BITFINANCE_API_BASE_URL is required.");
         }
 
-        if (!Uri.TryCreate(apiBaseUrl, UriKind.Absolute, out var parsedApiBaseUrl))
+        if (!Uri.TryCreate(apiBaseUrl, UriKind.Absolute, out var parsedApiBaseUrl)
+            || (parsedApiBaseUrl.Scheme != Uri.UriSchemeHttp
+                && parsedApiBaseUrl.Scheme != Uri.UriSchemeHttps))
         {
-            throw new InvalidOperationException("BITFINANCE_API_BASE_URL must be an absolute URL.");
+            throw new InvalidOperationException("BITFINANCE_API_BASE_URL must be an absolute HTTP or HTTPS URL.");
         }
 
         if (string.IsNullOrWhiteSpace(agentEmail))

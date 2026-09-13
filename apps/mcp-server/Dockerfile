@@ -19,4 +19,7 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish --chown=appuser:appuser /app/publish .
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8090/health/ready || exit 1
+
 ENTRYPOINT ["dotnet", "BitFinance.MCP.dll"]

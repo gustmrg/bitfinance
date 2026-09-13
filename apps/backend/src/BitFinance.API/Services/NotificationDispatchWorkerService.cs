@@ -1,3 +1,5 @@
+using BitFinance.API.Observability;
+
 namespace BitFinance.API.Services;
 
 public sealed class NotificationDispatchWorkerService(
@@ -13,16 +15,22 @@ public sealed class NotificationDispatchWorkerService(
         {
             try
             {
-                await using var scope = scopeFactory.CreateAsyncScope();
-                var dispatcher = scope.ServiceProvider.GetRequiredService<NotificationDispatcher>();
-                await dispatcher.ProcessAsync(stoppingToken);
+                await WorkerTelemetry.RunCycleAsync(
+                    WorkerTelemetry.NotificationDispatch,
+                    async cancellationToken =>
+                    {
+                        await using var scope = scopeFactory.CreateAsyncScope();
+                        var dispatcher = scope.ServiceProvider.GetRequiredService<NotificationDispatcher>();
+                        await dispatcher.ProcessAsync(cancellationToken);
 
-                var today = DateOnly.FromDateTime(DateTime.UtcNow);
-                if (_lastCleanupDate != today)
-                {
-                    await dispatcher.CleanupAsync(stoppingToken);
-                    _lastCleanupDate = today;
-                }
+                        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                        if (_lastCleanupDate != today)
+                        {
+                            await dispatcher.CleanupAsync(cancellationToken);
+                            _lastCleanupDate = today;
+                        }
+                    },
+                    stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

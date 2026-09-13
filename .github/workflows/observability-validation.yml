@@ -1,0 +1,43 @@
+name: Observability Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/backend/**'
+      - 'apps/mcp-server/**'
+      - '.github/workflows/*docker-publish.yml'
+      - '.github/workflows/observability-validation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/backend/**'
+      - 'apps/mcp-server/**'
+      - '.github/workflows/*docker-publish.yml'
+      - '.github/workflows/observability-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  observability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install validation dependencies
+        run: python -m pip install -r apps/backend/observability/requirements-test.txt
+      - name: Validate collector, queries, alerts and deploy contracts
+        run: python apps/backend/observability/validate.py
+      - name: Build API and MCP for the isolated smoke test
+        run: |
+          dotnet build apps/backend/BitFinance.sln --disable-build-servers -v:minimal
+          dotnet build apps/mcp-server/src/BitFinance.MCP.csproj --disable-build-servers -v:minimal
+      - name: Test correlated signals, privacy and dependency outages
+        run: python apps/backend/observability/smoke-test.py

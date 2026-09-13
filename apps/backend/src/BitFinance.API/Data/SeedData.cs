@@ -13,7 +13,8 @@ public static class SeedData
 
         if (!isDatabaseSeedEnabled)
         {
-            Console.WriteLine("Database seeding is disabled. Skipping...");
+            app.Services.GetRequiredService<ILogger<Program>>()
+                .LogInformation("Database seeding is disabled. Skipping.");
             return; 
         }
     
@@ -30,8 +31,7 @@ public static class SeedData
         catch (Exception ex)
         {
             var logger = services.GetRequiredService<ILogger<Program>>();
-            logger.LogError(ex, "An error occurred seeding the DB: {ExceptionMessage}", ex.Message);
-            Console.WriteLine("An error has occurred and could not seed database");
+            logger.LogError(ex, "Database seeding failed.");
         }
     }
     

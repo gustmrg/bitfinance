@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Security.Claims;
 using Asp.Versioning;
 using BitFinance.API.Attributes;
@@ -12,7 +11,6 @@ using BitFinance.Business.Exceptions;
 using BitFinance.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Serilog;
 
 namespace BitFinance.API.Controllers;
 
@@ -146,10 +144,7 @@ public class ExpensesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(GetExpenseById),
-                ex.Message);
+            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(GetExpenseById));
             return BadRequest();
         }
     }
@@ -227,10 +222,7 @@ public class ExpensesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(CreateExpenseAsync),
-                ex.Message);
+            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(CreateExpenseAsync));
             return BadRequest();
         }
     }
@@ -288,10 +280,7 @@ public class ExpensesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(UpdateExpense),
-                ex.Message);
+            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(UpdateExpense));
             return BadRequest();
         }
     }
@@ -322,10 +311,7 @@ public class ExpensesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(DeleteExpenseById),
-                ex.Message);
+            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(DeleteExpenseById));
             return BadRequest();
         }
     }
@@ -466,10 +452,7 @@ public class ExpensesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(DeleteDocument),
-                ex.Message);
+            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(DeleteDocument));
             return BadRequest();
         }
     }
