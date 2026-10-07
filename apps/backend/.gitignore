@@ -9,6 +9,7 @@
 *.user
 *.userosscache
 *.sln.docstates
+/observability/alloy/.deployed-config.sha256
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

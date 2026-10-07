@@ -1,0 +1,172 @@
+otelcol.receiver.otlp "bitfinance" {
+	grpc {
+		endpoint          = "0.0.0.0:4317"
+		max_recv_msg_size = "4MiB"
+	}
+
+	http {
+		endpoint = "0.0.0.0:4318"
+	}
+
+	output {
+		metrics = [otelcol.processor.memory_limiter.bitfinance.input]
+		logs    = [otelcol.processor.memory_limiter.bitfinance.input]
+		traces  = [otelcol.processor.memory_limiter.bitfinance.input]
+	}
+}
+
+otelcol.processor.memory_limiter "bitfinance" {
+	check_interval = "1s"
+	limit          = "150MiB"
+	spike_limit    = "30MiB"
+
+	output {
+		metrics = [otelcol.processor.transform.bitfinance_resources.input]
+		logs    = [otelcol.processor.transform.bitfinance_resources.input]
+		traces  = [otelcol.processor.transform.bitfinance_resources.input]
+	}
+}
+
+otelcol.processor.transform "bitfinance_resources" {
+	error_mode = "silent"
+
+	trace_statements {
+		context    = "resource"
+		statements = [
+			`set(resource.attributes["service.namespace"], "bitfinance") where resource.attributes["service.name"] == "bitfinance-api" or resource.attributes["service.name"] == "bitfinance-mcp"`,
+			`delete_key(resource.attributes, "process.command_args")`,
+			`delete_key(resource.attributes, "process.command_line")`,
+		]
+	}
+
+	metric_statements {
+		context    = "resource"
+		statements = [
+			`set(resource.attributes["service.namespace"], "bitfinance") where resource.attributes["service.name"] == "bitfinance-api" or resource.attributes["service.name"] == "bitfinance-mcp"`,
+			`delete_key(resource.attributes, "process.command_args")`,
+			`delete_key(resource.attributes, "process.command_line")`,
+		]
+	}
+
+	log_statements {
+		context    = "resource"
+		statements = [
+			`set(resource.attributes["service.namespace"], "bitfinance") where resource.attributes["service.name"] == "bitfinance-api" or resource.attributes["service.name"] == "bitfinance-mcp"`,
+			`delete_key(resource.attributes, "process.command_args")`,
+			`delete_key(resource.attributes, "process.command_line")`,
+		]
+	}
+
+	output {
+		metrics = [otelcol.processor.batch.bitfinance.input]
+		logs    = [otelcol.processor.batch.bitfinance.input]
+		traces  = [otelcol.processor.batch.bitfinance.input]
+	}
+}
+
+otelcol.processor.batch "bitfinance" {
+	timeout             = "1s"
+	send_batch_size     = 512
+	send_batch_max_size = 1024
+
+	output {
+		metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
+		logs    = [otelcol.exporter.otlphttp.grafana_cloud.input]
+		traces  = [otelcol.exporter.otlphttp.grafana_cloud.input]
+	}
+}
+
+otelcol.auth.basic "grafana_cloud" {
+	username = sys.env("GRAFANA_CLOUD_INSTANCE_ID")
+	password = sys.env("GRAFANA_CLOUD_API_KEY")
+}
+
+otelcol.exporter.otlphttp "grafana_cloud" {
+	client {
+		endpoint    = sys.env("GRAFANA_CLOUD_OTLP_ENDPOINT")
+		auth        = otelcol.auth.basic.grafana_cloud.handler
+		compression = "gzip"
+		timeout     = "10s"
+	}
+
+	retry_on_failure {
+		enabled          = true
+		initial_interval = "1s"
+		max_interval     = "30s"
+		max_elapsed_time = "5m"
+	}
+
+	sending_queue {
+		enabled           = true
+		block_on_overflow = false
+		num_consumers     = 2
+		queue_size        = 16777216
+		sizer             = "bytes"
+	}
+}
+
+// Private readiness probes and collector telemetry use the same bounded OTLP path.
+prometheus.exporter.blackbox "readiness" {
+	config = "{ modules: { ready: { prober: http, timeout: 3s, http: { valid_status_codes: [200], follow_redirects: false, preferred_ip_protocol: ip4 } } } }"
+
+	target {
+		name    = "api"
+		address = "http://bitfinance-api:8080/health/ready"
+		module  = "ready"
+		labels  = {"service" = "bitfinance-api"}
+	}
+
+	target {
+		name    = "mcp"
+		address = "http://bitfinance-mcp-server:8090/health/ready"
+		module  = "ready"
+		labels  = {"service" = "bitfinance-mcp"}
+	}
+}
+
+prometheus.scrape "readiness" {
+	targets         = prometheus.exporter.blackbox.readiness.targets
+	scrape_interval = "30s"
+	scrape_timeout  = "5s"
+	forward_to      = [prometheus.relabel.operational.receiver]
+}
+
+prometheus.scrape "alloy" {
+	targets         = [{"__address__" = "127.0.0.1:12345", "service" = "bitfinance-alloy"}]
+	scrape_interval = "30s"
+	forward_to      = [prometheus.relabel.operational.receiver]
+}
+
+prometheus.relabel "operational" {
+	forward_to = [otelcol.receiver.prometheus.operational.receiver]
+
+	rule {
+		source_labels = ["__name__"]
+		regex         = "up|probe_success|probe_duration_seconds|process_resident_memory_bytes|process_cpu_seconds_total|otelcol_exporter_.*|otelcol_receiver_.*"
+		action        = "keep"
+	}
+}
+
+otelcol.receiver.prometheus "operational" {
+	output {
+		metrics = [otelcol.processor.transform.collector.input]
+	}
+}
+
+otelcol.processor.transform "collector" {
+	error_mode = "ignore"
+
+	metric_statements {
+		context    = "resource"
+		statements = [
+			`set(resource.attributes["service.name"], "bitfinance-alloy")`,
+			`set(resource.attributes["service.namespace"], "bitfinance")`,
+			string.format(`set(resource.attributes["service.instance.id"], %q)`, constants.hostname),
+			string.format(`set(resource.attributes["deployment.environment.name"], %q)`, sys.env("ALLOY_ENVIRONMENT")),
+		]
+	}
+
+	output {
+		metrics = [otelcol.processor.memory_limiter.bitfinance.input]
+	}
+}

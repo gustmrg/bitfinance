@@ -1,4 +1,8 @@
 services:
+  bitfinance-alloy:
+    profiles:
+      - observability
+
   bitfinance-api:
     build:
       args:

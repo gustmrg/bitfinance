@@ -33,7 +33,6 @@ public static class AzureConfigurationExtensions
             
             builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential, new KeyVaultSecretManager());
             
-            Console.WriteLine("Azure Key Vault configuration added successfully");
 
             return builder;
         }

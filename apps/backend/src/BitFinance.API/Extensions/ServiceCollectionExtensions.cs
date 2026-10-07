@@ -1,6 +1,7 @@
 using Amazon.Runtime;
 using Amazon.S3;
 using BitFinance.API.Middlewares;
+using BitFinance.API.Observability;
 using BitFinance.API.Services;
 using BitFinance.API.Services.Interfaces;
 using BitFinance.API.Settings;
@@ -43,6 +44,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInvitationsService, InvitationsService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<NotificationDispatcher>();
+        services.AddSingleton<OutboxTelemetry>();
         services.AddScoped<ITransactionRunner, EfTransactionRunner>();
 
         services.AddSingleton<IValidateOptions<NotificationOptions>, NotificationOptionsValidator>();

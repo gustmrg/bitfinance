@@ -71,6 +71,9 @@ dotnet tool install --global dotnet-ef
 
    This starts the API, PostgreSQL, Redis, MinIO, and a MinIO bucket initialization container.
    Compose creates and reuses the local `bitfinance-backend_postgres-data` volume automatically.
+   Observability export remains disabled unless the optional
+   `docker-compose.observability.yml` overlay and `observability` profile are selected;
+   see `observability/README.md` for the local API, MCP and Alloy workflow.
 
 3. Apply migrations manually if you are running the API outside Docker or need to update the database directly.
 

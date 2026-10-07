@@ -180,6 +180,9 @@ jobs:
         run: docker buildx imagetools inspect "$IMAGE_REF:$VERSION"
 
   deploy:
+    concurrency:
+      group: bitfinance-production-deploy
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     needs:
       - validate
@@ -187,6 +190,9 @@ jobs:
     environment: production
 
     steps:
+      - name: Checkout release deployment files
+        uses: actions/checkout@v6
+
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
         with:
@@ -202,7 +208,7 @@ jobs:
           TAILSCALE_HOST: ${{ secrets.TAILSCALE_HOST }}
           SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
           SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/bitfinance' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/bitfinance/apps/backend' }}
         run: |
           set -euo pipefail
 
@@ -218,10 +224,22 @@ jobs:
           printf '%s' "$SSH_PRIVATE_KEY" > "$KEY_FILE"
           chmod 600 "$KEY_FILE"
 
-          ssh -i "$KEY_FILE" \
-            -p "$SSH_PORT" \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            "$SSH_USERNAME@$TARGET_HOST" \
-            "cd '$DEPLOY_PATH' && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml pull bitfinance-mcp-server && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps --no-build bitfinance-mcp-server"
+          SSH_OPTS=(
+            -i "$KEY_FILE"
+            -p "$SSH_PORT"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+          )
+
+          printf -v REMOTE_DEPLOY_PATH '%q' "$DEPLOY_PATH"
+          printf -v REMOTE_IMAGE_TAG '%q' "$MCP_IMAGE_TAG"
+
+          # Transfer only versioned deployment configuration, preserving host .env.
+          tar -C apps/backend -cf - docker-compose.yml docker-compose.prod.yml \
+            observability/alloy/config.alloy observability/deploy.sh | \
+            ssh "${SSH_OPTS[@]}" "$SSH_USERNAME@$TARGET_HOST" \
+              "mkdir -p $REMOTE_DEPLOY_PATH && tar -xf - -C $REMOTE_DEPLOY_PATH"
+
+          ssh "${SSH_OPTS[@]}" "$SSH_USERNAME@$TARGET_HOST" \
+            "cd $REMOTE_DEPLOY_PATH && MCP_IMAGE_TAG=$REMOTE_IMAGE_TAG bash observability/deploy.sh mcp"

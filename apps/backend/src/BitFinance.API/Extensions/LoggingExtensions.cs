@@ -1,32 +1,12 @@
-using Microsoft.AspNetCore.HttpLogging;
-using Serilog;
-using Serilog.Events;
-
 namespace BitFinance.API.Extensions;
 
 public static class LoggingExtensions
 {
-    public static ConfigureHostBuilder AddLogging(this ConfigureHostBuilder host, IConfiguration configuration)
+    public static WebApplicationBuilder AddSafeLogging(this WebApplicationBuilder builder)
     {
-        var connectionString = configuration.GetConnectionString("Database");
-        
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Information)
-            .WriteTo.Console()
-            .CreateLogger();
-
-        host.UseSerilog(Log.Logger);
-        
-        return host;
-    }
-    
-    public static IServiceCollection AddCustomHttpLogging(this IServiceCollection services)
-    {
-        services.AddHttpLogging(options =>
-        {
-            options.LoggingFields = HttpLoggingFields.Request | HttpLoggingFields.Response;
-        });
-
-        return services;
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
+        // AddBitFinanceObservability registers the sanitized console and OTLP sinks.
+        return builder;
     }
 }
