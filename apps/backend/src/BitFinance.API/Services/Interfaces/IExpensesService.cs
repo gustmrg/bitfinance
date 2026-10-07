@@ -1,27 +1,13 @@
+using BitFinance.API.Models;
 using BitFinance.Business.Entities;
 
 namespace BitFinance.API.Services.Interfaces;
 
 /// <summary>
-/// Provides operations for querying and managing expenses within an organization.
+/// Provides operations for querying and creating expenses within an organization.
 /// </summary>
 public interface IExpensesService
 {
-    /// <summary>
-    /// Retrieves all expenses for the specified organization.
-    /// </summary>
-    /// <param name="organizationId">The ID of the organization.</param>
-    /// <returns>A list of <see cref="Expense"/> entities.</returns>
-    List<Expense> GetExpensesByOrganization(Guid organizationId);
-
-    /// <summary>
-    /// Retrieves a specific expense by its ID within an organization.
-    /// </summary>
-    /// <param name="organizationId">The ID of the organization.</param>
-    /// <param name="expenseId">The ID of the expense.</param>
-    /// <returns>The matching <see cref="Expense"/> entity.</returns>
-    Expense GetExpenseById(Guid organizationId, Guid expenseId);
-
     /// <summary>
     /// Retrieves the most recent expenses for the specified organization.
     /// </summary>
@@ -39,9 +25,23 @@ public interface IExpensesService
     Task<decimal> GetTotalAmountAsync(Guid organizationId, DateTime? from = null, DateTime? to = null);
 
     /// <summary>
-    /// Creates a new expense record.
+    /// Creates a single expense, enforcing the organization's monthly expense limit.
     /// </summary>
-    /// <param name="expense">The expense entity to create.</param>
-    /// <returns>The ID of the newly created expense.</returns>
-    Guid CreateExpense(Expense expense);
+    /// <param name="organizationId">The ID of the organization.</param>
+    /// <param name="data">The validated expense input.</param>
+    /// <returns>The created <see cref="Expense"/>, with <see cref="Expense.CreatedByUser"/> populated.</returns>
+    /// <exception cref="KeyNotFoundException">The organization or the creating user does not exist.</exception>
+    /// <exception cref="PlanLimitExceededException">The monthly expense limit has been reached.</exception>
+    Task<Expense> CreateExpenseAsync(Guid organizationId, CreateExpenseData data);
+
+    /// <summary>
+    /// Creates multiple expenses atomically, enforcing the organization's monthly
+    /// expense limit against the full batch size.
+    /// </summary>
+    /// <param name="organizationId">The ID of the organization.</param>
+    /// <param name="items">The validated expense inputs.</param>
+    /// <returns>The created <see cref="Expense"/> entities, with <see cref="Expense.CreatedByUser"/> populated.</returns>
+    /// <exception cref="KeyNotFoundException">The organization or the creating user does not exist.</exception>
+    /// <exception cref="PlanLimitExceededException">The batch would exceed the monthly expense limit.</exception>
+    Task<List<Expense>> CreateExpensesAsync(Guid organizationId, IReadOnlyList<CreateExpenseData> items);
 }

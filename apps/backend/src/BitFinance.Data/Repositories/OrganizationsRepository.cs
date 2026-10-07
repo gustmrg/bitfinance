@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using BitFinance.Business.Entities;
 using BitFinance.Data.Contexts;
 using BitFinance.Data.Repositories.Interfaces;
@@ -51,11 +50,6 @@ public class OrganizationsRepository : IOrganizationsRepository
     {
         _dbContext.Set<Organization>().Update(organization);
         await _dbContext.SaveChangesAsync();
-    }
-
-    public Task UpdateAsync(Organization entity, params Expression<Func<Organization, object>>[] properties)
-    {
-        throw new NotImplementedException();
     }
 
     public async Task DeleteAsync(Organization organization)

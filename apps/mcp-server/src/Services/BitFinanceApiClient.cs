@@ -266,6 +266,18 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             BitFinanceJsonContext.Default.CreateExpenseRequest);
     }
 
+    public Task<CreateExpensesBatchResponse> CreateExpensesBatchAsync(CreateExpensesBatchRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default)
+    {
+        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        return SendAsync(
+            HttpMethod.Post,
+            ApiPath($"organizations/{resolvedOrganizationId}/expenses/batch"),
+            BitFinanceJsonContext.Default.CreateExpensesBatchResponse,
+            cancellationToken,
+            request,
+            BitFinanceJsonContext.Default.CreateExpensesBatchRequest);
+    }
+
     public Task<ExpenseResponse> UpdateExpenseAsync(
         Guid expenseId,
         UpdateExpenseRequest request,

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using BitFinance.MCP.Configuration;
+using BitFinance.MCP.Models;
 using BitFinance.MCP.Services;
 using Xunit;
 
@@ -141,6 +142,50 @@ public class BitFinanceApiClientTests
 
         Assert.Equal(HttpStatusCode.Forbidden, exception.StatusCode);
         Assert.Contains("not available on your current plan", exception.Message);
+    }
+
+    [Fact]
+    public async Task CreateExpensesBatch_PostsItemsToBatchRouteAndDeserializesResponse()
+    {
+        var organizationId = Guid.NewGuid();
+        var expenseId = Guid.NewGuid();
+        var handler = new RecordingHandler(_ => JsonResponse(
+            HttpStatusCode.Created,
+            $$"""
+            {
+              "data": [
+                {
+                  "id": "{{expenseId}}",
+                  "description": "Rent",
+                  "category": "Housing",
+                  "status": "Pending",
+                  "paymentMethod": null,
+                  "amount": 1500,
+                  "occurredAt": "2026-09-13T12:00:00Z",
+                  "createdBy": "Test User",
+                  "attachments": []
+                }
+              ]
+            }
+            """));
+        var client = CreateClient(handler, organizationId);
+
+        var response = await client.CreateExpensesBatchAsync(new CreateExpensesBatchRequest(
+            "agent-user",
+            [
+                new CreateExpenseBatchItemRequest("Rent", "Housing", 1500m, "Pending"),
+                new CreateExpenseBatchItemRequest(
+                    "Utilities", "Utilities", 200m, "Paid", Notes: "electricity", PaymentMethod: "DebitCard"),
+            ]));
+
+        Assert.Equal(HttpMethod.Post, handler.Method);
+        Assert.Equal($"/api/v1/organizations/{organizationId}/expenses/batch", handler.RequestUri?.AbsolutePath);
+        Assert.Contains("\"createdBy\":\"agent-user\"", handler.RequestBody);
+        Assert.Contains("\"description\":\"Rent\"", handler.RequestBody);
+        Assert.Contains("\"paymentMethod\":\"DebitCard\"", handler.RequestBody);
+        var expense = Assert.Single(response.Data);
+        Assert.Equal(expenseId, expense.Id);
+        Assert.Equal("Test User", expense.CreatedBy);
     }
 
     private static BitFinanceApiClient CreateClient(RecordingHandler handler, Guid organizationId)

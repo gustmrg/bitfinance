@@ -208,6 +208,21 @@ public sealed record CreateExpenseRequest(
     string? Notes = null,
     string? PaymentMethod = null);
 
+public sealed record CreateExpenseBatchItemRequest(
+    string Description,
+    string Category,
+    decimal Amount,
+    string Status,
+    DateTimeOffset? OccurredAt = null,
+    string? Notes = null,
+    string? PaymentMethod = null);
+
+public sealed record CreateExpensesBatchRequest(
+    string CreatedBy,
+    IReadOnlyList<CreateExpenseBatchItemRequest> Items);
+
+public sealed record CreateExpensesBatchResponse(IReadOnlyList<ExpenseResponse> Data);
+
 public sealed record UpdateExpenseRequest(
     string Description,
     string Category,
@@ -236,5 +251,8 @@ public sealed record UpdateExpenseRequest(
 [JsonSerializable(typeof(UploadDocumentResponse))]
 [JsonSerializable(typeof(DocumentDownloadUrlResponse))]
 [JsonSerializable(typeof(CreateExpenseRequest))]
+[JsonSerializable(typeof(CreateExpenseBatchItemRequest))]
+[JsonSerializable(typeof(CreateExpensesBatchRequest))]
+[JsonSerializable(typeof(CreateExpensesBatchResponse))]
 [JsonSerializable(typeof(UpdateExpenseRequest))]
 public partial class BitFinanceJsonContext : JsonSerializerContext;

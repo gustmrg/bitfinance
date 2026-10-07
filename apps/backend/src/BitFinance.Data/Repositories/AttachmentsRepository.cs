@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 using BitFinance.Data.Contexts;
@@ -41,11 +40,6 @@ public class AttachmentsRepository : IAttachmentsRepository
     {
         _dbContext.Attachments.Update(entity);
         await _dbContext.SaveChangesAsync();
-    }
-
-    public Task UpdateAsync(Attachment entity, params Expression<Func<Attachment, object>>[] properties)
-    {
-        throw new NotImplementedException();
     }
 
     public async Task DeleteAsync(Attachment entity)

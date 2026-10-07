@@ -23,20 +23,22 @@ namespace BitFinance.API.Controllers;
 [Route("api/v{version:apiVersion}/organizations/{organizationId:guid}/expenses")]
 public class ExpensesController : ControllerBase
 {
+    private const int MaxBatchSize = 100;
+
     private readonly ILogger<ExpensesController> _logger;
     private readonly IExpensesRepository _expensesRepository;
-    private readonly IOrganizationsRepository _organizationsRepository;
+    private readonly IExpensesService _expensesService;
     private readonly IAttachmentService _attachmentService;
 
     public ExpensesController(
         ILogger<ExpensesController> logger,
         IExpensesRepository expensesRepository,
-        IOrganizationsRepository organizationsRepository,
+        IExpensesService expensesService,
         IAttachmentService attachmentService)
     {
         _logger = logger;
         _expensesRepository = expensesRepository;
-        _organizationsRepository = organizationsRepository;
+        _expensesService = expensesService;
         _attachmentService = attachmentService;
     }
 
@@ -166,70 +168,93 @@ public class ExpensesController : ControllerBase
     {
         try
         {
-            if (!ModelState.IsValid)
-            {
-                return UnprocessableEntity();
-            }
+            var validationError = ValidateExpenseInput(
+                request.Category, request.Status, request.Notes, request.PaymentMethod,
+                out var category, out var status, out var paymentMethod);
+            if (validationError is not null)
+                return UnprocessableEntity(validationError);
 
-            var isValidCategory = Enum.TryParse(request.Category, true, out ExpenseCategory category);
-            if (!isValidCategory) return UnprocessableEntity();
+            var data = new CreateExpenseData(
+                request.Description, category, request.Amount, status, paymentMethod,
+                request.OccurredAt ?? DateTime.UtcNow, request.CreatedBy, request.Notes);
 
-            var isValidStatus = Enum.TryParse(request.Status, true, out ExpenseStatus status);
-            if (!isValidStatus) return UnprocessableEntity();
+            var expense = await _expensesService.CreateExpenseAsync(organizationId, data);
 
-            if (request.Notes?.Length > 2000)
-                return UnprocessableEntity("Notes must be 2000 characters or fewer.");
-
-            if (!TryParseOptionalEnum(request.PaymentMethod, out PaymentMethod? paymentMethod))
-                return UnprocessableEntity("Invalid payment method.");
-
-            var organization = await _organizationsRepository.GetByIdAsync(organizationId);
-            if (organization is null) return NotFound();
-
-            var entitlement = PlanEntitlement.For(organization.EffectivePlanTier);
-            var (monthStartUtc, monthEndUtc) = organization.GetCurrentMonthBoundariesUtc();
-            var currentExpenseCount = await _expensesRepository.GetMonthlyCountByOrganizationAsync(
-                organizationId, monthStartUtc, monthEndUtc);
-
-            if (currentExpenseCount >= entitlement.MaxExpensesPerMonth)
-                return StatusCode(403, new { error = $"Monthly expense limit of {entitlement.MaxExpensesPerMonth} reached." });
-
-            Expense expense = new()
-            {
-                Description = request.Description,
-                Notes = NormalizeNotes(request.Notes),
-                PaymentMethod = paymentMethod,
-                Category = category,
-                Amount = request.Amount,
-                Status = status,
-                OccurredAt = request.OccurredAt ?? DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                CreatedByUserId = request.CreatedBy,
-                OrganizationId = organizationId,
-            };
-
-            await _expensesRepository.CreateAsync(expense);
-
-            var response = new CreateExpenseResponse
-            {
-                Id = expense.Id,
-                Description = expense.Description,
-                Notes = expense.Notes,
-                PaymentMethod = expense.PaymentMethod,
-                Category = expense.Category,
-                Amount = expense.Amount,
-                Status = expense.Status,
-                OccurredAt = expense.OccurredAt,
-                CreatedBy = expense.CreatedByUser.FullName,
-            };
+            var response = MapCreateExpenseResponse(expense);
 
             return CreatedAtAction(nameof(GetExpenseById), new { expenseId = expense.Id, organizationId = expense.OrganizationId }, response);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (PlanLimitExceededException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
         }
         catch (Exception ex)
         {
             Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
                 DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
                 nameof(CreateExpenseAsync),
+                ex.Message);
+            return BadRequest();
+        }
+    }
+
+    [HttpPost("batch")]
+    [EndpointSummary("Create multiple expenses")]
+    [EndpointDescription("Creates up to 100 expenses atomically within the specified organization. Either all expenses are created or none are.")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<CreateExpensesBatchResponse>> CreateExpensesBatchAsync(
+        [FromRoute] Guid organizationId,
+        [FromBody] CreateExpensesBatchRequest request)
+    {
+        try
+        {
+            if (request.Items.Count == 0)
+                return UnprocessableEntity("Batch must contain at least one expense.");
+
+            if (request.Items.Count > MaxBatchSize)
+                return UnprocessableEntity($"Batch size limit of {MaxBatchSize} expenses exceeded.");
+
+            var items = new List<CreateExpenseData>(request.Items.Count);
+            for (var index = 0; index < request.Items.Count; index++)
+            {
+                var requestItem = request.Items[index];
+                var validationError = ValidateExpenseInput(
+                    requestItem.Category, requestItem.Status, requestItem.Notes, requestItem.PaymentMethod,
+                    out var category, out var status, out var paymentMethod);
+                if (validationError is not null)
+                    return UnprocessableEntity($"Expense at index {index}: {validationError}");
+
+                items.Add(new CreateExpenseData(
+                    requestItem.Description, category, requestItem.Amount, status, paymentMethod,
+                    requestItem.OccurredAt ?? DateTime.UtcNow, request.CreatedBy, requestItem.Notes));
+            }
+
+            var expenses = await _expensesService.CreateExpensesAsync(organizationId, items);
+
+            return StatusCode(StatusCodes.Status201Created,
+                new CreateExpensesBatchResponse { Data = expenses.Select(MapCreateExpenseResponse).ToList() });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (PlanLimitExceededException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
+                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
+                nameof(CreateExpensesBatchAsync),
                 ex.Message);
             return BadRequest();
         }
@@ -477,6 +502,45 @@ public class ExpensesController : ControllerBase
     private static string? NormalizeNotes(string? notes)
     {
         return string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+    }
+
+    private static string? ValidateExpenseInput(
+        string? category, string? status, string? notes, string? paymentMethod,
+        out ExpenseCategory parsedCategory, out ExpenseStatus parsedStatus, out PaymentMethod? parsedPaymentMethod)
+    {
+        parsedCategory = default;
+        parsedStatus = default;
+        parsedPaymentMethod = null;
+
+        if (!Enum.TryParse(category, true, out parsedCategory) || !Enum.IsDefined(parsedCategory))
+            return "Invalid category.";
+
+        if (!Enum.TryParse(status, true, out parsedStatus) || !Enum.IsDefined(parsedStatus))
+            return "Invalid status.";
+
+        if (notes?.Length > 2000)
+            return "Notes must be 2000 characters or fewer.";
+
+        if (!TryParseOptionalEnum(paymentMethod, out parsedPaymentMethod))
+            return "Invalid payment method.";
+
+        return null;
+    }
+
+    private static CreateExpenseResponse MapCreateExpenseResponse(Expense expense)
+    {
+        return new CreateExpenseResponse
+        {
+            Id = expense.Id,
+            Description = expense.Description,
+            Notes = expense.Notes,
+            PaymentMethod = expense.PaymentMethod,
+            Category = expense.Category,
+            Amount = expense.Amount,
+            Status = expense.Status,
+            OccurredAt = expense.OccurredAt,
+            CreatedBy = expense.CreatedByUser.FullName,
+        };
     }
 
     private static bool TryParseOptionalEnum<TEnum>(string? value, out TEnum? parsed)

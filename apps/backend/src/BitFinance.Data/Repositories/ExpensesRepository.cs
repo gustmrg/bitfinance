@@ -113,6 +113,13 @@ public class ExpensesRepository : IExpensesRepository
         return expense;
     }
 
+    public async Task<List<Expense>> CreateRangeAsync(List<Expense> expenses)
+    {
+        _dbContext.Set<Expense>().AddRange(expenses);
+        await _dbContext.SaveChangesAsync();
+        return expenses;
+    }
+
     public async Task<Expense> UpdateAsync(Expense expense)
     {
         _dbContext.Set<Expense>().Update(expense);
