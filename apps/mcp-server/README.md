@@ -4,6 +4,8 @@ BitFinance is a finance platform for tracking bills, expenses, organizations, an
 
 The MCP server exposes a Streamable HTTP endpoint for MCP-compatible agents and clients. It calls the BitFinance API over HTTP/HTTPS.
 
+The server uses the MCP C# SDK 2.2.0 with stateless HTTP transport. It supports protocol revision `2026-07-28` and remains compatible with clients using the `2025-11-25` initialization handshake. Upgrading the SDK does not enable HTTPS; the Docker configuration serves HTTP on port `8090` over the private network described below.
+
 In production, run this server beside the BitFinance API and expose only the MCP endpoint over a private network such as Tailscale. The API can stay private inside Docker networking.
 
 ## Configuration
