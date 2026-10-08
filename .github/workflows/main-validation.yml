@@ -19,6 +19,7 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
       backend: ${{ steps.filter.outputs.backend }}
       mcp: ${{ steps.filter.outputs.mcp }}
+      cli: ${{ steps.filter.outputs.cli }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -39,6 +40,10 @@ jobs:
             mcp:
               - 'apps/mcp-server/**'
               - '.github/workflows/mcp-docker-publish.yml'
+              - '.github/workflows/main-validation.yml'
+            cli:
+              - 'apps/cli/**'
+              - '.github/workflows/cli-release.yml'
               - '.github/workflows/main-validation.yml'
 
   frontend:
@@ -129,3 +134,30 @@ jobs:
 
       - name: Test MCP server
         run: dotnet test apps/mcp-server/tests/BitFinance.MCP.UnitTests/BitFinance.MCP.UnitTests.csproj --disable-build-servers -v:minimal
+
+  cli:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-cli-${{ hashFiles('apps/cli/**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-cli-
+
+      - name: Build CLI
+        run: dotnet build apps/cli/src/BitFinance.Cli.csproj --disable-build-servers -v:minimal
+
+      - name: Test CLI
+        run: dotnet test apps/cli/tests/BitFinance.Cli.UnitTests/BitFinance.Cli.UnitTests.csproj --disable-build-servers -v:minimal

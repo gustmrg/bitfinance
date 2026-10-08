@@ -33,6 +33,15 @@ MCP server:
 dotnet build apps/mcp-server/src/BitFinance.MCP.csproj
 ```
 
+CLI:
+
+```bash
+dotnet build apps/cli/src/BitFinance.Cli.csproj
+dotnet test apps/cli/tests/BitFinance.Cli.UnitTests/BitFinance.Cli.UnitTests.csproj
+dotnet format apps/cli/src/BitFinance.Cli.csproj --verify-no-changes
+dotnet format apps/cli/tests/BitFinance.Cli.UnitTests/BitFinance.Cli.UnitTests.csproj --verify-no-changes
+```
+
 ## Commit Format
 
 This repository follows Conventional Commits. Include the affected project or area as the scope.
@@ -49,6 +58,7 @@ Examples:
 feat(frontend): add bill status filter
 fix(backend): correct filtered bill count
 feat(mcp-server): expose bill description search
+feat(cli): add bill creation command
 docs(readme): clarify local setup
 ci(frontend): update deploy workflow paths
 ```
@@ -68,6 +78,7 @@ Preferred scopes:
 - `frontend`
 - `backend`
 - `mcp-server`
+- `cli`
 - `docs`
 - `ci`
 - `monorepo`
