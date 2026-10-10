@@ -25,12 +25,15 @@ public sealed class OrganizationDetailsResponse
     public string Name { get; init; } = string.Empty;
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; init; }
+    public OrganizationBudgetResponse? Budget { get; init; }
     public string PlanTier { get; init; } = string.Empty;
     public DateTimeOffset PlanExpiresAt { get; init; }
     public List<OrganizationMemberResponse> Members { get; init; } = [];
 }
 
-public sealed record OrganizationMemberResponse(string Id, string UserName, string Email);
+public sealed record OrganizationMemberResponse(string Id, string UserName, string Email, string Role, DateTimeOffset JoinedAt);
+
+public sealed record OrganizationBudgetResponse(Guid Id, decimal Amount, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
 
 public class PagedResponse<T>
 {
@@ -54,6 +57,7 @@ public sealed class BillResponse
 {
     public Guid Id { get; init; }
     public string Description { get; init; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? Notes { get; init; }
     public string Category { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
@@ -61,13 +65,15 @@ public sealed class BillResponse
     public decimal? AmountPaid { get; init; }
     public DateTimeOffset? CreatedAt { get; init; }
     public DateTimeOffset? CreatedDate { get; init; }
-    public DateTimeOffset? DueDate { get; init; }
+    [JsonConverter(typeof(CalendarDateJsonConverter))]
+    public DateOnly? DueDate { get; init; }
     public DateTimeOffset? PaymentDate { get; init; }
     public DateTimeOffset? PaidDate { get; init; }
     public Guid? BillSeriesId { get; init; }
     public int? OccurrenceNumber { get; init; }
     public int? TotalOccurrences { get; init; }
     public string? BillSeriesType { get; init; }
+    public string? BillSeriesFrequency { get; init; }
     public bool? BillSeriesIsActive { get; init; }
     public List<AttachmentResponse> Attachments { get; init; } = [];
 }
@@ -76,9 +82,11 @@ public sealed class ExpenseResponse
 {
     public Guid Id { get; init; }
     public string Description { get; init; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? Notes { get; init; }
     public string Category { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? PaymentMethod { get; init; }
     public decimal Amount { get; init; }
     public DateTimeOffset OccurredAt { get; init; }
@@ -114,7 +122,9 @@ public sealed class DashboardBillResponse
     public string Category { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public decimal AmountDue { get; init; }
-    public DateTimeOffset DueDate { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    [JsonConverter(typeof(CalendarDateJsonConverter))]
+    public DateOnly DueDate { get; init; }
 }
 
 public sealed class DashboardExpenseResponse
@@ -139,7 +149,7 @@ public sealed record CreateBillRequest(
     string Description,
     string Category,
     string Status,
-    DateTimeOffset DueDate,
+    [property: JsonConverter(typeof(CalendarDateJsonConverter))] DateOnly DueDate,
     DateTimeOffset? PaymentDate,
     decimal AmountDue,
     decimal? AmountPaid,
@@ -151,7 +161,7 @@ public sealed record UpdateBillRequest(
     string Description,
     string Category,
     string Status,
-    DateTimeOffset DueDate,
+    [property: JsonConverter(typeof(CalendarDateJsonConverter))] DateOnly DueDate,
     DateTimeOffset? PaymentDate,
     decimal AmountDue,
     decimal? AmountPaid,
@@ -161,12 +171,14 @@ public sealed class UpdateBillResponse
 {
     public Guid Id { get; init; }
     public string Description { get; init; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? Notes { get; init; }
     public string Category { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public decimal AmountDue { get; init; }
     public decimal? AmountPaid { get; init; }
-    public DateTimeOffset DueDate { get; init; }
+    [JsonConverter(typeof(CalendarDateJsonConverter))]
+    public DateOnly DueDate { get; init; }
     public DateTimeOffset? PaidDate { get; init; }
     public Guid? BillSeriesId { get; init; }
     public int? OccurrenceNumber { get; init; }
@@ -232,7 +244,7 @@ public sealed record UpdateExpenseRequest(
     string? Notes = null,
     string? PaymentMethod = null);
 
-[JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
+[JsonSourceGenerationOptions(JsonSerializerDefaults.Web, Converters = [typeof(UtcDateTimeOffsetJsonConverter)])]
 [JsonSerializable(typeof(LoginRequest))]
 [JsonSerializable(typeof(AuthenticationResponse))]
 [JsonSerializable(typeof(List<OrganizationSummaryResponse>))]

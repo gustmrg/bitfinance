@@ -201,7 +201,7 @@ Expected tool call:
     "description": "Utilities",
     "category": "Utilities",
     "status": "Upcoming",
-    "dueDate": "2026-06-10T00:00:00Z",
+    "dueDate": "2026-06-10",
     "amountDue": 120.00
   }
 }
@@ -220,7 +220,7 @@ Expected tool call:
     "description": "Rent",
     "category": "Housing",
     "status": "Upcoming",
-    "dueDate": "2026-07-01T00:00:00Z",
+    "dueDate": "2026-07-01",
     "amountDue": 1500.00,
     "frequency": "Monthly"
   }
@@ -240,7 +240,7 @@ Expected tool call:
     "description": "Purchase installments",
     "category": "Debt",
     "status": "Upcoming",
-    "dueDate": "2026-07-15T00:00:00Z",
+    "dueDate": "2026-07-15",
     "amountDue": 250.00,
     "frequency": "Monthly",
     "installments": 10
@@ -297,7 +297,7 @@ Expected tool call:
     "description": "Utilities",
     "category": "Utilities",
     "status": "Paid",
-    "dueDate": "2026-06-10T00:00:00Z",
+    "dueDate": "2026-06-10",
     "amountDue": 120.00,
     "paymentDate": "2026-06-04T12:00:00Z",
     "amountPaid": 120.00
