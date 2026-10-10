@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace BitFinance.Data.Caching;
@@ -8,6 +9,13 @@ namespace BitFinance.Data.Caching;
 public class RedisCacheService : ICacheService
 {
     private static ConcurrentDictionary<string, bool> CacheKeys = new();
+
+    // Cached entities carry EF navigation properties (e.g. Bill -> BillSeries -> Bills), which form reference cycles.
+    private static readonly JsonSerializerOptions SerializerOptions = new()
+    {
+        ReferenceHandler = ReferenceHandler.IgnoreCycles
+    };
+
     private readonly IDistributedCache _cache;
     private readonly DistributedCacheEntryOptions _options;
 
@@ -51,11 +59,7 @@ public class RedisCacheService : ICacheService
             return null;
         }
 
-        T? value = JsonSerializer.Deserialize<T>(cachedValue);
-        
-        await SetAsync(key, cachedValue, cancellationToken);
-
-        return value;
+        return JsonSerializer.Deserialize<T>(cachedValue, SerializerOptions);
     }
 
     public async Task<T> GetAsync<T>(string key, Func<Task<T>> factory, CancellationToken cancellationToken = default)
@@ -78,7 +82,7 @@ public class RedisCacheService : ICacheService
     public async Task SetAsync<T>(string key, T value, CancellationToken cancellationToken = default) 
         where T : class
     {
-        string cacheValue = JsonSerializer.Serialize(value);
+        string cacheValue = JsonSerializer.Serialize(value, SerializerOptions);
 
         await _cache.SetStringAsync(key, cacheValue, _options, cancellationToken);
 
@@ -93,7 +97,7 @@ public class RedisCacheService : ICacheService
             AbsoluteExpirationRelativeToNow = expirationTime
         };
         
-        string cacheValue = JsonSerializer.Serialize(value);
+        string cacheValue = JsonSerializer.Serialize(value, SerializerOptions);
 
         await _cache.SetStringAsync(key, cacheValue,  options, cancellationToken);
 
