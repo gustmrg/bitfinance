@@ -77,14 +77,16 @@ All publish workflows build from the release tag (`<app>/v<version>`), first che
 2. On the server, in `DEPLOY_PATH`, it uses `docker-compose.yml` and `docker-compose.prod.yml` to:
    - pull the `bitfinance-api` image with `IMAGE_TAG=<version>`;
    - apply database migrations with `docker compose run --rm --no-deps bitfinance-api --migrate`;
-   - restart `bitfinance-api` with the new image.
+   - recreate the `bitfinance-api` container from the new image.
 
 The deploy prints the service status and recent logs, including when it fails.
 
 ### MCP server
 
 1. Builds `gustmrg/bitfinance-mcp-server` for `linux/amd64` and `linux/arm64` and pushes it to Docker Hub as `<version>` and `latest`.
-2. On the server, in `DEPLOY_PATH`, it pulls and restarts only `bitfinance-mcp-server` (`--no-deps`) with `MCP_IMAGE_TAG=<version>`.
+2. On the server, in `DEPLOY_PATH`, with `MCP_IMAGE_TAG=<version>`:
+   - pulls the new `bitfinance-mcp-server` image;
+   - recreates the `bitfinance-mcp-server` container from it. `--no-deps` leaves the API, database and cache untouched.
 
 The backend and the MCP server share the compose project in `apps/backend` (`docker-compose.prod.yml` defines both services) and the same `DEPLOY_PATH`.
 
