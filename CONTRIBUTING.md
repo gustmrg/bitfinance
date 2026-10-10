@@ -93,7 +93,7 @@ Keep PRs small when possible. If a change affects multiple projects, call out ea
 
 ## Releases
 
-Pull requests do not change app versions. Each app is released on its own from the **Release** workflow (Actions → Release → Run workflow) on `main`:
+Pull requests do not change app versions. See [`docs/deployment.md`](docs/deployment.md) for the full release and deployment flow. Each app is released on its own from the **Release** workflow (Actions → Release → Run workflow) on `main`:
 
 - `app`: `backend`, `frontend` or `mcp-server`
 - `version`: `patch`, `minor`, `major`, or an exact version such as `1.13.0`

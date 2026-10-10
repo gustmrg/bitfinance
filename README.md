@@ -43,4 +43,6 @@ dotnet run --project apps/mcp-server/src/BitFinance.MCP.csproj
 
 ## Documentation
 
-Each component keeps its own README with setup, configuration, and deployment details.
+Each component keeps its own README with setup and configuration details.
+
+Releases and production deployment for all components are described in [`docs/deployment.md`](docs/deployment.md).
