@@ -90,7 +90,7 @@ public sealed class BitFinanceTools
         [Description("Bill description.")] string description,
         [Description("Bill category.")] string category,
         [Description("Bill status.")] string status,
-        [Description("Bill due date/time as ISO 8601.")] DateTimeOffset dueDate,
+        [Description("Bill due date as an ISO 8601 calendar date, e.g. 2026-08-05. Any time or offset component is ignored; the date is kept as written.")] DateTimeOffset dueDate,
         [Description("Amount due.")] decimal amountDue,
         [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
         [Description("Optional payment date/time as ISO 8601. Applies only to one-time bills.")] DateTimeOffset? paymentDate = null,
@@ -104,7 +104,7 @@ public sealed class BitFinanceTools
             description,
             category,
             status,
-            dueDate,
+            ToCalendarDate(dueDate),
             paymentDate,
             amountDue,
             amountPaid,
@@ -121,7 +121,7 @@ public sealed class BitFinanceTools
         [Description("Bill description.")] string description,
         [Description("Bill category.")] string category,
         [Description("Bill status.")] string status,
-        [Description("Bill due date/time as ISO 8601.")] DateTimeOffset dueDate,
+        [Description("Bill due date as an ISO 8601 calendar date, e.g. 2026-08-05. Any time or offset component is ignored; the date is kept as written.")] DateTimeOffset dueDate,
         [Description("Amount due.")] decimal amountDue,
         [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
         [Description("Optional payment date/time as ISO 8601.")] DateTimeOffset? paymentDate = null,
@@ -129,7 +129,7 @@ public sealed class BitFinanceTools
         [Description("Optional notes, up to 2000 characters. Omit to preserve the current value; pass an empty string to clear.")] string? notes = null,
         CancellationToken cancellationToken = default)
     {
-        var request = new UpdateBillRequest(description, category, status, dueDate, paymentDate, amountDue, amountPaid, notes);
+        var request = new UpdateBillRequest(description, category, status, ToCalendarDate(dueDate), paymentDate, amountDue, amountPaid, notes);
         return _apiClient.UpdateBillAsync(billId, request, organizationId, cancellationToken);
     }
 
@@ -332,4 +332,8 @@ public sealed class BitFinanceTools
             cancellationToken);
         return new DeleteExpenseDocumentResponse(true, documentId);
     }
+
+    // The API stores due dates as calendar dates in the organization's time zone. Sending only the date the
+    // agent wrote avoids the API re-interpreting an offset (e.g. 2026-08-05T00:00Z) as the previous day.
+    private static DateOnly ToCalendarDate(DateTimeOffset value) => DateOnly.FromDateTime(value.DateTime);
 }

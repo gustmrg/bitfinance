@@ -184,6 +184,28 @@ public class BillsRepository : IBillsRepository
         
         _dbContext.Bills.UpdateRange(bills);
         await _dbContext.SaveChangesAsync();
+
+        foreach (var bill in bills)
+        {
+            await RemoveFromCacheAsync(bill.Id);
+        }
+    }
+
+    public async Task RemoveSeriesBillsFromCacheAsync(Guid seriesId)
+    {
+        if (!IsCacheEnabled())
+            return;
+
+        var billIds = await _dbContext.Bills
+            .AsNoTracking()
+            .Where(b => b.BillSeriesId == seriesId)
+            .Select(b => b.Id)
+            .ToListAsync();
+
+        foreach (var billId in billIds)
+        {
+            await RemoveFromCacheAsync(billId);
+        }
     }
 
     public async Task<Bill> CreateAsync(Bill bill)
@@ -234,8 +256,10 @@ public class BillsRepository : IBillsRepository
         
         bill.UpdatedAt = DateTime.UtcNow;
         entry.Property(x => x.UpdatedAt).IsModified = true;
-        
+
         await _dbContext.SaveChangesAsync();
+
+        await RemoveFromCacheAsync(bill.Id);
     }
 
     public async Task DeleteAsync(Bill bill)
@@ -243,16 +267,21 @@ public class BillsRepository : IBillsRepository
         _dbContext.Set<Bill>().Remove(bill);
         await _dbContext.SaveChangesAsync();
 
-        if (IsCacheEnabled())
-        {
-            string key = _cache.GenerateKey<Bill>(bill.Id.ToString());
-            await _cache.RemoveAsync(key);
-        }
+        await RemoveFromCacheAsync(bill.Id);
     }
 
     public async Task SaveChangesAsync()
     {
         await _dbContext.SaveChangesAsync();
+    }
+
+    private async Task RemoveFromCacheAsync(Guid billId)
+    {
+        if (!IsCacheEnabled())
+            return;
+
+        string key = _cache.GenerateKey<Bill>(billId.ToString());
+        await _cache.RemoveAsync(key);
     }
 
     private bool IsCacheEnabled()

@@ -562,6 +562,9 @@ public class BillsController : ControllerBase
                 s => s.IsActive,
                 s => s.StoppedAt);
 
+            // Cached occurrences embed the series, so drop them to expose the new IsActive state.
+            await _billsRepository.RemoveSeriesBillsFromCacheAsync(series.Id);
+
             return NoContent();
         }
         catch (Exception ex)
