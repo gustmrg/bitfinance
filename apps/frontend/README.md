@@ -64,5 +64,5 @@ loading, empty, offline, and error states.
 ## Deployment
 
 Releases use immutable versioned directories and an atomic `current` symlink.
-See [`docs/deployment.md`](docs/deployment.md) for initial server migration,
-release, cutover, redirect, verification, and rollback procedures.
+See [`docs/deployment.md`](../../docs/deployment.md) for the release, deploy
+and rollback procedures.

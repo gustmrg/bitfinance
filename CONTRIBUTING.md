@@ -93,12 +93,12 @@ Keep PRs small when possible. If a change affects multiple projects, call out ea
 
 ## Releases
 
-Pull requests do not change app versions. Each app is released on its own from the **Release** workflow (Actions → Release → Run workflow) on `main`:
+Pull requests do not change app versions. See [`docs/deployment.md`](docs/deployment.md) for the full release and deployment flow. Each app is released on its own from the **Release** workflow (Actions → Release → Run workflow) on `main`:
 
 - `app`: `backend`, `frontend` or `mcp-server`
 - `version`: `patch`, `minor`, `major`, or an exact version such as `1.13.0`
 
-The workflow bumps the version, validates the app against the bumped tree, then commits `chore(release): prepare <app> vX.Y.Z`, tags `<app>/vX.Y.Z` and runs that app's publish and deploy workflow. If validation fails, nothing is committed or tagged.
+The workflow bumps the version, runs the same checks as pull requests, then commits `chore(release): prepare <app> vX.Y.Z`, tags `<app>/vX.Y.Z` and runs that app's publish and deploy workflow. If validation fails, nothing is committed or tagged.
 
 To check or bump a version locally:
 
@@ -107,4 +107,4 @@ node scripts/bump-version.mjs backend         # prints the current version
 node scripts/bump-version.mjs backend patch   # writes and prints the next version
 ```
 
-Pushing an existing `<app>/vX.Y.Z` tag, or running the backend or MCP publish workflow manually, still publishes that version again.
+To republish a version that was already released, for example to roll back, run that app's publish workflow (Backend Publish, MCP Server Publish or Frontend Publish) with the version. It builds from the existing `<app>/vX.Y.Z` tag. Pushing a tag by hand does not deploy anything.

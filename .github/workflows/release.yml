@@ -26,9 +26,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Resolves the next version on top of main and validates the app against the
-  # bumped tree. Nothing is committed or tagged here, so a failed run leaves the
-  # repository untouched.
+  # Resolves the next version on top of main. Nothing is committed or tagged
+  # until validation passes, so a failed run leaves the repository untouched.
   prepare:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -59,50 +58,17 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Releasing $APP $CURRENT -> $VERSION from $GITHUB_SHA."
 
-      - name: Set up .NET
-        if: inputs.app != 'frontend'
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Validate backend
-        if: inputs.app == 'backend'
-        run: |
-          dotnet build apps/backend/BitFinance.sln --disable-build-servers -v:minimal
-          dotnet test apps/backend/BitFinance.sln --no-build --disable-build-servers -v:minimal
-
-      - name: Validate MCP server
-        if: inputs.app == 'mcp-server'
-        run: |
-          dotnet build apps/mcp-server/src/BitFinance.MCP.csproj --disable-build-servers -v:minimal
-          dotnet test apps/mcp-server/tests/BitFinance.MCP.UnitTests/BitFinance.MCP.UnitTests.csproj --disable-build-servers -v:minimal
-
-      - name: Install pnpm
-        if: inputs.app == 'frontend'
-        uses: pnpm/action-setup@v6
-        with:
-          version: 11.0.9
-
-      - name: Set up Node.js
-        if: inputs.app == 'frontend'
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          cache: pnpm
-          cache-dependency-path: apps/frontend/pnpm-lock.yaml
-
-      - name: Validate frontend
-        if: inputs.app == 'frontend'
-        working-directory: apps/frontend
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm run format:check
-          pnpm run lint
-          pnpm run build
+  # The same checks as pull requests. The version bump does not affect the
+  # build, so the commit being released is validated as is.
+  validate:
+    needs: prepare
+    uses: ./.github/workflows/validate.yml
+    with:
+      app: ${{ inputs.app }}
 
   # Commits the version bump and tags it only after validation has passed.
   release:
-    needs: prepare
+    needs: [prepare, validate]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -139,7 +105,6 @@ jobs:
     uses: ./.github/workflows/backend-docker-publish.yml
     with:
       version: ${{ needs.prepare.outputs.version }}
-      ref: ${{ needs.prepare.outputs.tag }}
     secrets: inherit
 
   publish-mcp-server:
@@ -151,7 +116,6 @@ jobs:
     uses: ./.github/workflows/mcp-docker-publish.yml
     with:
       version: ${{ needs.prepare.outputs.version }}
-      ref: ${{ needs.prepare.outputs.tag }}
     secrets: inherit
 
   publish-frontend:
@@ -162,5 +126,4 @@ jobs:
     uses: ./.github/workflows/frontend-deploy.yml
     with:
       version: ${{ needs.prepare.outputs.version }}
-      ref: ${{ needs.prepare.outputs.tag }}
     secrets: inherit

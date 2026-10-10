@@ -1,0 +1,93 @@
+name: Validate
+
+# Builds and tests one app. Shared by Main Validation (pull requests and main)
+# and Release (before an app is tagged), so both run the same checks.
+on:
+  workflow_call:
+    inputs:
+      app:
+        description: "App to validate: backend, frontend or mcp-server"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: ${{ inputs.app }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Check app name
+        if: ${{ !contains(fromJSON('["backend", "frontend", "mcp-server"]'), inputs.app) }}
+        run: |
+          echo "::error::Unknown app '${{ inputs.app }}'."
+          exit 1
+
+      - name: Set up .NET
+        if: inputs.app == 'backend' || inputs.app == 'mcp-server'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cache NuGet packages
+        if: inputs.app == 'backend' || inputs.app == 'mcp-server'
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ inputs.app }}-${{ hashFiles(format('apps/{0}/**/*.csproj', inputs.app)) }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-${{ inputs.app }}-
+
+      - name: Build backend
+        if: inputs.app == 'backend'
+        run: dotnet build apps/backend/BitFinance.sln --disable-build-servers -v:minimal
+
+      - name: Test backend
+        if: inputs.app == 'backend'
+        run: dotnet test apps/backend/BitFinance.sln --no-build --disable-build-servers -v:minimal
+
+      - name: Build MCP server
+        if: inputs.app == 'mcp-server'
+        run: dotnet build apps/mcp-server/src/BitFinance.MCP.csproj --disable-build-servers -v:minimal
+
+      - name: Test MCP server
+        if: inputs.app == 'mcp-server'
+        run: dotnet test apps/mcp-server/tests/BitFinance.MCP.UnitTests/BitFinance.MCP.UnitTests.csproj --disable-build-servers -v:minimal
+
+      - name: Install pnpm
+        if: inputs.app == 'frontend'
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.0.9
+
+      - name: Set up Node.js
+        if: inputs.app == 'frontend'
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: apps/frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        if: inputs.app == 'frontend'
+        working-directory: apps/frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Check frontend formatting
+        if: inputs.app == 'frontend'
+        working-directory: apps/frontend
+        run: pnpm run format:check
+
+      - name: Lint frontend
+        if: inputs.app == 'frontend'
+        working-directory: apps/frontend
+        run: pnpm run lint
+
+      - name: Build frontend
+        if: inputs.app == 'frontend'
+        working-directory: apps/frontend
+        run: pnpm run build

@@ -1,19 +1,18 @@
-name: Frontend Release
+name: Frontend Publish
 
 on:
-  push:
-    tags:
-      - "frontend/v*"
   workflow_call:
     inputs:
       version:
-        description: "Version to publish without the v prefix"
+        description: "Released version to publish, without the v prefix. Builds the matching release tag."
         required: true
         type: string
-      ref:
-        description: "Git ref to build, usually the release tag"
+  # Republishes an existing release, e.g. to roll back.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Frontend version to republish, without the v prefix"
         required: true
-        type: string
 
 permissions:
   contents: read
@@ -34,16 +33,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.ref || github.ref }}
+          ref: frontend/v${{ inputs.version }}
 
       - name: Set release version
         id: version
         env:
-          REF_NAME: ${{ github.ref_name }}
-          INPUT_VERSION: ${{ inputs.version }}
+          VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          VERSION="${INPUT_VERSION:-${REF_NAME#frontend/v}}"
 
           if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
             echo "::error::Version must be semver without the v prefix. Received '$VERSION'."
@@ -94,7 +91,7 @@ jobs:
       - name: Write version file
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
-          RELEASE_REF: ${{ inputs.ref || github.ref_name }}
+          RELEASE_REF: frontend/v${{ inputs.version }}
         run: |
           set -euo pipefail
           export RELEASE_SHA="$(git rev-parse HEAD)"
@@ -184,15 +181,15 @@ jobs:
 
           mkdir -p "$DEPLOY_ROOT/releases"
           if [ -e "$RELEASE_PATH" ]; then
-            echo "Release already exists and is immutable: $RELEASE_PATH" >&2
-            exit 1
+            # Releases are immutable: republishing (e.g. a rollback) reuses the files already deployed.
+            echo "Release $RELEASE_VERSION is already deployed; switching to it without replacing its files."
+          else
+            mkdir "$STAGING_PATH"
+            tar -xzf "$REMOTE_ARCHIVE" -C "$STAGING_PATH"
+            test -f "$STAGING_PATH/index.html"
+            mv "$STAGING_PATH" "$RELEASE_PATH"
           fi
-
-          mkdir "$STAGING_PATH"
-          tar -xzf "$REMOTE_ARCHIVE" -C "$STAGING_PATH"
-          test -f "$STAGING_PATH/index.html"
-          grep -F "\"version\": \"$RELEASE_VERSION\"" "$STAGING_PATH/version.json"
-          mv "$STAGING_PATH" "$RELEASE_PATH"
+          grep -F "\"version\": \"$RELEASE_VERSION\"" "$RELEASE_PATH/version.json"
 
           rm -f "$DEPLOY_ROOT/current.next"
           ln -s "releases/$RELEASE_VERSION" "$DEPLOY_ROOT/current.next"
