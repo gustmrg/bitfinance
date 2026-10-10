@@ -4,6 +4,16 @@ on:
   push:
     tags:
       - "frontend/v*"
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to publish without the v prefix"
+        required: true
+        type: string
+      ref:
+        description: "Git ref to build, usually the release tag"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -23,14 +33,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Set release version
         id: version
         env:
           REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          VERSION="${REF_NAME#frontend/v}"
+          VERSION="${INPUT_VERSION:-${REF_NAME#frontend/v}}"
 
           if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
             echo "::error::Version must be semver without the v prefix. Received '$VERSION'."
@@ -81,10 +94,10 @@ jobs:
       - name: Write version file
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
-          RELEASE_REF: ${{ github.ref_name }}
-          RELEASE_SHA: ${{ github.sha }}
+          RELEASE_REF: ${{ inputs.ref || github.ref_name }}
         run: |
           set -euo pipefail
+          export RELEASE_SHA="$(git rev-parse HEAD)"
           node - <<'NODE'
           const fs = require("fs");
 
