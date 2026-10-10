@@ -90,3 +90,21 @@ PR descriptions should include:
 - Any risks, migrations, or follow-up work
 
 Keep PRs small when possible. If a change affects multiple projects, call out each affected project in the description.
+
+## Releases
+
+Pull requests do not change app versions. Each app is released on its own from the **Release** workflow (Actions → Release → Run workflow) on `main`:
+
+- `app`: `backend`, `frontend` or `mcp-server`
+- `version`: `patch`, `minor`, `major`, or an exact version such as `1.13.0`
+
+The workflow bumps the version, validates the app against the bumped tree, then commits `chore(release): prepare <app> vX.Y.Z`, tags `<app>/vX.Y.Z` and runs that app's publish and deploy workflow. If validation fails, nothing is committed or tagged.
+
+To check or bump a version locally:
+
+```bash
+node scripts/bump-version.mjs backend         # prints the current version
+node scripts/bump-version.mjs backend patch   # writes and prints the next version
+```
+
+Pushing an existing `<app>/vX.Y.Z` tag, or running the backend or MCP publish workflow manually, still publishes that version again.

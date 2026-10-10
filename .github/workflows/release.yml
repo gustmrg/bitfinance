@@ -1,0 +1,166 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: App to release
+        required: true
+        type: choice
+        options:
+          - backend
+          - frontend
+          - mcp-server
+      version:
+        description: Version to release (patch, minor, major, or an exact version such as 1.2.3)
+        required: true
+        type: string
+        default: patch
+
+permissions:
+  contents: read
+
+# Every release commits to main, so releases run one at a time even across apps.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  # Resolves the next version on top of main and validates the app against the
+  # bumped tree. Nothing is committed or tagged here, so a failed run leaves the
+  # repository untouched.
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Resolve release version
+        id: bump
+        env:
+          APP: ${{ inputs.app }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          CURRENT="$(node scripts/bump-version.mjs "$APP")"
+          VERSION="$(node scripts/bump-version.mjs "$APP" "$REQUESTED_VERSION")"
+          TAG="$APP/v$VERSION"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag $TAG already exists."
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Releasing $APP $CURRENT -> $VERSION from $GITHUB_SHA."
+
+      - name: Set up .NET
+        if: inputs.app != 'frontend'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Validate backend
+        if: inputs.app == 'backend'
+        run: |
+          dotnet build apps/backend/BitFinance.sln --disable-build-servers -v:minimal
+          dotnet test apps/backend/BitFinance.sln --no-build --disable-build-servers -v:minimal
+
+      - name: Validate MCP server
+        if: inputs.app == 'mcp-server'
+        run: |
+          dotnet build apps/mcp-server/src/BitFinance.MCP.csproj --disable-build-servers -v:minimal
+          dotnet test apps/mcp-server/tests/BitFinance.MCP.UnitTests/BitFinance.MCP.UnitTests.csproj --disable-build-servers -v:minimal
+
+      - name: Install pnpm
+        if: inputs.app == 'frontend'
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.0.9
+
+      - name: Set up Node.js
+        if: inputs.app == 'frontend'
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: apps/frontend/pnpm-lock.yaml
+
+      - name: Validate frontend
+        if: inputs.app == 'frontend'
+        working-directory: apps/frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run format:check
+          pnpm run lint
+          pnpm run build
+
+  # Commits the version bump and tags it only after validation has passed.
+  release:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Commit and tag the version
+        env:
+          APP: ${{ inputs.app }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          node scripts/bump-version.mjs "$APP" "$VERSION" >/dev/null
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet; then
+            git commit -am "chore(release): prepare $APP v$VERSION"
+          fi
+          git tag "$TAG"
+          # Atomic, so main and the tag move together or not at all. A push to
+          # main during the run makes this fail rather than overwrite it.
+          git push --atomic origin "HEAD:refs/heads/main" "refs/tags/$TAG"
+
+  # Tags pushed with GITHUB_TOKEN do not trigger other workflows, so the
+  # publish workflows are called directly and build from the new tag.
+  publish-backend:
+    needs: [prepare, release]
+    if: inputs.app == 'backend'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/backend-docker-publish.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      ref: ${{ needs.prepare.outputs.tag }}
+    secrets: inherit
+
+  publish-mcp-server:
+    needs: [prepare, release]
+    if: inputs.app == 'mcp-server'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/mcp-docker-publish.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      ref: ${{ needs.prepare.outputs.tag }}
+    secrets: inherit
+
+  publish-frontend:
+    needs: [prepare, release]
+    if: inputs.app == 'frontend'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/frontend-deploy.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      ref: ${{ needs.prepare.outputs.tag }}
+    secrets: inherit
