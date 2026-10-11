@@ -94,6 +94,29 @@ jobs:
           # main during the run makes this fail rather than overwrite it.
           git push --atomic origin "HEAD:refs/heads/main" "refs/tags/$TAG"
 
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP: ${{ inputs.app }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          case "$APP" in
+            backend) NAME="BitFinance Backend" ;;
+            frontend) NAME="BitFinance Frontend" ;;
+            mcp-server) NAME="BitFinance MCP Server" ;;
+          esac
+
+          # Notes cover only this app's commits since its previous tag.
+          PREVIOUS="$(git ls-remote --tags --refs origin "refs/tags/$APP/v*" \
+            | sed 's|.*refs/tags/||' | grep -vxF "$TAG" | sort -V | tail -n 1)"
+          ARGS=(--verify-tag --title "$NAME v$VERSION" --generate-notes)
+          if [ -n "$PREVIOUS" ]; then
+            ARGS+=(--notes-start-tag "$PREVIOUS")
+          fi
+          gh release create "$TAG" "${ARGS[@]}"
+
   # Tags pushed with GITHUB_TOKEN do not trigger other workflows, so the
   # publish workflows are called directly and build from the new tag.
   publish-backend:
