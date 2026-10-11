@@ -1,7 +1,3 @@
-# Production deployment of the MCP server, separate from the backend stack so
-# each app deploys on its own. It joins the backend's Docker network to reach
-# the API, so the backend stack must be running:
-#   docker compose up --no-build -d
 name: bitfinance-mcp
 
 services:
@@ -28,7 +24,6 @@ services:
         max-file: "3"
 
 networks:
-  # Created by the backend stack (apps/backend/docker-compose.yml).
   bitfinance-network:
     external: true
     name: bitfinance_bitfinance-network

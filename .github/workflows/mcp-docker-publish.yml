@@ -233,13 +233,8 @@ jobs:
             -o StrictHostKeyChecking=yes
           )
 
-          # The MCP server has its own compose project, separate from the
-          # backend's, so it deploys without depending on a backend release.
           MCP_DEPLOY_PATH="$DEPLOY_PATH/mcp-server"
 
-          # The release's compose file replaces the server's copy, so the server
-          # only keeps .env. It is uploaded next to the current file and only
-          # takes its place once the remote script validates it.
           echo "Uploading compose file from mcp-server/v$MCP_IMAGE_TAG..."
           scp -i "$KEY_FILE" -P "$SSH_PORT" "${SSH_OPTS[@]}" \
             apps/mcp-server/docker-compose.yml \
@@ -292,8 +287,6 @@ jobs:
           fi
           echo "MCP server is running $RUNNING_IMAGE"
 
-          # Record the deployed version in .env so compose commands run by hand
-          # on the server keep this image instead of an older tag.
           if grep -q '^MCP_IMAGE_TAG=' .env; then
             sed -i "s/^MCP_IMAGE_TAG=.*/MCP_IMAGE_TAG=$MCP_IMAGE_TAG/" .env
           else

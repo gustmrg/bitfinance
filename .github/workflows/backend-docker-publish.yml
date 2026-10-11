@@ -242,9 +242,6 @@ jobs:
           ssh "${SSH_OPTS[@]}" "$SSH_USERNAME@$TARGET_HOST" \
             'echo "SSH auth OK"; echo "Remote host: $(hostname)"'
 
-          # The release's compose files replace the server's copies, so the
-          # server only keeps .env. They are uploaded next to the current files
-          # and only take their place once the remote script validates them.
           echo "Uploading compose files from backend/v$IMAGE_TAG..."
           for file in docker-compose.yml docker-compose.prod.yml; do
             scp -i "$KEY_FILE" -P "$SSH_PORT" \
@@ -340,8 +337,6 @@ jobs:
           fi
           echo "Backend is running $RUNNING_IMAGE"
 
-          # Record the deployed version in .env so compose commands run by hand
-          # on the server keep this image instead of an older tag.
           if grep -q '^IMAGE_TAG=' .env; then
             sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$IMAGE_TAG/" .env
           else
