@@ -135,7 +135,7 @@ GitHub secrets used by the publish workflows:
 | `SSH_HOST` | All | Fallback server address |
 | `SSH_USERNAME`, `SSH_KEY` | All | SSH login |
 | `SSH_PORT` | All | Optional, defaults to `22` |
-| `DEPLOY_PATH` | Backend, MCP server | Directory with the backend's compose files and `.env` on the server; the MCP server uses its `mcp-server` subdirectory |
+| `DEPLOY_PATH` | Backend, MCP server | Required. Directory with the backend's compose files and `.env` on the server; the MCP server uses its `mcp-server` subdirectory |
 
 Server-side requirements:
 
