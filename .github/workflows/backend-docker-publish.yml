@@ -302,6 +302,15 @@ jobs:
           fi
           echo "Backend is running $RUNNING_IMAGE"
 
+          # Record the deployed version in .env so compose commands run by hand
+          # on the server keep this image instead of an older tag.
+          if grep -q '^IMAGE_TAG=' .env; then
+            sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$IMAGE_TAG/" .env
+          else
+            printf '%s=%s\n' IMAGE_TAG "$IMAGE_TAG" >> .env
+          fi
+          echo "Recorded IMAGE_TAG=$IMAGE_TAG in .env"
+
           echo "Recent backend logs:"
           docker compose "${COMPOSE_FILES[@]}" logs --tail 40 bitfinance-api
           REMOTE

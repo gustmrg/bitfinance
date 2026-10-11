@@ -78,6 +78,7 @@ All publish workflows build from the release tag (`<app>/v<version>`), first che
    - pull the `bitfinance-api` image with `IMAGE_TAG=<version>`;
    - apply database migrations with `docker compose run --rm --no-deps bitfinance-api --migrate`;
    - recreate the `bitfinance-api` container from the new image.
+   - record the version as `IMAGE_TAG` in the server's `.env`.
 
 The deploy prints the service status and recent logs, including when it fails.
 
@@ -87,6 +88,7 @@ The deploy prints the service status and recent logs, including when it fails.
 2. On the server, in `DEPLOY_PATH`, with `MCP_IMAGE_TAG=<version>`:
    - pulls the new `bitfinance-mcp-server` image;
    - recreates the `bitfinance-mcp-server` container from it. `--no-deps` leaves the API, database and cache untouched.
+   - records the version as `MCP_IMAGE_TAG` in the server's `.env`.
 
 The backend and the MCP server share the compose project in `apps/backend` (`docker-compose.prod.yml` defines both services) and the same `DEPLOY_PATH`.
 
@@ -105,7 +107,7 @@ To put an earlier release back in production, run that app's publish workflow ma
 Things to know:
 
 - **Backend migrations are not reverted.** A rollback runs the older image's migrations, which only applies missing ones. If the newer release changed the schema in a way the older code cannot handle, revert the schema with a new migration instead of rolling back.
-- **`latest` moves with every publish, including a republish.** The deploys set the image tag explicitly, so a `docker compose up` on the server without `IMAGE_TAG` / `MCP_IMAGE_TAG` uses the value in the server's `.env`.
+- **`latest` moves with every publish, including a republish.** The deploys never use it: they set the image tag explicitly and, once the new container runs, record it as `IMAGE_TAG` / `MCP_IMAGE_TAG` in the server's `.env`. A `docker compose` command run by hand on the server therefore keeps the deployed versions.
 - **Pushing a tag by hand deploys nothing.** Publishing only happens through Release or a manual run of a publish workflow.
 
 ## Configuration
