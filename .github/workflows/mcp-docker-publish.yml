@@ -225,4 +225,21 @@ jobs:
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             "$SSH_USERNAME@$TARGET_HOST" \
-            "cd '$DEPLOY_PATH' && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml pull bitfinance-mcp-server && MCP_IMAGE_TAG='$MCP_IMAGE_TAG' docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps --no-build bitfinance-mcp-server"
+            "MCP_IMAGE_TAG='$MCP_IMAGE_TAG' DEPLOY_PATH='$DEPLOY_PATH' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.prod.yml)
+          cd "$DEPLOY_PATH"
+
+          echo "Pulling MCP server image tag: $MCP_IMAGE_TAG"
+          docker compose "${COMPOSE_FILES[@]}" pull bitfinance-mcp-server
+          docker compose "${COMPOSE_FILES[@]}" up -d --no-deps --no-build --wait --wait-timeout 120 bitfinance-mcp-server
+
+          EXPECTED_IMAGE="gustmrg/bitfinance-mcp-server:$MCP_IMAGE_TAG"
+          RUNNING_IMAGE="$(docker inspect --format '{{.Config.Image}}' "$(docker compose "${COMPOSE_FILES[@]}" ps -q bitfinance-mcp-server)")"
+          if [ "$RUNNING_IMAGE" != "$EXPECTED_IMAGE" ]; then
+            echo "::error::MCP server is running '$RUNNING_IMAGE', expected '$EXPECTED_IMAGE'."
+            exit 1
+          fi
+          echo "MCP server is running $RUNNING_IMAGE"
+          REMOTE
