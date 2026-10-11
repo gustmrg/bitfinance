@@ -190,6 +190,15 @@ jobs:
     environment: production
 
     steps:
+      - name: Checkout compose files
+        uses: actions/checkout@v6
+        with:
+          ref: backend/v${{ needs.validate.outputs.version }}
+          sparse-checkout: |
+            apps/backend/docker-compose.yml
+            apps/backend/docker-compose.prod.yml
+          sparse-checkout-cone-mode: false
+
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
         with:
@@ -233,6 +242,16 @@ jobs:
           ssh "${SSH_OPTS[@]}" "$SSH_USERNAME@$TARGET_HOST" \
             'echo "SSH auth OK"; echo "Remote host: $(hostname)"'
 
+          # The release's compose files replace the server's copies, so the
+          # server only keeps .env. They are uploaded next to the current files
+          # and only take their place once the remote script validates them.
+          echo "Uploading compose files from backend/v$IMAGE_TAG..."
+          for file in docker-compose.yml docker-compose.prod.yml; do
+            scp -i "$KEY_FILE" -P "$SSH_PORT" \
+              -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+              "apps/backend/$file" "$SSH_USERNAME@$TARGET_HOST:$DEPLOY_PATH/$file.new"
+          done
+
           printf -v REMOTE_IMAGE_TAG '%q' "$IMAGE_TAG"
           printf -v REMOTE_DEPLOY_PATH '%q' "$DEPLOY_PATH"
 
@@ -269,12 +288,31 @@ jobs:
           cd "$DEPLOY_PATH"
           echo "Current directory: $(pwd)"
 
-          for file in docker-compose.yml docker-compose.prod.yml .env; do
+          for file in docker-compose.yml.new docker-compose.prod.yml.new .env; do
             if [ ! -f "$file" ]; then
               echo "::error::Required deploy file is missing: $file"
               exit 1
             fi
           done
+
+          # Compose only warns about variables missing from .env and then uses
+          # an empty value, so treat that warning as a failure too.
+          echo "Validating the release's compose files against .env..."
+          if ! CHECK_OUTPUT="$(docker compose -f docker-compose.yml.new -f docker-compose.prod.yml.new config -q 2>&1)" \
+            || grep -q 'variable is not set' <<<"$CHECK_OUTPUT"; then
+            printf '%s\n' "$CHECK_OUTPUT"
+            rm -f docker-compose.yml.new docker-compose.prod.yml.new
+            echo "::error::The release's compose files do not work with the server's .env. The current compose files were left in place."
+            exit 1
+          fi
+
+          for file in docker-compose.yml docker-compose.prod.yml; do
+            if [ -f "$file" ]; then
+              cp -p "$file" "$file.prev"
+            fi
+            mv "$file.new" "$file"
+          done
+          echo "Compose files updated from the release (previous versions kept as *.prev)"
 
           echo "Compose services:"
           docker compose "${COMPOSE_FILES[@]}" config --services

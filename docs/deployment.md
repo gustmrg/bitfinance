@@ -74,7 +74,8 @@ All publish workflows build from the release tag (`<app>/v<version>`), first che
 ### Backend
 
 1. Builds `gustmrg/bitfinance-backend` for `linux/amd64` and `linux/arm64` and pushes it to Docker Hub as `<version>` and `latest`.
-2. On the server, in `DEPLOY_PATH`, it uses `docker-compose.yml` and `docker-compose.prod.yml` to:
+2. Uploads `apps/backend/docker-compose.yml` and `docker-compose.prod.yml` from the release tag to `DEPLOY_PATH`, checks them with `docker compose config` against the server's `.env`, and only then puts them in place of the current files, which are kept as `*.prev`. The deploy stops before touching anything if the check fails or reports a variable that is not set.
+3. On the server, in `DEPLOY_PATH`, it uses those compose files to:
    - pull the `bitfinance-api` image with `IMAGE_TAG=<version>`;
    - apply database migrations with `docker compose run --rm --no-deps bitfinance-api --migrate`;
    - recreate the `bitfinance-api` container from the new image.
@@ -91,6 +92,8 @@ The deploy prints the service status and recent logs, including when it fails.
    - records the version as `MCP_IMAGE_TAG` in the server's `.env`.
 
 The backend and the MCP server share the compose project in `apps/backend` (`docker-compose.prod.yml` defines both services) and the same `DEPLOY_PATH`.
+
+Only the backend deploy updates the compose files on the server. The MCP server deploy uses the files already there, so republishing an older MCP release cannot bring back older compose files. **Changes to either compose file reach production with the next backend release**, including changes that only affect the MCP server service; release the backend before an MCP release that depends on them. The backend deploy only recreates `bitfinance-api`; changes to other services apply when those containers are next recreated.
 
 ### Frontend
 
@@ -126,9 +129,8 @@ GitHub secrets used by the publish workflows:
 
 Server-side requirements:
 
-- `DEPLOY_PATH` contains `docker-compose.yml`, `docker-compose.prod.yml` and `.env`. Use `apps/backend/.env.prod.example` as the template for `.env`.
+- `DEPLOY_PATH` contains `.env`, created from the `apps/backend/.env.prod.example` template. The backend deploy writes the compose files; `.env` is the only file kept by hand. Add any variable a release needs to `.env` before releasing it, or the deploy stops at the compose check.
 - The server's `.env` sets the S3 storage variables (`S3_BUCKET_NAME`, `S3_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`). See "File storage" in `apps/backend/README.md`.
-- The deploy does not copy the compose files. After changing `docker-compose.yml` or `docker-compose.prod.yml`, copy them to `DEPLOY_PATH` yourself.
 - The external Postgres volume (`POSTGRES_DATA_VOLUME`, default `bitfinance_postgres-data`) exists. See `apps/backend/README.md`.
 - The SSH user can run `docker compose` and can write to `/var/www/bitfinance` without `sudo`.
 
