@@ -214,9 +214,14 @@ jobs:
           TAILSCALE_HOST: ${{ secrets.TAILSCALE_HOST }}
           SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
           SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/bitfinance/apps/backend' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
           set -euo pipefail
+
+          if [ -z "$DEPLOY_PATH" ]; then
+            echo "::error::The DEPLOY_PATH secret is not set."
+            exit 1
+          fi
 
           TARGET_HOST="${TAILSCALE_HOST:-$SSH_HOST_IP}"
 
