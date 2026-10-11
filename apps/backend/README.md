@@ -24,7 +24,7 @@ BitFinance is a finance platform for tracking bills, expenses, organizations, an
 - Durable in-app notifications and paid-plan bill reminder emails through Resend
 - PostgreSQL persistence through Entity Framework Core
 - Optional Redis caching
-- Local object storage with MinIO and production S3-compatible storage
+- Local object storage with MinIO and production storage on Amazon S3
 - OpenAPI and Scalar API documentation
 
 ## Tech Stack
@@ -122,7 +122,16 @@ The local `.env.example` includes safe development defaults.
 | `NOTIFICATIONS_FROM_ADDRESS` | Verified sender address | Development placeholder |
 | `NOTIFICATIONS_FRONTEND_BASE_URL` | Base URL used by notification email links | `http://localhost:5174` |
 
-Production deployments should use `.env.prod.example` as a template and provide real values for database credentials, JWT settings, Azure Key Vault configuration, and image tags.
+Production deployments should use `.env.prod.example` as a template and provide real values for database credentials, JWT settings, Azure Key Vault configuration, file storage, and image tags.
+
+### File storage
+
+Attachments are stored through the S3 API. `Storage:ServiceUrl` selects the backend:
+
+- **Set** (development): an S3-compatible server such as the local MinIO container, with path-style addressing and the `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` it is given.
+- **Empty** (production): Amazon S3 in `Storage:Region`, with credentials from the default AWS chain (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` in the container).
+
+In production, set `S3_BUCKET_NAME`, `S3_REGION`, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. The IAM user needs `s3:GetObject`, `s3:PutObject` and `s3:DeleteObject` on the bucket's objects. The database stores each object's key in `attachments.storage_path`, so moving files between buckets only requires copying them with the same keys.
 
 ## API Overview
 
