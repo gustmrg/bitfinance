@@ -1,0 +1,34 @@
+# Production deployment of the MCP server, separate from the backend stack so
+# each app deploys on its own. It joins the backend's Docker network to reach
+# the API, so the backend stack must be running:
+#   docker compose up --no-build -d
+name: bitfinance-mcp
+
+services:
+  bitfinance-mcp-server:
+    image: gustmrg/bitfinance-mcp-server:${MCP_IMAGE_TAG:-latest}
+    container_name: bitfinance-mcp-server
+    restart: always
+    ports:
+      - "${MCP_BIND_ADDRESS}:${MCP_PORT:-8090}:8090"
+    environment:
+      - ASPNETCORE_URLS=http://+:8090
+      - BITFINANCE_API_BASE_URL=${MCP_API_BASE_URL:-http://bitfinance-api:8080}
+      - BITFINANCE_AGENT_EMAIL=${MCP_AGENT_EMAIL}
+      - BITFINANCE_AGENT_PASSWORD=${MCP_AGENT_PASSWORD}
+      - BITFINANCE_DEFAULT_ORGANIZATION_ID=${MCP_DEFAULT_ORGANIZATION_ID:-}
+      - BITFINANCE_API_VERSION=${MCP_API_VERSION:-1}
+      - BITFINANCE_MCP_BEARER_TOKEN=${MCP_BEARER_TOKEN}
+    networks:
+      - bitfinance-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  # Created by the backend stack (apps/backend/docker-compose.yml).
+  bitfinance-network:
+    external: true
+    name: bitfinance_bitfinance-network

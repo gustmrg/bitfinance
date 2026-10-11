@@ -74,6 +74,8 @@ services:
 
 networks:
   bitfinance-network:
+    # Fixed name: the MCP server stack (apps/mcp-server) joins it as an external network.
+    name: bitfinance_bitfinance-network
     driver: bridge
 
 volumes:

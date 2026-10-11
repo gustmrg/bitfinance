@@ -86,6 +86,8 @@ Example generic remote MCP configuration:
 
 For production, bind the Docker port to the VPS Tailscale address and firewall port `8090` so only the Raspberry Pi tailnet IP can reach it. Do not publish the BitFinance API publicly for Hermes; keep `BITFINANCE_API_BASE_URL=http://bitfinance-api:8080` inside the MCP container.
 
+`docker-compose.yml` in this directory runs the server in production as its own compose project, separate from the backend's. It joins the backend's Docker network (`bitfinance_bitfinance-network`) to reach the API, so start the backend stack first. Copy `.env.prod.example` to `.env` next to it and fill in the values, then run `docker compose up --no-build -d`. See `docs/deployment.md` for how releases deploy it.
+
 ## Tools
 
 - `bitfinance_list_organizations`
