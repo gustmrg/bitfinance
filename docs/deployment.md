@@ -125,6 +125,8 @@ GitHub secrets used by the publish workflows:
 Server-side requirements:
 
 - `DEPLOY_PATH` contains `docker-compose.yml`, `docker-compose.prod.yml` and `.env`. Use `apps/backend/.env.prod.example` as the template for `.env`.
+- The server's `.env` sets the S3 storage variables (`S3_BUCKET_NAME`, `S3_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`). See "File storage" in `apps/backend/README.md`.
+- The deploy does not copy the compose files. After changing `docker-compose.yml` or `docker-compose.prod.yml`, copy them to `DEPLOY_PATH` yourself.
 - The external Postgres volume (`POSTGRES_DATA_VOLUME`, default `bitfinance_postgres-data`) exists. See `apps/backend/README.md`.
 - The SSH user can run `docker compose` and can write to `/var/www/bitfinance` without `sudo`.
 
