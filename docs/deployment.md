@@ -16,7 +16,7 @@ flowchart LR
 
 1. Pull requests are validated by **Main Validation**. They never change app versions.
 2. When an app is ready to ship, someone runs the **Release** workflow for that app on `main`.
-3. Release bumps the version, validates the app, commits the bump, tags it and calls the app's publish workflow.
+3. Release bumps the version, validates the app, commits the bump, tags it, creates a GitHub release titled `BitFinance <App> vX.Y.Z` and calls the app's publish workflow.
 4. The publish workflow builds from the tag and deploys it to production.
 
 ## Workflows
