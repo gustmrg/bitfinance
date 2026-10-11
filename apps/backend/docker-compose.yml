@@ -1,4 +1,4 @@
-name: bitfinance-backend
+name: bitfinance
 
 services:
   bitfinance-api:

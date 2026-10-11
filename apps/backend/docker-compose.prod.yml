@@ -39,6 +39,7 @@ services:
 
   bitfinance-mcp-server:
     image: gustmrg/bitfinance-mcp-server:${MCP_IMAGE_TAG:-latest}
+    container_name: bitfinance-mcp-server
     restart: always
     ports:
       - "${MCP_BIND_ADDRESS}:${MCP_PORT:-8090}:8090"

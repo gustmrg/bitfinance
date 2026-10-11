@@ -70,7 +70,7 @@ dotnet tool install --global dotnet-ef
    ```
 
    This starts the API, PostgreSQL, Redis, MinIO, and a MinIO bucket initialization container.
-   Compose creates and reuses the local `bitfinance-backend_postgres-data` volume automatically.
+   The Compose project is named `bitfinance`, the same as in production, so local volumes are prefixed `bitfinance_` (for example `bitfinance_postgres-data`). Compose creates and reuses them automatically.
 
 3. Apply migrations manually if you are running the API outside Docker or need to update the database directly.
 
