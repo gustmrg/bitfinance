@@ -74,6 +74,7 @@ services:
 
 networks:
   bitfinance-network:
+    name: bitfinance_bitfinance-network
     driver: bridge
 
 volumes:

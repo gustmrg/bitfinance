@@ -188,6 +188,14 @@ jobs:
     environment: production
 
     steps:
+      - name: Checkout compose file
+        uses: actions/checkout@v6
+        with:
+          ref: mcp-server/v${{ needs.validate.outputs.version }}
+          sparse-checkout: |
+            apps/mcp-server/docker-compose.yml
+          sparse-checkout-cone-mode: false
+
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
         with:
@@ -219,21 +227,57 @@ jobs:
           printf '%s' "$SSH_PRIVATE_KEY" > "$KEY_FILE"
           chmod 600 "$KEY_FILE"
 
-          ssh -i "$KEY_FILE" \
-            -p "$SSH_PORT" \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
+          SSH_OPTS=(
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+          )
+
+          MCP_DEPLOY_PATH="$DEPLOY_PATH/mcp-server"
+
+          echo "Uploading compose file from mcp-server/v$MCP_IMAGE_TAG..."
+          scp -i "$KEY_FILE" -P "$SSH_PORT" "${SSH_OPTS[@]}" \
+            apps/mcp-server/docker-compose.yml \
+            "$SSH_USERNAME@$TARGET_HOST:$MCP_DEPLOY_PATH/docker-compose.yml.new"
+
+          printf -v REMOTE_MCP_IMAGE_TAG '%q' "$MCP_IMAGE_TAG"
+          printf -v REMOTE_MCP_DEPLOY_PATH '%q' "$MCP_DEPLOY_PATH"
+
+          ssh -i "$KEY_FILE" -p "$SSH_PORT" "${SSH_OPTS[@]}" \
             "$SSH_USERNAME@$TARGET_HOST" \
-            "MCP_IMAGE_TAG='$MCP_IMAGE_TAG' DEPLOY_PATH='$DEPLOY_PATH' bash -s" <<'REMOTE'
+            "MCP_IMAGE_TAG=$REMOTE_MCP_IMAGE_TAG MCP_DEPLOY_PATH=$REMOTE_MCP_DEPLOY_PATH bash -s" <<'REMOTE'
           set -euo pipefail
 
-          COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.prod.yml)
-          cd "$DEPLOY_PATH"
+          COMPOSE_FILES=(-f docker-compose.yml)
+          cd "$MCP_DEPLOY_PATH"
+
+          for file in docker-compose.yml.new .env; do
+            if [ ! -f "$file" ]; then
+              echo "::error::Required deploy file is missing: $MCP_DEPLOY_PATH/$file"
+              exit 1
+            fi
+          done
+
+          # Compose only warns about variables missing from .env and then uses
+          # an empty value, so treat that warning as a failure too.
+          echo "Validating the release's compose file against .env..."
+          if ! CHECK_OUTPUT="$(docker compose -f docker-compose.yml.new config -q 2>&1)" \
+            || grep -q 'variable is not set' <<<"$CHECK_OUTPUT"; then
+            printf '%s\n' "$CHECK_OUTPUT"
+            rm -f docker-compose.yml.new
+            echo "::error::The release's compose file does not work with the server's .env. The current compose file was left in place."
+            exit 1
+          fi
+
+          if [ -f docker-compose.yml ]; then
+            cp -p docker-compose.yml docker-compose.yml.prev
+          fi
+          mv docker-compose.yml.new docker-compose.yml
+          echo "Compose file updated from the release (previous version kept as docker-compose.yml.prev)"
 
           echo "Pulling MCP server image tag: $MCP_IMAGE_TAG"
           docker compose "${COMPOSE_FILES[@]}" pull bitfinance-mcp-server
-          docker compose "${COMPOSE_FILES[@]}" up -d --no-deps --no-build --wait --wait-timeout 120 bitfinance-mcp-server
+          docker compose "${COMPOSE_FILES[@]}" up -d --no-build --wait --wait-timeout 120 bitfinance-mcp-server
 
           EXPECTED_IMAGE="gustmrg/bitfinance-mcp-server:$MCP_IMAGE_TAG"
           RUNNING_IMAGE="$(docker inspect --format '{{.Config.Image}}' "$(docker compose "${COMPOSE_FILES[@]}" ps -q bitfinance-mcp-server)")"
@@ -243,8 +287,6 @@ jobs:
           fi
           echo "MCP server is running $RUNNING_IMAGE"
 
-          # Record the deployed version in .env so compose commands run by hand
-          # on the server keep this image instead of an older tag.
           if grep -q '^MCP_IMAGE_TAG=' .env; then
             sed -i "s/^MCP_IMAGE_TAG=.*/MCP_IMAGE_TAG=$MCP_IMAGE_TAG/" .env
           else
