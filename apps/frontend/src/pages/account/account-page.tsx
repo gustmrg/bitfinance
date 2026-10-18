@@ -16,7 +16,8 @@ import { useNotificationMutations } from "@/hooks/mutations/use-notification-mut
 import { useNotificationPreferencesQuery } from "@/hooks/queries/use-notification-queries";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
 import { useTheme } from "@/hooks/use-theme";
-import { acceptedAvatarTypes } from "@/lib/file-validation";
+import { acceptedAvatarTypes, maxAvatarSourceSizeBytes } from "@/lib/file-validation";
+import { AvatarCropModal } from "./components/avatar-crop-modal";
 
 export function AccountPage() {
   const { t, i18n } = useTranslation();
@@ -30,6 +31,7 @@ export function AccountPage() {
   const [firstName, setFirstName] = useState(user?.fullName.split(" ")[0] ?? "");
   const [lastName, setLastName] = useState(user?.fullName.split(" ").slice(1).join(" ") ?? "");
   const [removeAvatarConfirm, setRemoveAvatarConfirm] = useState(false);
+  const [cropSource, setCropSource] = useState<string | null>(null);
   const [signOutAllConfirm, setSignOutAllConfirm] = useState(false);
   const { theme, setTheme } = useTheme();
   const avatarInput = useRef<HTMLInputElement>(null);
@@ -44,14 +46,22 @@ export function AccountPage() {
       toast.error(error instanceof Error ? error.message : t("account.unableSave"));
     }
   };
-  const upload = async (file: File) => {
-    if (!acceptedAvatarTypes.includes(file.type) || file.size > 2 * 1024 * 1024) {
+  const selectAvatar = (file: File) => {
+    if (!acceptedAvatarTypes.includes(file.type) || file.size > maxAvatarSourceSizeBytes) {
       toast.error(t("account.invalidAvatar"));
       return;
     }
+    setCropSource(URL.createObjectURL(file));
+  };
+  const closeCrop = () => {
+    if (cropSource) URL.revokeObjectURL(cropSource);
+    setCropSource(null);
+  };
+  const upload = async (file: File) => {
     try {
       await mutations.avatar.mutateAsync(file);
       await auth.refreshUser();
+      closeCrop();
       toast.success(t("account.avatarUpdated"));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("account.unableUpload"));
@@ -90,7 +100,7 @@ export function AccountPage() {
               accept="image/jpeg,image/png"
               onChange={(event) => {
                 const file = event.target.files?.[0];
-                if (file) void upload(file);
+                if (file) selectAvatar(file);
                 event.currentTarget.value = "";
               }}
             />
@@ -219,6 +229,14 @@ export function AccountPage() {
           </div>
         </section>
       </div>
+      {cropSource && (
+        <AvatarCropModal
+          src={cropSource}
+          pending={mutations.avatar.isPending}
+          onConfirm={(file) => void upload(file)}
+          onClose={closeCrop}
+        />
+      )}
       {removeAvatarConfirm && (
         <ConfirmDialog
           title={t("common.removeAvatarConfirm")}
