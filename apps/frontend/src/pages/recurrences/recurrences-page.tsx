@@ -1,25 +1,27 @@
-import { CalendarClock, Layers, ReceiptText, Repeat, WalletCards } from "lucide-react";
+import { Repeat } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import type { BillFrequency, BillSeries } from "@/api/bills/bills.types";
-import { EmptyState } from "@/components/feedback/empty-state";
-import { ErrorState } from "@/components/feedback/error-state";
-import { LoadingState } from "@/components/feedback/loading-state";
-import { PageContainer } from "@/components/layout/page-container";
-import { Button } from "@/components/ui/button";
-import { DataIcon } from "@/components/ui/data-icon";
-import { MetricCard } from "@/components/ui/metric-card";
-import { ConfirmDialog } from "@/components/ui/modal";
-import { PageHeader } from "@/components/ui/page-header";
-import { SectionHeading } from "@/components/ui/section-heading";
+import { Amount } from "@/components/base/amount";
+import { Badge } from "@/components/base/badge";
+import { Button } from "@/components/base/button";
+import { buttonClasses } from "@/components/base/button-styles";
+import { Card, CardHeader } from "@/components/base/card";
+import { ConfirmDialog } from "@/components/base/dialog";
+import { EmptyState, ErrorState, LoadingState } from "@/components/base/feedback";
+import { PageHeader } from "@/components/base/page-header";
+import { Stat } from "@/components/base/stat";
+import { DueStatus } from "@/components/finance/due-status";
+import { Page } from "@/components/layout/page";
 import { useBillMutations } from "@/hooks/mutations/use-bill-mutations";
 import { useBillSeriesQuery } from "@/hooks/queries/use-bill-queries";
 import { useLocale } from "@/hooks/use-locale";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
+import { cn } from "@/lib/cn";
 import { categoryLabel } from "@/lib/finance-categories";
-import { formatCurrency, formatLongDate } from "@/lib/format";
+import { formatLongDate } from "@/lib/format";
 
 const monthlyFactor: Record<BillFrequency, number> = {
   daily: 365 / 12,
@@ -28,16 +30,9 @@ const monthlyFactor: Record<BillFrequency, number> = {
   annually: 1 / 12,
 };
 
-function SeriesRow({
-  series,
-  locale,
-  onStop,
-}: {
-  series: BillSeries;
-  locale: string;
-  onStop?: () => void;
-}) {
+function SeriesRow({ series, onStop }: { series: BillSeries; onStop?: () => void }) {
   const { t } = useTranslation();
+  const locale = useLocale();
   const progress =
     series.type === "installment" && series.totalOccurrences
       ? t("recurrences.installmentProgress", {
@@ -46,38 +41,59 @@ function SeriesRow({
         })
       : t("recurrences.since", { date: formatLongDate(series.startDate, locale) });
   return (
-    <div className="series-row">
-      <DataIcon type="bill" />
-      <span className="series-row__primary">
-        <strong>{series.description}</strong>
-        <small>
-          {t(categoryLabel(series.category))} · {t(`types.${series.type}`)} ·{" "}
-          {t(`bills.${series.frequency}`)}
-        </small>
+    <div
+      className={cn(
+        "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-t border-line py-4 first:border-t-0 md:grid-cols-[minmax(0,1fr)_220px_130px_auto]",
+        !series.isActive && "text-ink-muted",
+      )}
+    >
+      <span className="grid min-w-0 gap-0.5">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className={cn("truncate text-[15px] font-bold", series.isActive && "text-ink")}>
+            {series.description}
+          </span>
+          <Badge tone={series.type === "installment" ? "warning" : "brand"}>
+            {t(`types.${series.type}`)}
+          </Badge>
+        </span>
+        <span className="truncate text-[13px] text-ink-muted">
+          {t(categoryLabel(series.category))} · {t(`bills.${series.frequency}`)} · {progress}
+        </span>
       </span>
-      <span className="series-row__meta">
-        <small>{progress}</small>
+      <span className="col-span-2 row-start-2 text-[13px] md:col-span-1 md:row-start-auto">
         {series.isActive ? (
           series.nextBillId && series.nextDueDate ? (
-            <Link to={`/bills/${series.nextBillId}`} className="inline-link">
-              {t("recurrences.nextDue", { date: formatLongDate(series.nextDueDate, locale) })}
+            <Link
+              to={`/bills/${series.nextBillId}`}
+              className="inline-flex flex-wrap items-center gap-x-1.5 font-semibold text-brand-ink hover:underline"
+            >
+              {t("recurrences.nextOn", { date: formatLongDate(series.nextDueDate, locale) })}
+              <DueStatus dueDate={series.nextDueDate} status="upcoming" variant="text" />
             </Link>
           ) : (
-            <small>{t("recurrences.noOpenBill")}</small>
+            t("recurrences.noOpenBill")
           )
+        ) : series.stoppedAt ? (
+          t("recurrences.stoppedOn", { date: formatLongDate(series.stoppedAt, locale) })
         ) : (
-          <small>
-            {series.stoppedAt
-              ? t("recurrences.stoppedOn", { date: formatLongDate(series.stoppedAt, locale) })
-              : t("recurrences.completed")}
-          </small>
+          t("recurrences.completed")
         )}
       </span>
-      <strong className="series-row__amount">{formatCurrency(series.amountDue, locale)}</strong>
-      {onStop && (
-        <Button variant="ghost" onClick={onStop}>
+      <Amount
+        value={series.amountDue}
+        className={cn("text-right text-[15px] font-extrabold", series.isActive && "text-ink")}
+      />
+      {onStop ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="col-span-2 justify-self-end md:col-span-1"
+          onClick={onStop}
+        >
           {t("bills.stopFuture")}
         </Button>
+      ) : (
+        <span className="hidden md:block" />
       )}
     </div>
   );
@@ -85,7 +101,6 @@ function SeriesRow({
 
 export function RecurrencesPage() {
   const { t } = useTranslation();
-  const locale = useLocale();
   const organizationId = useSelectedOrganization();
   const query = useBillSeriesQuery(organizationId);
   const mutations = useBillMutations(organizationId);
@@ -108,113 +123,99 @@ export function RecurrencesPage() {
     });
   };
   return (
-    <PageContainer>
-      <PageHeader
-        eyebrow={t("recurrences.eyebrow")}
-        title={t("recurrences.title")}
-        description={t("recurrences.body")}
-      />
+    <Page>
+      <PageHeader title={t("recurrences.title")} description={t("recurrences.body")} />
       {query.isPending ? (
-        <LoadingState />
+        <Card>
+          <LoadingState />
+        </Card>
       ) : query.error ? (
-        <ErrorState
-          message={query.error.message}
-          onRetry={() => {
-            void query.refetch();
-          }}
-        />
+        <Card>
+          <ErrorState message={query.error.message} onRetry={() => void query.refetch()} />
+        </Card>
       ) : !series.length ? (
-        <EmptyState
-          icon={Repeat}
-          title={t("recurrences.emptyTitle")}
-          description={t("recurrences.emptyBody")}
-          action={
-            <Link to="/bills" className="button button--primary">
-              {t("nav.bills")}
-            </Link>
-          }
-        />
+        <Card>
+          <EmptyState
+            icon={Repeat}
+            title={t("recurrences.emptyTitle")}
+            description={t("recurrences.emptyBody")}
+            action={
+              <Link to="/bills?new=1" className={buttonClasses()}>
+                {t("bills.add")}
+              </Link>
+            }
+          />
+        </Card>
       ) : (
         <>
-          <div className="metrics-grid">
-            <MetricCard
-              label={t("recurrences.activeSeries")}
-              value={String(active.length)}
-              detail={t("recurrences.activeSeriesDetail")}
-              icon={Repeat}
-              tone="blue"
-            />
-            <MetricCard
+          <Card padding="none" className="grid grid-cols-2 lg:grid-cols-4">
+            <Stat
+              className="border-b border-r border-line p-5 lg:border-b-0"
+              tone="brand"
               label={t("recurrences.monthlyCommitment")}
-              value={formatCurrency(monthlyCommitment, locale)}
+              value={<Amount value={monthlyCommitment} />}
               detail={t("recurrences.monthlyCommitmentDetail")}
-              icon={WalletCards}
-              tone="mint"
             />
-            <MetricCard
+            <Stat
+              className="border-b border-line p-5 lg:border-b-0 lg:border-r"
+              label={t("recurrences.activeSeries")}
+              value={active.length}
+              detail={t("recurrences.activeSeriesDetail")}
+            />
+            <Stat
+              className="border-r border-line p-5"
               label={t("recurrences.activeInstallments")}
-              value={String(activeInstallments)}
+              value={activeInstallments}
               detail={t("recurrences.activeInstallmentsDetail")}
-              icon={Layers}
-              tone="amber"
             />
-            <MetricCard
+            <Stat
+              className="p-5"
               label={t("recurrences.ended")}
-              value={String(ended.length)}
+              value={ended.length}
               detail={t("recurrences.endedDetail")}
-              icon={CalendarClock}
-              tone="ink"
             />
-          </div>
-          <section className="surface-card series-card">
-            <SectionHeading
+          </Card>
+          <Card aria-labelledby="recurrences-active" padding="md" className="sm:p-6">
+            <CardHeader
+              titleId="recurrences-active"
               title={t("recurrences.activeTitle")}
               description={t("recurrences.activeBody")}
             />
             {active.length ? (
-              <div className="series-list">
-                {active.map((item) => (
-                  <SeriesRow
-                    key={item.id}
-                    series={item}
-                    locale={locale}
-                    onStop={() => setPendingStop(item)}
-                  />
-                ))}
-              </div>
+              active.map((item) => (
+                <SeriesRow key={item.id} series={item} onStop={() => setPendingStop(item)} />
+              ))
             ) : (
               <EmptyState
-                icon={ReceiptText}
+                icon={Repeat}
                 title={t("recurrences.noActive")}
                 description={t("recurrences.noActiveBody")}
               />
             )}
-          </section>
+          </Card>
           {ended.length > 0 && (
-            <section className="surface-card series-card series-card--ended">
-              <SectionHeading
+            <Card aria-labelledby="recurrences-ended" padding="md" className="sm:p-6">
+              <CardHeader
+                titleId="recurrences-ended"
                 title={t("recurrences.endedTitle")}
                 description={t("recurrences.endedBody")}
               />
-              <div className="series-list">
-                {ended.map((item) => (
-                  <SeriesRow key={item.id} series={item} locale={locale} />
-                ))}
-              </div>
-            </section>
+              {ended.map((item) => (
+                <SeriesRow key={item.id} series={item} />
+              ))}
+            </Card>
           )}
         </>
       )}
-      {pendingStop && (
-        <ConfirmDialog
-          title={t("common.stopFutureBillsConfirm")}
-          description={pendingStop.description}
-          confirmLabel={t("bills.stopFuture")}
-          pending={mutations.stopSeries.isPending}
-          onConfirm={confirmStop}
-          onClose={() => setPendingStop(null)}
-        />
-      )}
-    </PageContainer>
+      <ConfirmDialog
+        open={Boolean(pendingStop)}
+        onOpenChange={(next) => !next && setPendingStop(null)}
+        title={t("common.stopFutureBillsConfirm")}
+        description={pendingStop?.description}
+        confirmLabel={t("bills.stopFuture")}
+        pending={mutations.stopSeries.isPending}
+        onConfirm={confirmStop}
+      />
+    </Page>
   );
 }
