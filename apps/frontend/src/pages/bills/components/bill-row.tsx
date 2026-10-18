@@ -76,7 +76,7 @@ export function BillRow({
           onEdit={onDetails}
           onPaid={onPaid}
           canPay={bill.status !== "paid"}
-          detailHref={`/dashboard/bills/${bill.id}`}
+          detailHref={`/bills/${bill.id}`}
           onUpload={() => inputRef.current?.click()}
           onDelete={onDelete}
         />

@@ -44,11 +44,7 @@ export function ExpenseRow({
       <strong>{formatCurrency(expense.amount, locale)}</strong>
       <StatusPill status={expense.status} />
       <div className="row-actions">
-        <ActionMenu
-          onEdit={onDetails}
-          detailHref={`/dashboard/expenses/${expense.id}`}
-          onDelete={onDelete}
-        />
+        <ActionMenu onEdit={onDetails} detailHref={`/expenses/${expense.id}`} onDelete={onDelete} />
       </div>
     </div>
   );

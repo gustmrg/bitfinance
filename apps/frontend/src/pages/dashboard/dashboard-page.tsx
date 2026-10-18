@@ -49,7 +49,7 @@ export function DashboardPage() {
           title={t("dashboard.createOrganization")}
           description={t("dashboard.needsOrganization")}
           action={
-            <Link to="/account/create-organization" className="button button--primary">
+            <Link to="/organizations/new" className="button button--primary">
               {t("dashboard.createWorkspace")}
             </Link>
           }
@@ -172,14 +172,14 @@ export function DashboardPage() {
                   title={t("dashboard.upcomingTitle")}
                   description={t("dashboard.nextDecisions")}
                   action={
-                    <Link to="/dashboard/bills" className="inline-link">
+                    <Link to="/bills" className="inline-link">
                       {t("common.viewAll")} <ArrowUpRight size={14} />
                     </Link>
                   }
                 />
                 <div className="compact-list">
                   {upcoming.slice(0, 3).map((bill) => (
-                    <Link to={`/dashboard/bills/${bill.id}`} className="compact-row" key={bill.id}>
+                    <Link to={`/bills/${bill.id}`} className="compact-row" key={bill.id}>
                       <DataIcon type="bill" />
                       <span>
                         <strong>{bill.description}</strong>
@@ -207,7 +207,7 @@ export function DashboardPage() {
                   title={t("dashboard.recentTitle")}
                   description={t("dashboard.selectedPeriodRead")}
                   action={
-                    <Link to="/dashboard/expenses" className="inline-link">
+                    <Link to="/expenses" className="inline-link">
                       {t("common.viewAll")} <ArrowUpRight size={14} />
                     </Link>
                   }
@@ -246,19 +246,19 @@ export function DashboardPage() {
           )}
           <section className="quick-actions">
             <QuickAction
-              to="/dashboard/bills"
+              to="/bills"
               icon={ReceiptText}
               label={t("bills.add")}
               detail={t("dashboard.keepCommitment")}
             />
             <QuickAction
-              to="/dashboard/expenses"
+              to="/expenses"
               icon={ArrowDownRight}
               label={t("expenses.add")}
               detail={t("dashboard.recordExpense")}
             />
             <QuickAction
-              to="/account/organization"
+              to="/settings/organization"
               icon={WalletCards}
               label={t("dashboard.setBudget")}
               detail={t("dashboard.monthBoundary")}

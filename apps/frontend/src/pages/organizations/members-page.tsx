@@ -1,11 +1,13 @@
-import { useMutation } from "@tanstack/react-query";
-import { ArrowUpRight, ShieldCheck, UserPlus } from "lucide-react";
+import { ArrowUpRight, Mail, RefreshCw, ShieldCheck, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { organizationsService } from "@/api/organizations/organizations.service";
-import { OrganizationDetails } from "@/api/organizations/organizations.types";
+import type {
+  InvitationResult,
+  OrganizationDetails,
+  PendingInvitation,
+} from "@/api/organizations/organizations.types";
 import { useAuth } from "@/auth/auth-provider";
 import { useOrganizationStore } from "@/auth/auth-store";
 import { ErrorState } from "@/components/feedback/error-state";
@@ -17,12 +19,23 @@ import { ConfirmDialog, Modal } from "@/components/ui/modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Select } from "@/components/ui/select";
-import { formatLongDate } from "@/lib/format";
-import { useOrganizationMemberMutations } from "@/hooks/mutations/use-organization-mutations";
-import { useOrganizationQuery } from "@/hooks/queries/use-organization-queries";
+import { formatLongDate, relativeDate } from "@/lib/format";
+import {
+  useInvitationMutations,
+  useOrganizationMemberMutations,
+} from "@/hooks/mutations/use-organization-mutations";
+import {
+  useInvitationsQuery,
+  useOrganizationQuery,
+} from "@/hooks/queries/use-organization-queries";
 import { useLocale } from "@/hooks/use-locale";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
-import { isEditableMemberRole, isKnownMemberRole } from "@/pages/organizations/member-permissions";
+import {
+  canManageOrganization,
+  findMemberRole,
+  isEditableMemberRole,
+  isKnownMemberRole,
+} from "@/pages/organizations/member-permissions";
 
 export function MembersPage() {
   const { t } = useTranslation();
@@ -32,30 +45,60 @@ export function MembersPage() {
   const organizationId = useSelectedOrganization();
   const detail = useOrganizationQuery(organizationId);
   const memberMutations = useOrganizationMemberMutations(organizationId);
+  const invitationMutations = useInvitationMutations(organizationId);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [invite, setInvite] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [invite, setInvite] = useState<{ email: string; url: string; expiresAt: string } | null>(
+    null,
+  );
   const [pendingRemoval, setPendingRemoval] = useState<
     OrganizationDetails["members"][number] | null
   >(null);
-  const currentMember = detail.data?.members.find((member) => member.id === auth.user?.id);
-  const currentRole = isKnownMemberRole(currentMember?.role) ? currentMember.role : undefined;
+  const [pendingRevocation, setPendingRevocation] = useState<PendingInvitation | null>(null);
+  const currentRole = findMemberRole(detail.data?.members, auth.user?.id);
   const inviteRoles: Array<"Admin" | "Member"> =
     currentRole === "Owner" ? ["Admin", "Member"] : ["Member"];
-  const canInvite = currentRole === "Owner" || currentRole === "Admin";
-  const createInvite = useMutation({
-    mutationFn: ({ email, role }: { email: string; role: "Admin" | "Member" }) =>
-      organizationsService.createInviteAsync(organizationId!, email, role),
-    onSuccess: (result) => {
-      setInvite({
-        url: `${window.location.origin}/join-organization?token=${encodeURIComponent(result.token)}`,
-        expiresAt: result.expiresAt,
-      });
-      setInviteOpen(false);
-      toast.success(t("organization.invitationCreated"));
-    },
-    onError: (error) =>
-      toast.error(error instanceof Error ? error.message : t("organization.invitationError")),
-  });
+  const canInvite = canManageOrganization(currentRole);
+  const invitations = useInvitationsQuery(organizationId, canInvite);
+  const showInvite = (email: string, result: InvitationResult) =>
+    setInvite({
+      email,
+      url: `${window.location.origin}/join-organization?token=${encodeURIComponent(result.token)}`,
+      expiresAt: result.expiresAt,
+    });
+  const createInvite = (email: string, role: "Admin" | "Member") =>
+    invitationMutations.create.mutate(
+      { email, role },
+      {
+        onSuccess: (result) => {
+          showInvite(email, result);
+          setInviteOpen(false);
+          toast.success(t("organization.invitationCreated"));
+        },
+        onError: (error) =>
+          toast.error(error instanceof Error ? error.message : t("organization.invitationError")),
+      },
+    );
+  const canManageInvitation = (invitation: PendingInvitation) =>
+    currentRole === "Owner" || (currentRole === "Admin" && invitation.role === "Member");
+  const renewInvitation = (invitation: PendingInvitation) =>
+    invitationMutations.renew.mutate(invitation.id, {
+      onSuccess: (result) => {
+        showInvite(invitation.email, result);
+        toast.success(t("organization.invitationRenewed"));
+      },
+      onError: (error) => toast.error(error.message),
+    });
+  const confirmRevocation = () => {
+    if (!pendingRevocation) return;
+    invitationMutations.revoke.mutate(pendingRevocation.id, {
+      onSuccess: () => {
+        if (invite?.email === pendingRevocation.email) setInvite(null);
+        setPendingRevocation(null);
+        toast.success(t("organization.invitationRevoked"));
+      },
+      onError: (error) => toast.error(error.message),
+    });
+  };
 
   if (!organizationId || detail.isPending)
     return (
@@ -103,7 +146,7 @@ export function MembersPage() {
         );
         useOrganizationStore.getState().setSelectedOrganizationId(nextOrganization?.id ?? null);
         toast.success(t("organization.left"));
-        navigate(nextOrganization ? "/dashboard" : "/account/create-organization", {
+        navigate(nextOrganization ? "/dashboard" : "/organizations/new", {
           replace: true,
         });
       },
@@ -205,7 +248,10 @@ export function MembersPage() {
         <section className="surface-card detail-card">
           <SectionHeading
             title={t("organization.invitationReady")}
-            description={t("common.expires", { date: formatLongDate(invite.expiresAt, locale) })}
+            description={t("organization.invitationReadyFor", {
+              email: invite.email,
+              date: formatLongDate(invite.expiresAt, locale),
+            })}
             action={
               <Button
                 onClick={() => {
@@ -217,6 +263,71 @@ export function MembersPage() {
             }
           />
           <input readOnly value={invite.url} aria-label={t("organization.invitationLink")} />
+          <p className="muted">{t("organization.invitationEmailHint", { email: invite.email })}</p>
+        </section>
+      )}
+      {canInvite && (
+        <section className="surface-card members-card invitations-card">
+          <SectionHeading
+            title={t("organization.pendingInvitations")}
+            description={t("organization.pendingInvitationsBody")}
+          />
+          {invitations.isPending ? (
+            <LoadingState />
+          ) : invitations.error ? (
+            <ErrorState
+              message={invitations.error.message}
+              onRetry={() => {
+                void invitations.refetch();
+              }}
+            />
+          ) : invitations.data.length ? (
+            <div className="members-list">
+              {invitations.data.map((invitation) => (
+                <div className="member-row" key={invitation.id}>
+                  <span className="member-row__icon">
+                    <Mail size={16} />
+                  </span>
+                  <span>
+                    <strong>{invitation.email}</strong>
+                    <small>
+                      {invitation.invitedBy
+                        ? t("organization.invitedBy", { name: invitation.invitedBy })
+                        : t("organization.invited")}
+                    </small>
+                  </span>
+                  <span className={`role-badge role-badge--${invitation.role.toLowerCase()}`}>
+                    {t(`roles.${invitation.role}`)}
+                  </span>
+                  <small className="member-row__joined">
+                    {t("organization.expiresIn", {
+                      time: relativeDate(invitation.expiresAt, locale),
+                    })}
+                  </small>
+                  {canManageInvitation(invitation) && (
+                    <div className="member-row__actions">
+                      <Button
+                        variant="ghost"
+                        disabled={invitationMutations.renew.isPending}
+                        onClick={() => renewInvitation(invitation)}
+                      >
+                        <RefreshCw size={14} /> {t("organization.newLink")}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        disabled={invitationMutations.revoke.isPending}
+                        onClick={() => setPendingRevocation(invitation)}
+                      >
+                        {t("organization.revoke")}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="muted">{t("organization.noPendingInvitations")}</p>
+          )}
         </section>
       )}
       {inviteOpen && canInvite && (
@@ -230,10 +341,10 @@ export function MembersPage() {
             onSubmit={(event) => {
               event.preventDefault();
               const data = new FormData(event.currentTarget);
-              createInvite.mutate({
-                email: String(data.get("email")),
-                role: String(data.get("role")) as "Admin" | "Member",
-              });
+              createInvite(
+                String(data.get("email")),
+                String(data.get("role")) as "Admin" | "Member",
+              );
             }}
           >
             <label>
@@ -252,12 +363,22 @@ export function MembersPage() {
               <Button type="button" variant="ghost" onClick={() => setInviteOpen(false)}>
                 {t("common.cancel")}
               </Button>
-              <Button type="submit" disabled={createInvite.isPending}>
+              <Button type="submit" disabled={invitationMutations.create.isPending}>
                 {t("common.invite")} <ArrowUpRight size={16} />
               </Button>
             </div>
           </form>
         </Modal>
+      )}
+      {pendingRevocation && (
+        <ConfirmDialog
+          title={t("organization.revokeConfirm", { email: pendingRevocation.email })}
+          description={t("organization.revokeDescription")}
+          confirmLabel={t("organization.revoke")}
+          pending={invitationMutations.revoke.isPending}
+          onConfirm={confirmRevocation}
+          onClose={() => setPendingRevocation(null)}
+        />
       )}
       {pendingRemoval && (
         <ConfirmDialog

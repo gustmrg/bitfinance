@@ -14,7 +14,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     const returnTo = `${location.pathname}${location.search}`;
     return <Navigate to={`/auth/sign-in?returnTo=${encodeURIComponent(returnTo)}`} replace />;
   }
-  if (!auth.user?.organizations.length && location.pathname !== "/account/create-organization")
-    return <Navigate to="/account/create-organization" replace />;
+  if (!auth.user?.organizations.length && location.pathname !== "/organizations/new")
+    return <Navigate to="/organizations/new" replace />;
   return <>{children}</>;
 }

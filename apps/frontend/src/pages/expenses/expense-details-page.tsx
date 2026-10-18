@@ -87,7 +87,7 @@ export function ExpenseDetailsPage() {
     );
   return (
     <PageContainer>
-      <Link to="/dashboard/expenses" className="back-link">
+      <Link to="/expenses" className="back-link">
         ← {t("nav.expenses")}
       </Link>
       <PageHeader

@@ -8,6 +8,7 @@ export function useBillMutations(organizationId: string | null) {
   const invalidate = () => {
     void client.invalidateQueries({ queryKey: queryKeys.bills.all });
     void client.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    void client.invalidateQueries({ queryKey: queryKeys.reports.all });
   };
   return {
     create: useMutation({

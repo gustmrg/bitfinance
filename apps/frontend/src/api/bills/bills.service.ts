@@ -1,6 +1,13 @@
 import { authApi } from "../shared/client";
 import { normalizeApiError } from "../shared/errors";
-import type { Bill, BillDocument, BillInput, BillListFilters, Paged } from "./bills.types";
+import type {
+  Bill,
+  BillDocument,
+  BillInput,
+  BillListFilters,
+  BillSeries,
+  Paged,
+} from "./bills.types";
 
 type BillWire = Omit<
   Bill,
@@ -148,6 +155,24 @@ export const billsService = {
       );
     } catch (error) {
       throw normalizeApiError(error, "api.bills.removeDocument");
+    }
+  },
+  async listSeriesAsync(organizationId: string): Promise<BillSeries[]> {
+    try {
+      const response = await authApi.get<
+        Array<
+          Omit<BillSeries, "category" | "frequency" | "type"> &
+            Record<"category" | "frequency" | "type", string>
+        >
+      >(`/organizations/${organizationId}/bills/series`);
+      return response.data.map((series) => ({
+        ...series,
+        category: normalize(series.category) as BillSeries["category"],
+        frequency: normalize(series.frequency) as BillSeries["frequency"],
+        type: normalize(series.type) as BillSeries["type"],
+      }));
+    } catch (error) {
+      throw normalizeApiError(error, "api.bills.loadSeries");
     }
   },
   async stopSeriesAsync(organizationId: string, seriesId: string) {

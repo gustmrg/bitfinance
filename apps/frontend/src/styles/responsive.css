@@ -235,6 +235,37 @@
   .member-row__joined {
     display: none;
   }
+  .member-row {
+    flex-wrap: wrap;
+    padding: 12px 0;
+  }
+  .member-row__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .series-row {
+    grid-template-areas:
+      "icon primary amount"
+      "icon meta meta"
+      "action action action";
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    padding: 12px 0;
+  }
+  .series-row > .data-icon {
+    align-self: start;
+  }
+  .series-row__meta {
+    justify-items: start;
+    text-align: left;
+  }
+  .danger-zone__row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .report-chart__plot {
+    height: 200px;
+  }
   .landing {
     width: min(100% - 36px, 620px);
   }

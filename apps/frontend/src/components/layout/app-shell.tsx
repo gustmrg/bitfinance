@@ -1,6 +1,6 @@
 import {
+  BarChart3,
   Building2,
-  CircleDollarSign,
   CreditCard,
   Globe2,
   LayoutDashboard,
@@ -8,12 +8,12 @@ import {
   Moon,
   MoreHorizontal,
   ReceiptText,
-  Settings2,
+  Repeat,
   SunMedium,
   UsersRound,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, matchPath, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/auth-provider";
 import { useOrganizationStore } from "@/auth/auth-store";
 import { NotificationBell } from "@/components/navigation/notification-bell";
@@ -24,11 +24,39 @@ import { Select } from "@/components/ui/select";
 import { useOrganizationsQuery } from "@/hooks/queries/use-organization-queries";
 import { useTheme } from "@/hooks/use-theme";
 
-const navItems = [
+type NavItem = { to: string; labelKey: string; icon: typeof LayoutDashboard; end?: boolean };
+
+const navItems: NavItem[] = [
   { to: "/dashboard", labelKey: "nav.overview", icon: LayoutDashboard, end: true },
-  { to: "/dashboard/bills", labelKey: "nav.bills", icon: ReceiptText },
-  { to: "/dashboard/expenses", labelKey: "nav.expenses", icon: CreditCard },
+  { to: "/bills", labelKey: "nav.bills", icon: ReceiptText },
+  { to: "/expenses", labelKey: "nav.expenses", icon: CreditCard },
 ];
+
+const insightNavItems: NavItem[] = [
+  { to: "/recurrences", labelKey: "nav.recurrences", icon: Repeat },
+  { to: "/reports", labelKey: "nav.reports", icon: BarChart3 },
+];
+
+const settingsNavItems: NavItem[] = [
+  { to: "/settings/organization", labelKey: "nav.organization", icon: Building2 },
+  { to: "/settings/members", labelKey: "nav.members", icon: UsersRound },
+];
+
+const breadcrumbs = [
+  { path: "/dashboard", labelKey: "nav.overview" },
+  { path: "/bills/*", labelKey: "nav.bills" },
+  { path: "/expenses/*", labelKey: "nav.expenses" },
+  { path: "/recurrences", labelKey: "nav.recurrences" },
+  { path: "/reports", labelKey: "nav.reports" },
+  { path: "/settings/organization", labelKey: "nav.organization" },
+  { path: "/settings/members", labelKey: "nav.members" },
+  { path: "/settings/account", labelKey: "nav.account" },
+  { path: "/settings", labelKey: "nav.settings" },
+];
+
+function breadcrumbLabelKey(pathname: string) {
+  return breadcrumbs.find(({ path }) => matchPath(path, pathname))?.labelKey ?? "nav.overview";
+}
 
 function OrganizationSwitcher() {
   const { user } = useAuth();
@@ -99,7 +127,7 @@ function UserMenu() {
     .toUpperCase();
   return (
     <div className="sidebar-user">
-      <Link className="user-menu" to="/account/settings">
+      <Link className="user-menu" to="/settings/account" aria-label={t("nav.account")}>
         <Avatar initials={initials} src={user.avatarUrl ?? undefined} size="sm" />
         <span>
           <strong>{user.fullName}</strong>
@@ -134,7 +162,7 @@ export function AppShell() {
         </div>
         <nav className="sidebar__nav" aria-label={t("common.primaryNavigation")}>
           <p className="sidebar__section-label">{t("common.workspace")}</p>
-          {navItems.map(({ to, labelKey, icon: Icon, end }) => (
+          {[...navItems, ...insightNavItems].map(({ to, labelKey, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -148,37 +176,18 @@ export function AppShell() {
           <p className="sidebar__section-label sidebar__section-label--spaced">
             {t("common.workspaceSettings")}
           </p>
-          <NavLink
-            to="/account/organization"
-            className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}
-          >
-            <Building2 size={18} />
-            <span>{t("nav.organization")}</span>
-          </NavLink>
-          <NavLink
-            to="/organization/members"
-            className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}
-          >
-            <UsersRound size={18} />
-            <span>{t("nav.members")}</span>
-          </NavLink>
-          <NavLink
-            to="/account/settings"
-            className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}
-          >
-            <Settings2 size={18} />
-            <span>{t("nav.account")}</span>
-          </NavLink>
+          {settingsNavItems.map(({ to, labelKey, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}
+            >
+              <Icon size={18} />
+              <span>{t(labelKey)}</span>
+            </NavLink>
+          ))}
         </nav>
         <div className="sidebar__footer">
-          <div className="sidebar__signal">
-            <CircleDollarSign size={18} />
-            <span>
-              <strong>{t("common.cashFlow")}</strong>
-              <small>{t("common.healthyThisMonth")}</small>
-            </span>
-            <span className="signal-dot" />
-          </div>
           <UserMenu />
         </div>
       </aside>
@@ -195,14 +204,7 @@ export function AppShell() {
         <header className="content-topbar">
           <div className="content-topbar__crumb">
             <span className="live-dot" />
-            {t("common.liveWorkspace")} <span>/</span>{" "}
-            {location.pathname.includes("bills")
-              ? t("nav.bills")
-              : location.pathname.includes("expenses")
-                ? t("nav.expenses")
-                : location.pathname.includes("organization")
-                  ? t("nav.organization")
-                  : t("nav.overview")}
+            {t("common.liveWorkspace")} <span>/</span> {t(breadcrumbLabelKey(location.pathname))}
           </div>
           <div className="content-topbar__actions">
             <ThemeSwitcher />
@@ -228,7 +230,7 @@ export function AppShell() {
             </NavLink>
           ))}
           <NavLink
-            to="/account/more"
+            to="/settings"
             className={({ isActive }) =>
               `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`
             }

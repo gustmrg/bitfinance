@@ -49,7 +49,7 @@ export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
       navigate(
         user.organizations.length
           ? safeReturnTo(searchParams.get("returnTo"))
-          : "/account/create-organization",
+          : "/organizations/new",
         { replace: true },
       );
     } catch (nextError) {

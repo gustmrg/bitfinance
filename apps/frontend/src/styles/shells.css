@@ -50,31 +50,6 @@
   padding: 16px;
   border-top: 1px solid var(--line);
 }
-.sidebar__signal {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 12px;
-  padding: 10px;
-  border: 1px solid #cdeee5;
-  border-radius: 11px;
-  background: #effbf8;
-  color: var(--mint);
-}
-.sidebar__signal span:not(.signal-dot) {
-  display: grid;
-  gap: 2px;
-}
-.sidebar__signal strong {
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 600;
-}
-.sidebar__signal small {
-  color: var(--mint);
-  font-size: 10px;
-}
-.signal-dot,
 .live-dot {
   display: inline-block;
   width: 7px;
@@ -83,12 +58,6 @@
   border-radius: 999px;
   background: var(--mint);
   box-shadow: 0 0 0 4px rgba(35, 184, 154, 0.14);
-}
-.sidebar__signal .signal-dot {
-  width: 6px;
-  height: 6px;
-  margin-left: auto;
-  box-shadow: none;
 }
 .main-content {
   display: flex;

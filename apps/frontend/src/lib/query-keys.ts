@@ -8,6 +8,13 @@ export const queryKeys = {
     list: () => ["organizations", "list"] as const,
     detail: (organizationId: string) => ["organizations", "detail", organizationId] as const,
     budget: (organizationId: string) => ["organizations", "budget", organizationId] as const,
+    invitations: (organizationId: string) =>
+      ["organizations", "invitations", organizationId] as const,
+  },
+  reports: {
+    all: ["reports"] as const,
+    summary: (organizationId: string, months: number) =>
+      ["reports", "summary", organizationId, months] as const,
   },
   dashboard: {
     all: ["dashboard"] as const,
@@ -42,6 +49,7 @@ export const queryKeys = {
       ] as const,
     detail: (organizationId: string, billId: string) =>
       ["bills", "detail", organizationId, billId] as const,
+    series: (organizationId: string) => ["bills", "series", organizationId] as const,
   },
   expenses: {
     all: ["expenses"] as const,

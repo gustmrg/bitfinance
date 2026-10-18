@@ -119,7 +119,7 @@ export function BillDetailsPage() {
     : t("common.oneTime");
   return (
     <PageContainer>
-      <Link to="/dashboard/bills" className="back-link">
+      <Link to="/bills" className="back-link">
         ← {t("nav.bills")}
       </Link>
       <PageHeader

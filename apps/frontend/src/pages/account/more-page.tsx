@@ -1,4 +1,4 @@
-import { Building2, Settings2, UsersRound } from "lucide-react";
+import { BarChart3, Building2, Repeat, Settings2, UsersRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/ui/page-header";
@@ -15,19 +15,31 @@ export function MorePage() {
       />
       <div className="more-grid">
         <QuickAction
-          to="/account/organization"
+          to="/recurrences"
+          icon={Repeat}
+          label={t("nav.recurrences")}
+          detail={t("more.recurrences")}
+        />
+        <QuickAction
+          to="/reports"
+          icon={BarChart3}
+          label={t("nav.reports")}
+          detail={t("more.reports")}
+        />
+        <QuickAction
+          to="/settings/organization"
           icon={Building2}
           label={t("nav.organization")}
           detail={t("more.budgetSettings")}
         />
         <QuickAction
-          to="/organization/members"
+          to="/settings/members"
           icon={UsersRound}
           label={t("nav.members")}
           detail={t("more.access")}
         />
         <QuickAction
-          to="/account/settings"
+          to="/settings/account"
           icon={Settings2}
           label={t("nav.account")}
           detail={t("more.profilePreferences")}

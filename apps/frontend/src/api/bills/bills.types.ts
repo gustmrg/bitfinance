@@ -45,6 +45,21 @@ export interface Bill {
   billSeriesIsActive: boolean;
   documents: BillDocument[];
 }
+export interface BillSeries {
+  id: string;
+  description: string;
+  category: BillCategory;
+  frequency: BillFrequency;
+  type: BillSeriesType;
+  amountDue: number;
+  startDate: string;
+  totalOccurrences: number | null;
+  generatedOccurrences: number;
+  isActive: boolean;
+  stoppedAt: string | null;
+  nextBillId: string | null;
+  nextDueDate: string | null;
+}
 export interface Paged<T> {
   data: T[];
   page: number;
