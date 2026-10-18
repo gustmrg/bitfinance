@@ -4,19 +4,28 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
+import { authService } from "@/api/auth/auth.service";
 import { useAuth } from "@/auth/auth-provider";
 import { safeReturnTo } from "@/auth/safe-return-to";
 import { Button } from "@/components/base/button";
+import { buttonClasses } from "@/components/base/button-styles";
 import { Field, Input } from "@/components/base/field";
+import { GoogleMark } from "@/components/base/google-mark";
 import { CenterCard } from "@/components/layout/center-card";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { useExternalProvidersQuery } from "@/hooks/queries/use-auth-queries";
 
 export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   const { t } = useTranslation();
   const auth = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [error, setError] = useState("");
+  const providers = useExternalProvidersQuery();
+  const googleEnabled = providers.data?.providers.includes("google") ?? false;
+  const googleError = searchParams.get("googleError");
+  const [error, setError] = useState(() =>
+    googleError ? t(`auth.googleErrors.${googleError}`, t("auth.googleErrors.failed")) : "",
+  );
   const [pending, setPending] = useState(false);
   const isSignIn = mode === "sign-in";
   const returnTo = searchParams.get("returnTo");
@@ -126,6 +135,19 @@ export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
           <Button type="submit" size="lg" fullWidth disabled={pending}>
             {pending ? t("common.loading") : isSignIn ? t("common.signIn") : t("common.signUp")}
           </Button>
+          {googleEnabled && (
+            <>
+              <div className="flex items-center gap-3 text-[11px] text-ink-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
+                <span>{t("auth.or")}</span>
+              </div>
+              <a
+                className={buttonClasses({ variant: "secondary", size: "lg", fullWidth: true })}
+                href={authService.googleSignInUrl(safeReturnTo(returnTo))}
+              >
+                <GoogleMark /> {t("auth.continueWithGoogle")}
+              </a>
+            </>
+          )}
           <p className="m-0 text-center text-sm text-ink-muted">
             {isSignIn ? t("auth.noAccount") : t("auth.haveAccount")}{" "}
             <Link to={switchHref} className="font-bold text-brand-ink hover:underline">
