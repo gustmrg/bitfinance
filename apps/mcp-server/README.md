@@ -117,7 +117,7 @@ Bill and expense document downloads return a temporary signed URL with file meta
 
 `bitfinance_create_bill` creates a one-time bill when `frequency` and `installments` are omitted, an indefinite recurring series when only `frequency` is provided, and a fixed installment series when both are provided. Valid frequencies are `Daily`, `Weekly`, `Monthly`, and `Annually`. For a series, `dueDate` is the first occurrence date and `amountDue` is the amount of each occurrence. Generated bill responses expose `billSeriesId`, `occurrenceNumber`, `totalOccurrences`, `billSeriesType`, and, where available, `billSeriesIsActive`.
 
-Updating or deleting a generated bill affects only that occurrence. Use `bitfinance_stop_bill_series` to prevent future occurrences; already generated bills are preserved.
+Updating or deleting a generated bill affects only that occurrence. Use `bitfinance_stop_bill_series` to prevent future occurrences; it also deletes unpaid occurrences due after today, while past, current, and paid occurrences are preserved.
 
 Bills and expenses accept optional notes up to 2,000 characters. Expenses also accept `Cash`, `CreditCard`, `DebitCard`, `Pix`, `BankTransfer`, `Boleto`, or `Other` as a payment method. Expense list filters are applied by the API across all pages, and the response includes totals for all matching records. On update, omit notes or payment method to preserve it, or pass an empty string to clear it.
 

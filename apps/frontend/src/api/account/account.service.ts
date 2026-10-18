@@ -42,4 +42,11 @@ export const accountService = {
       throw normalizeApiError(error, "api.account.removeAvatar");
     }
   },
+  async unlinkGoogleAsync() {
+    try {
+      await authApi.delete("/identity/external/google");
+    } catch (error) {
+      throw normalizeApiError(error, "api.account.unlinkGoogle");
+    }
+  },
 };
