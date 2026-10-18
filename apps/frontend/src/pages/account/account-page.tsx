@@ -1,14 +1,17 @@
 import { Camera, Globe2, LogOut, Mail, SunMedium } from "lucide-react";
-import { type FormEvent, type ReactNode, useRef, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { authService } from "@/api/auth/auth.service";
 import { useAuth } from "@/auth/auth-provider";
 import { Avatar } from "@/components/base/avatar";
 import { Button } from "@/components/base/button";
+import { buttonClasses } from "@/components/base/button-styles";
 import { Card, CardHeader } from "@/components/base/card";
 import { ConfirmDialog } from "@/components/base/dialog";
 import { Field, Input } from "@/components/base/field";
+import { GoogleMark } from "@/components/base/google-mark";
 import { PageHeader } from "@/components/base/page-header";
 import { SegmentedControl } from "@/components/base/segmented-control";
 import { Select } from "@/components/base/select";
@@ -17,10 +20,12 @@ import { Page } from "@/components/layout/page";
 import { SettingsTabs } from "@/components/navigation/settings-tabs";
 import { useAccountMutations } from "@/hooks/mutations/use-account-mutations";
 import { useNotificationMutations } from "@/hooks/mutations/use-notification-mutations";
+import { useExternalProvidersQuery } from "@/hooks/queries/use-auth-queries";
 import { useNotificationPreferencesQuery } from "@/hooks/queries/use-notification-queries";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
 import { type Theme, useTheme } from "@/hooks/use-theme";
-import { acceptedAvatarTypes } from "@/lib/file-validation";
+import { acceptedAvatarTypes, maxAvatarSourceSizeBytes } from "@/lib/file-validation";
+import { AvatarCropModal } from "./components/avatar-crop-modal";
 
 function PreferenceRow({
   icon,
@@ -51,7 +56,9 @@ export function AccountPage() {
   const { t, i18n } = useTranslation();
   const auth = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const mutations = useAccountMutations();
+  const providers = useExternalProvidersQuery();
   const user = auth.user;
   const organizationId = useSelectedOrganization();
   const notificationPreferences = useNotificationPreferencesQuery(organizationId);
@@ -59,10 +66,36 @@ export function AccountPage() {
   const [firstName, setFirstName] = useState(user?.fullName.split(" ")[0] ?? "");
   const [lastName, setLastName] = useState(user?.fullName.split(" ").slice(1).join(" ") ?? "");
   const [removeAvatarConfirm, setRemoveAvatarConfirm] = useState(false);
+  const [cropSource, setCropSource] = useState<string | null>(null);
   const [signOutAllConfirm, setSignOutAllConfirm] = useState(false);
   const { theme, setTheme } = useTheme();
   const avatarInput = useRef<HTMLInputElement>(null);
+  const googleStatus = searchParams.get("google");
+  const googleError = searchParams.get("googleError");
+  useEffect(() => {
+    if (!googleStatus && !googleError) return;
+    if (googleError)
+      toast.error(t(`account.googleErrors.${googleError}`, t("account.googleErrors.failed")));
+    else if (googleStatus === "linked") toast.success(t("account.googleLinked"));
+    setSearchParams(
+      (params) => {
+        params.delete("google");
+        params.delete("googleError");
+        return params;
+      },
+      { replace: true },
+    );
+  }, [googleError, googleStatus, setSearchParams, t]);
   if (!user) return null;
+  const showGoogle = user.hasGoogleLogin || providers.data?.providers.includes("google");
+  const unlinkGoogle = () =>
+    mutations.unlinkGoogle.mutate(undefined, {
+      onSuccess: () => {
+        void auth.refreshUser();
+        toast.success(t("account.googleUnlinked"));
+      },
+      onError: (error) => toast.error(error.message),
+    });
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
@@ -73,14 +106,22 @@ export function AccountPage() {
       toast.error(error instanceof Error ? error.message : t("account.unableSave"));
     }
   };
-  const upload = async (file: File) => {
-    if (!acceptedAvatarTypes.includes(file.type) || file.size > 2 * 1024 * 1024) {
+  const selectAvatar = (file: File) => {
+    if (!acceptedAvatarTypes.includes(file.type) || file.size > maxAvatarSourceSizeBytes) {
       toast.error(t("account.invalidAvatar"));
       return;
     }
+    setCropSource(URL.createObjectURL(file));
+  };
+  const closeCrop = () => {
+    if (cropSource) URL.revokeObjectURL(cropSource);
+    setCropSource(null);
+  };
+  const upload = async (file: File) => {
     try {
       await mutations.avatar.mutateAsync(file);
       await auth.refreshUser();
+      closeCrop();
       toast.success(t("account.avatarUpdated"));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("account.unableUpload"));
@@ -125,7 +166,7 @@ export function AccountPage() {
               accept="image/jpeg,image/png"
               onChange={(event) => {
                 const file = event.target.files?.[0];
-                if (file) void upload(file);
+                if (file) selectAvatar(file);
                 event.currentTarget.value = "";
               }}
             />
@@ -227,6 +268,37 @@ export function AccountPage() {
                 }
               />
             </PreferenceRow>
+            {showGoogle && (
+              <PreferenceRow
+                icon={<GoogleMark size={18} />}
+                title={t("account.google")}
+                description={
+                  !user.hasGoogleLogin
+                    ? t("account.googleDescription")
+                    : user.hasPassword
+                      ? t("account.googleLinkedDescription")
+                      : t("account.googleOnlyDescription")
+                }
+              >
+                {user.hasGoogleLogin ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={!user.hasPassword || mutations.unlinkGoogle.isPending}
+                    onClick={unlinkGoogle}
+                  >
+                    {t("account.unlinkGoogle")}
+                  </Button>
+                ) : (
+                  <a
+                    className={buttonClasses({ variant: "secondary", size: "sm" })}
+                    href={authService.googleLinkUrl("/settings/account")}
+                  >
+                    {t("account.linkGoogle")}
+                  </a>
+                )}
+              </PreferenceRow>
+            )}
           </Card>
           <Card aria-labelledby="account-sessions">
             <CardHeader
@@ -250,6 +322,14 @@ export function AccountPage() {
           </Card>
         </div>
       </div>
+      {cropSource && (
+        <AvatarCropModal
+          src={cropSource}
+          pending={mutations.avatar.isPending}
+          onConfirm={(file) => void upload(file)}
+          onClose={closeCrop}
+        />
+      )}
       <ConfirmDialog
         open={removeAvatarConfirm}
         onOpenChange={setRemoveAvatarConfirm}
