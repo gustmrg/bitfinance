@@ -1,4 +1,5 @@
-import { Route, Routes } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { ProtectedRoute } from "@/components/routing/protected-route";
@@ -16,6 +17,35 @@ import { CreateOrganizationPage } from "@/pages/organizations/create-organizatio
 import { JoinPage } from "@/pages/organizations/join-organization-page";
 import { MembersPage } from "@/pages/organizations/members-page";
 import { OrganizationPage } from "@/pages/organizations/organization-page";
+import { RecurrencesPage } from "@/pages/recurrences/recurrences-page";
+import { ReportsPage } from "@/pages/reports/reports-page";
+
+const DesignSystemPage = import.meta.env.DEV
+  ? lazy(() =>
+      import("@/pages/dev/design-system-page").then((module) => ({
+        default: module.DesignSystemPage,
+      })),
+    )
+  : null;
+
+function LegacyRedirect({ to }: { to: string }) {
+  const params = useParams();
+  const { search } = useLocation();
+  const target = to.replace(/:(\w+)/g, (_, key: string) => params[key] ?? "");
+  return <Navigate to={`${target}${search}`} replace />;
+}
+
+const legacyRoutes: Array<[string, string]> = [
+  ["/dashboard/bills", "/bills"],
+  ["/dashboard/bills/:billId", "/bills/:billId"],
+  ["/dashboard/expenses", "/expenses"],
+  ["/dashboard/expenses/:expenseId", "/expenses/:expenseId"],
+  ["/account/settings", "/settings/account"],
+  ["/account/organization", "/settings/organization"],
+  ["/organization/members", "/settings/members"],
+  ["/account/more", "/settings"],
+  ["/account/create-organization", "/organizations/new"],
+];
 
 export function App() {
   return (
@@ -24,7 +54,7 @@ export function App() {
       <Route path="/auth/sign-in" element={<AuthPage mode="sign-in" />} />
       <Route path="/auth/sign-up" element={<AuthPage mode="sign-up" />} />
       <Route path="/join-organization" element={<JoinPage />} />
-      <Route path="/account/create-organization" element={<CreateOrganizationPage />} />
+      <Route path="/organizations/new" element={<CreateOrganizationPage />} />
       <Route
         element={
           <ProtectedRoute>
@@ -33,15 +63,30 @@ export function App() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/dashboard/bills" element={<BillsPage />} />
-        <Route path="/dashboard/bills/:billId" element={<BillDetailsPage />} />
-        <Route path="/dashboard/expenses" element={<ExpensesPage />} />
-        <Route path="/dashboard/expenses/:expenseId" element={<ExpenseDetailsPage />} />
-        <Route path="/account/settings" element={<AccountPage />} />
-        <Route path="/account/organization" element={<OrganizationPage />} />
-        <Route path="/organization/members" element={<MembersPage />} />
-        <Route path="/account/more" element={<MorePage />} />
+        <Route path="/bills" element={<BillsPage />} />
+        <Route path="/bills/:billId" element={<BillDetailsPage />} />
+        <Route path="/expenses" element={<ExpensesPage />} />
+        <Route path="/expenses/:expenseId" element={<ExpenseDetailsPage />} />
+        <Route path="/recurrences" element={<RecurrencesPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/settings" element={<MorePage />} />
+        <Route path="/settings/organization" element={<OrganizationPage />} />
+        <Route path="/settings/members" element={<MembersPage />} />
+        <Route path="/settings/account" element={<AccountPage />} />
       </Route>
+      {legacyRoutes.map(([from, to]) => (
+        <Route key={from} path={from} element={<LegacyRedirect to={to} />} />
+      ))}
+      {DesignSystemPage && (
+        <Route
+          path="/dev/design-system"
+          element={
+            <Suspense>
+              <DesignSystemPage />
+            </Suspense>
+          }
+        />
+      )}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

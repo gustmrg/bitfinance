@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { ArrowRight, UsersRound } from "lucide-react";
+import { UsersRound } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -7,8 +7,10 @@ import { toast } from "sonner";
 import { organizationsService } from "@/api/organizations/organizations.service";
 import { useAuth } from "@/auth/auth-provider";
 import { useOrganizationStore } from "@/auth/auth-store";
+import { Button } from "@/components/base/button";
+import { buttonClasses } from "@/components/base/button-styles";
+import { CenterCard } from "@/components/layout/center-card";
 import { PublicLayout } from "@/components/layout/public-layout";
-import { Button } from "@/components/ui/button";
 
 export function JoinPage() {
   const { t } = useTranslation();
@@ -40,32 +42,42 @@ export function JoinPage() {
   });
   const returnTo = `/join-organization?token=${encodeURIComponent(token ?? "")}`;
   const signInUrl = `/auth/sign-in?returnTo=${encodeURIComponent(returnTo)}`;
+  const signUpUrl = `/auth/sign-up?returnTo=${encodeURIComponent(returnTo)}`;
   return (
     <PublicLayout>
-      <main className="center-page">
-        <div className="center-card">
-          <span className="center-card__icon">
-            <UsersRound size={25} />
-          </span>
-          <p className="eyebrow">{t("join.eyebrow")}</p>
-          <h1>{token ? t("join.title") : t("join.missingTitle")}</h1>
-          <p>{token ? t("join.body") : t("join.missingBody")}</p>
-          {message && (
-            <p className="form-error" role="alert">
-              {message}
-            </p>
-          )}
-          {auth.status === "authenticated" && token ? (
-            <Button disabled={join.isPending} onClick={() => join.mutate()}>
-              {join.isPending ? t("common.loading") : t("common.continue")} <ArrowRight size={16} />
+      <CenterCard
+        icon={<UsersRound size={22} aria-hidden="true" />}
+        title={token ? t("join.title") : t("join.missingTitle")}
+        description={token ? t("join.body") : t("join.missingBody")}
+      >
+        {message && (
+          <p
+            role="alert"
+            className="m-0 rounded-control bg-danger-soft px-4 py-3 text-sm font-semibold text-danger"
+          >
+            {message}
+          </p>
+        )}
+        {token &&
+          (auth.status === "authenticated" ? (
+            <Button size="lg" fullWidth disabled={join.isPending} onClick={() => join.mutate()}>
+              {join.isPending ? t("common.loading") : t("join.accept")}
             </Button>
           ) : (
-            <Link to={signInUrl} className="button button--primary">
-              {t("common.signIn")} <ArrowRight size={16} />
-            </Link>
-          )}
-        </div>
-      </main>
+            <div className="grid gap-2">
+              <Link to={signInUrl} className={buttonClasses({ size: "lg", fullWidth: true })}>
+                {t("join.signInToAccept")}
+              </Link>
+              <Link
+                to={signUpUrl}
+                className={buttonClasses({ variant: "secondary", size: "lg", fullWidth: true })}
+              >
+                {t("join.signUpToAccept")}
+              </Link>
+              <p className="m-0 text-center text-[13px] text-ink-muted">{t("join.emailHint")}</p>
+            </div>
+          ))}
+      </CenterCard>
     </PublicLayout>
   );
 }

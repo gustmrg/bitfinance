@@ -42,6 +42,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<IOrganizationsService, OrganizationsService>();
         services.AddScoped<IInvitationsService, InvitationsService>();
+        services.AddScoped<IReportsService, ReportsService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<NotificationDispatcher>();
         services.AddScoped<ITransactionRunner, EfTransactionRunner>();

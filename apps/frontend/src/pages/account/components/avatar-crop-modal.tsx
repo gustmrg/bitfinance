@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import Cropper, { type Area, type Point } from "react-easy-crop";
 import { useTranslation } from "react-i18next";
-import { Avatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
+import { Avatar } from "@/components/base/avatar";
+import { Button } from "@/components/base/button";
+import { Dialog, DialogActions } from "@/components/base/dialog";
 import { getCroppedAvatar } from "@/lib/crop-image";
 
 export function AvatarCropModal({
@@ -38,13 +38,14 @@ export function AvatarCropModal({
   };
 
   return (
-    <Modal
+    <Dialog
+      open
+      onOpenChange={(open) => !open && onClose()}
       title={t("account.cropAvatar")}
       description={t("account.cropAvatarDescription")}
-      onClose={onClose}
     >
-      <div className="avatar-crop">
-        <div className="avatar-crop__area">
+      <div className="grid gap-4">
+        <div className="relative aspect-square max-h-[55vh] w-full overflow-hidden rounded-control bg-ink">
           <Cropper
             image={src}
             crop={crop}
@@ -56,10 +57,11 @@ export function AvatarCropModal({
             onCropComplete={(area, areaPixels) => void updatePreview(area, areaPixels)}
           />
         </div>
-        <div className="avatar-crop__controls">
-          <label className="field-label avatar-crop__zoom">
+        <div className="flex items-end gap-4">
+          <label className="grid flex-1 gap-1.5 text-[13px] font-bold">
             <span>{t("account.zoom")}</span>
             <input
+              className="w-full accent-brand"
               type="range"
               min={1}
               max={3}
@@ -68,12 +70,12 @@ export function AvatarCropModal({
               onChange={(event) => setZoom(Number(event.target.value))}
             />
           </label>
-          <div className="avatar-crop__preview">
+          <div className="grid justify-items-center gap-1.5 text-[11px] font-semibold text-ink-muted">
             <span>{t("account.preview")}</span>
-            <Avatar initials="" src={result?.url} size="lg" />
+            <Avatar name="" src={result?.url} size="md" className="size-16" />
           </div>
         </div>
-        <div className="modal-form__actions">
+        <DialogActions>
           <Button type="button" variant="ghost" onClick={onClose}>
             {t("common.cancel")}
           </Button>
@@ -86,8 +88,8 @@ export function AvatarCropModal({
           >
             {t("account.saveAvatar")}
           </Button>
-        </div>
+        </DialogActions>
       </div>
-    </Modal>
+    </Dialog>
   );
 }

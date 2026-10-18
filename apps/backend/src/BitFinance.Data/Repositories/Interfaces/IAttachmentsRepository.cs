@@ -8,4 +8,5 @@ public interface IAttachmentsRepository : IRepository<Attachment, Guid>
     Task<List<Attachment>> GetByExpenseIdAsync(Guid expenseId);
     Task<Attachment?> GetUserAvatarAsync(string userId);
     Task<long> GetTotalStorageByOrganizationAsync(Guid organizationId);
+    Task<List<string>> GetStoragePathsByOrganizationAsync(Guid organizationId);
 }

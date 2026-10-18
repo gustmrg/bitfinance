@@ -21,6 +21,14 @@ export interface InvitationResult {
   token: string;
   expiresAt: string;
 }
+export interface PendingInvitation {
+  id: string;
+  email: string;
+  role: "Admin" | "Member";
+  invitedBy: string | null;
+  createdAt: string;
+  expiresAt: string;
+}
 export interface Budget {
   id: string;
   organizationId?: string;

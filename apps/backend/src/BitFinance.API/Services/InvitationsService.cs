@@ -69,6 +69,84 @@ public class InvitationsService : IInvitationsService
         return CreateInvitationResult.Succeeded(invitation, rawToken);
     }
 
+    public async Task<OrganizationActionResult<List<Invitation>>> GetPendingInvitationsAsync(
+        Guid organizationId, string actingUserId)
+    {
+        var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+
+        if (organization is null)
+            return OrganizationActionResult<List<Invitation>>.Failed(OrganizationActionError.OrganizationNotFound, "Organization not found");
+
+        var actingRole = organization.Members.FirstOrDefault(m => m.UserId == actingUserId)?.Role;
+
+        if (actingRole is not (OrgRole.Owner or OrgRole.Admin))
+            return OrganizationActionResult<List<Invitation>>.Failed(OrganizationActionError.NotAuthorized, "Only owners and admins can view invitations");
+
+        var invitations = await _invitationsRepository.GetPendingByOrganizationAsync(organizationId, DateTime.UtcNow);
+        return OrganizationActionResult<List<Invitation>>.Succeeded(invitations);
+    }
+
+    public async Task<OrganizationActionResult<Invitation>> RevokeInvitationAsync(
+        Guid organizationId, Guid invitationId, string actingUserId)
+    {
+        var lookup = await GetManageablePendingInvitationAsync(organizationId, invitationId, actingUserId);
+
+        if (!lookup.Success)
+            return lookup;
+
+        var invitation = lookup.Value!;
+        invitation.Status = InvitationStatus.Revoked;
+        await _invitationsRepository.UpdateAsync(invitation);
+        return OrganizationActionResult<Invitation>.Succeeded(invitation);
+    }
+
+    public async Task<CreateInvitationResult> RenewInvitationAsync(
+        Guid organizationId, Guid invitationId, string actingUserId)
+    {
+        var lookup = await GetManageablePendingInvitationAsync(organizationId, invitationId, actingUserId);
+
+        if (!lookup.Success)
+        {
+            return lookup.Error switch
+            {
+                OrganizationActionError.NotAuthorized => CreateInvitationResult.Failed(CreateInvitationError.NotAuthorized, lookup.ErrorMessage!),
+                OrganizationActionError.InvitationNotFound => CreateInvitationResult.Failed(CreateInvitationError.InvitationNotFound, lookup.ErrorMessage!),
+                _ => CreateInvitationResult.Failed(CreateInvitationError.OrganizationNotFound, lookup.ErrorMessage!),
+            };
+        }
+
+        var invitation = lookup.Value!;
+        var rawToken = TokenHasher.GenerateToken();
+        invitation.TokenHash = TokenHasher.HashToken(rawToken);
+        invitation.ExpiresAt = DateTime.UtcNow.AddDays(1);
+        await _invitationsRepository.UpdateAsync(invitation);
+        return CreateInvitationResult.Succeeded(invitation, rawToken);
+    }
+
+    private async Task<OrganizationActionResult<Invitation>> GetManageablePendingInvitationAsync(
+        Guid organizationId, Guid invitationId, string actingUserId)
+    {
+        var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+
+        if (organization is null)
+            return OrganizationActionResult<Invitation>.Failed(OrganizationActionError.OrganizationNotFound, "Organization not found");
+
+        var actingRole = organization.Members.FirstOrDefault(m => m.UserId == actingUserId)?.Role;
+
+        if (actingRole is not (OrgRole.Owner or OrgRole.Admin))
+            return OrganizationActionResult<Invitation>.Failed(OrganizationActionError.NotAuthorized, "Only owners and admins can manage invitations");
+
+        var invitation = await _invitationsRepository.GetByIdAsync(invitationId);
+
+        if (invitation is null || invitation.OrganizationId != organizationId || invitation.Status != InvitationStatus.Pending)
+            return OrganizationActionResult<Invitation>.Failed(OrganizationActionError.InvitationNotFound, "Invitation not found");
+
+        if (actingRole == OrgRole.Admin && invitation.Role != OrgRole.Member)
+            return OrganizationActionResult<Invitation>.Failed(OrganizationActionError.NotAuthorized, "Admins can only manage member invitations");
+
+        return OrganizationActionResult<Invitation>.Succeeded(invitation);
+    }
+
     public async Task<JoinOrganizationResult> JoinOrganizationAsync(string token, string userId, string userEmail)
     {
         var tokenHash = TokenHasher.HashToken(token);

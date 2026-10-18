@@ -17,6 +17,7 @@ public interface IBillsRepository : IRepository<Bill, Guid>
     Task UpdateAsync(Bill bill, params Expression<Func<Bill, object>>[] properties);
     Task UpdateRangeAsync(List<Bill> bills);
     Task RemoveSeriesBillsFromCacheAsync(Guid seriesId);
+    Task<List<Bill>> GetForReportAsync(Guid organizationId, DateOnly startDate, DateOnly endDate);
     Task<List<Bill>> GetUnpaidSeriesBillsDueAfterAsync(Guid seriesId, DateOnly date);
     Task DeleteRangeAsync(List<Bill> bills);
     Task<int> GetMonthlyCountByOrganizationAsync(Guid organizationId, DateTime monthStartUtc, DateTime monthEndUtc);

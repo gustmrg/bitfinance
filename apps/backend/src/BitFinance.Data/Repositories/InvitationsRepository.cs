@@ -1,4 +1,5 @@
 using BitFinance.Business.Entities;
+using BitFinance.Business.Enums;
 using BitFinance.Data.Contexts;
 using BitFinance.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +34,18 @@ public class InvitationsRepository : IInvitationsRepository
             .Include(i => i.Organization)
                 .ThenInclude(o => o.Members)
             .FirstOrDefaultAsync(x => x.TokenHash == tokenHash);
+    }
+
+    public async Task<List<Invitation>> GetPendingByOrganizationAsync(Guid organizationId, DateTime nowUtc)
+    {
+        return await _dbContext.Set<Invitation>()
+            .AsNoTracking()
+            .Include(i => i.InvitedBy)
+            .Where(i => i.OrganizationId == organizationId
+                        && i.Status == InvitationStatus.Pending
+                        && i.ExpiresAt > nowUtc)
+            .OrderByDescending(i => i.CreatedAt)
+            .ToListAsync();
     }
 
     public async Task<Invitation> CreateAsync(Invitation entity)

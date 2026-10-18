@@ -8,6 +8,7 @@ export function useExpenseMutations(organizationId: string | null) {
   const invalidate = () => {
     void client.invalidateQueries({ queryKey: queryKeys.expenses.all });
     void client.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    void client.invalidateQueries({ queryKey: queryKeys.reports.all });
   };
   return {
     create: useMutation({

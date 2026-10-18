@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Navigate, useLocation } from "react-router-dom";
 
 import { useAuth } from "@/auth/auth-provider";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/base/feedback";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -14,7 +14,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     const returnTo = `${location.pathname}${location.search}`;
     return <Navigate to={`/auth/sign-in?returnTo=${encodeURIComponent(returnTo)}`} replace />;
   }
-  if (!auth.user?.organizations.length && location.pathname !== "/account/create-organization")
-    return <Navigate to="/account/create-organization" replace />;
+  if (!auth.user?.organizations.length && location.pathname !== "/organizations/new")
+    return <Navigate to="/organizations/new" replace />;
   return <>{children}</>;
 }

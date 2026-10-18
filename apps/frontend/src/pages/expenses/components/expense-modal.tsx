@@ -1,18 +1,17 @@
-import { ArrowUpRight } from "lucide-react";
-import { FormEvent } from "react";
+import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import {
+import type {
   Expense,
   ExpenseCategory,
   ExpenseInput,
   ExpenseStatus,
   PaymentMethod,
 } from "@/api/expenses/expenses.types";
-import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
-import { Select } from "@/components/ui/select";
-import { inputDate } from "@/lib/format";
+import { Button } from "@/components/base/button";
+import { Dialog, DialogActions } from "@/components/base/dialog";
+import { Field, Input, Textarea } from "@/components/base/field";
+import { Select } from "@/components/base/select";
 import { useExpenseMutations } from "@/hooks/mutations/use-expense-mutations";
 import {
   categories,
@@ -20,6 +19,7 @@ import {
   paymentMethodLabels,
   paymentMethods,
 } from "@/lib/finance-categories";
+import { inputDate } from "@/lib/format";
 
 export function ExpenseModal({
   expense,
@@ -63,81 +63,96 @@ export function ExpenseModal({
       );
   };
   return (
-    <Modal
+    <Dialog
+      open
+      onOpenChange={(open) => !open && onClose()}
       title={expense ? t("expenses.edit") : t("expenses.add")}
       description={t("expenses.formDescription")}
-      onClose={onClose}
     >
-      <form className="modal-form" onSubmit={submit}>
-        <label>
-          <span>{t("common.description")}</span>
-          <input name="description" defaultValue={expense?.description} required />
-        </label>
-        <div className="form-grid">
-          <label>
-            <span>{t("common.category")}</span>
-            <Select
-              name="category"
-              defaultValue={expense?.category ?? "food"}
-              options={categories.map((value) => ({ value, label: t(categoryLabels[value]) }))}
-            />
-          </label>
-          <label>
-            <span>{t("common.amount")}</span>
-            <input
-              name="amount"
-              type="number"
-              min="0"
-              step="0.01"
-              defaultValue={expense?.amount}
-              required
-            />
-          </label>
+      <form className="grid gap-4" onSubmit={submit}>
+        <Field label={t("common.description")}>
+          {(control) => (
+            <Input {...control} name="description" defaultValue={expense?.description} required />
+          )}
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={t("common.amount")}>
+            {(control) => (
+              <Input
+                {...control}
+                name="amount"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                defaultValue={expense?.amount}
+                required
+              />
+            )}
+          </Field>
+          <Field label={t("common.date")}>
+            {(control) => (
+              <Input
+                {...control}
+                name="date"
+                type="date"
+                defaultValue={
+                  expense ? inputDate(expense.occurredAt) : inputDate(new Date().toISOString())
+                }
+                required
+              />
+            )}
+          </Field>
         </div>
-        <label>
-          <span>{t("common.date")}</span>
-          <input
-            name="date"
-            type="date"
-            defaultValue={
-              expense ? inputDate(expense.occurredAt) : inputDate(new Date().toISOString())
-            }
-            required
-          />
-        </label>
-        <label>
-          <span>{t("expenses.paymentMethod")}</span>
-          <Select
-            name="paymentMethod"
-            defaultValue={expense?.paymentMethod ?? "unspecified"}
-            options={[
-              { value: "unspecified", label: t("common.notSpecified") },
-              ...paymentMethods.map((value) => ({
-                value,
-                label: t(paymentMethodLabels[value]),
-              })),
-            ]}
-          />
-        </label>
-        <label>
-          <span>{t("common.notes")}</span>
-          <textarea
-            name="notes"
-            maxLength={2000}
-            rows={4}
-            defaultValue={expense?.notes ?? ""}
-            placeholder={t("common.notesPlaceholder")}
-          />
-        </label>
-        <div className="modal-form__actions">
-          <Button type="button" variant="ghost" onClick={onClose}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={t("common.category")}>
+            {(control) => (
+              <Select
+                id={control.id}
+                name="category"
+                defaultValue={expense?.category ?? "food"}
+                options={categories.map((value) => ({ value, label: t(categoryLabels[value]) }))}
+              />
+            )}
+          </Field>
+          <Field label={t("expenses.paymentMethod")}>
+            {(control) => (
+              <Select
+                id={control.id}
+                name="paymentMethod"
+                defaultValue={expense?.paymentMethod ?? "unspecified"}
+                options={[
+                  { value: "unspecified", label: t("common.notSpecified") },
+                  ...paymentMethods.map((value) => ({
+                    value,
+                    label: t(paymentMethodLabels[value]),
+                  })),
+                ]}
+              />
+            )}
+          </Field>
+        </div>
+        <Field label={t("common.notes")}>
+          {(control) => (
+            <Textarea
+              {...control}
+              name="notes"
+              maxLength={2000}
+              rows={3}
+              defaultValue={expense?.notes ?? ""}
+              placeholder={t("common.notesPlaceholder")}
+            />
+          )}
+        </Field>
+        <DialogActions>
+          <Button variant="ghost" onClick={onClose}>
             {t("common.cancel")}
           </Button>
           <Button type="submit" disabled={mutations.create.isPending || mutations.update.isPending}>
-            {expense ? t("common.save") : t("expenses.add")} <ArrowUpRight size={16} />
+            {expense ? t("common.save") : t("expenses.add")}
           </Button>
-        </div>
+        </DialogActions>
       </form>
-    </Modal>
+    </Dialog>
   );
 }

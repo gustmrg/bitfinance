@@ -37,3 +37,11 @@ export function useBudgetQuery(organizationId: string | null) {
     enabled: Boolean(organizationId),
   });
 }
+
+export function useInvitationsQuery(organizationId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.organizations.invitations(organizationId ?? ""),
+    queryFn: () => organizationsService.listInvitationsAsync(organizationId!),
+    enabled: Boolean(organizationId) && enabled,
+  });
+}

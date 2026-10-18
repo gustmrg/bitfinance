@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "format": "prettier --write src",
     "format:check": "prettier --check src",
-    "generate:pwa-assets": "pwa-assets-generator --preset minimal-2023 public/favicon.svg",
+    "generate:pwa-assets": "pwa-assets-generator",
     "lint": "eslint .",
     "preview": "vite preview"
   },

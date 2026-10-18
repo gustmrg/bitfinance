@@ -83,4 +83,15 @@ public class AttachmentsRepository : IAttachmentsRepository
             .Where(a => a.OrganizationId == organizationId)
             .SumAsync(a => a.FileSizeInBytes);
     }
+
+    public async Task<List<string>> GetStoragePathsByOrganizationAsync(Guid organizationId)
+    {
+        return await _dbContext.Attachments
+            .AsNoTracking()
+            .Where(a => a.OrganizationId == organizationId
+                        || (a.Bill != null && a.Bill.OrganizationId == organizationId)
+                        || (a.Expense != null && a.Expense.OrganizationId == organizationId))
+            .Select(a => a.StoragePath)
+            .ToListAsync();
+    }
 }

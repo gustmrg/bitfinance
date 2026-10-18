@@ -1,0 +1,87 @@
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --radius-control: 12px;
+  --radius-card: 24px;
+}
+
+@theme inline {
+  --color-canvas: var(--bf-canvas);
+  --color-surface: var(--bf-surface);
+  --color-surface-muted: var(--bf-surface-muted);
+  --color-line: var(--bf-line);
+  --color-line-strong: var(--bf-line-strong);
+  --color-ink: var(--bf-ink);
+  --color-ink-muted: var(--bf-ink-muted);
+  --color-brand: var(--bf-brand);
+  --color-brand-hover: var(--bf-brand-hover);
+  --color-brand-hero: var(--bf-brand-hero);
+  --color-brand-ink: var(--bf-brand-ink);
+  --color-brand-soft: var(--bf-brand-soft);
+  --color-on-brand: var(--bf-on-brand);
+  --color-danger: var(--bf-danger);
+  --color-danger-soft: var(--bf-danger-soft);
+  --color-danger-solid: var(--bf-danger-solid);
+  --color-warning: var(--bf-warning);
+  --color-warning-soft: var(--bf-warning-soft);
+  --color-success: var(--bf-success);
+  --color-success-soft: var(--bf-success-soft);
+  --color-chart-1: var(--bf-chart-1);
+  --color-chart-2: var(--bf-chart-2);
+  --color-chart-3: var(--bf-chart-3);
+}
+
+:root {
+  color-scheme: light;
+  --bf-canvas: #f4f6fa;
+  --bf-surface: #ffffff;
+  --bf-surface-muted: #f7f9fc;
+  --bf-line: #e6eaf1;
+  --bf-line-strong: #dce2ec;
+  --bf-ink: #121a2b;
+  --bf-ink-muted: #5d6779;
+  --bf-brand: #1747d1;
+  --bf-brand-hover: #1239ad;
+  --bf-brand-hero: #1747d1;
+  --bf-brand-ink: #1747d1;
+  --bf-brand-soft: #e8eefd;
+  --bf-on-brand: #ffffff;
+  --bf-danger: #a8251b;
+  --bf-danger-soft: #fdecea;
+  --bf-danger-solid: #b42318;
+  --bf-warning: #7f4b00;
+  --bf-warning-soft: #fff3dc;
+  --bf-success: #12704a;
+  --bf-success-soft: #e3f5ec;
+  --bf-chart-1: #1747d1;
+  --bf-chart-2: #e9a23b;
+  --bf-chart-3: #9db7ff;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bf-canvas: #0b1220;
+  --bf-surface: #131c2e;
+  --bf-surface-muted: #182338;
+  --bf-line: #22304a;
+  --bf-line-strong: #2c3b57;
+  --bf-ink: #e7ecf5;
+  --bf-ink-muted: #9aa6ba;
+  --bf-brand: #2f5fe0;
+  --bf-brand-hover: #4672ea;
+  --bf-brand-hero: #1d44b8;
+  --bf-brand-ink: #8fb0ff;
+  --bf-brand-soft: #1c2944;
+  --bf-on-brand: #ffffff;
+  --bf-danger: #ff9a90;
+  --bf-danger-soft: #3a1a1c;
+  --bf-danger-solid: #c8392d;
+  --bf-warning: #f4be66;
+  --bf-warning-soft: #3a2e14;
+  --bf-success: #6fd3a4;
+  --bf-success-soft: #13332a;
+  --bf-chart-1: #5f84f2;
+  --bf-chart-2: #c4801f;
+  --bf-chart-3: #3d5aa8;
+}

@@ -1,7 +1,12 @@
 import { authApi } from "../shared/client";
 import { normalizeApiError } from "../shared/errors";
 import type { OrganizationSummary } from "../auth/auth.types";
-import type { Budget, InvitationResult, OrganizationDetails } from "./organizations.types";
+import type {
+  Budget,
+  InvitationResult,
+  OrganizationDetails,
+  PendingInvitation,
+} from "./organizations.types";
 
 export type OrganizationMemberRole = "Owner" | "Admin" | "Member";
 export type EditableOrganizationMemberRole = "Admin" | "Member";
@@ -37,6 +42,20 @@ export const organizationsService = {
       throw normalizeApiError(error, "api.organizations.update");
     }
   },
+  async deleteAsync(organizationId: string): Promise<void> {
+    try {
+      await authApi.delete(`/organizations/${organizationId}`);
+    } catch (error) {
+      throw normalizeApiError(error, "api.organizations.delete");
+    }
+  },
+  async transferOwnershipAsync(organizationId: string, userId: string): Promise<void> {
+    try {
+      await authApi.post(`/organizations/${organizationId}/transfer-ownership`, { userId });
+    } catch (error) {
+      throw normalizeApiError(error, "api.organizations.transferOwnership");
+    }
+  },
   async getBudgetAsync(organizationId: string): Promise<Budget | null> {
     try {
       return (await authApi.get<Budget>(`/organizations/${organizationId}/budget`)).data;
@@ -69,6 +88,36 @@ export const organizationsService = {
       ).data;
     } catch (error) {
       throw normalizeApiError(error, "api.organizations.createInvitation");
+    }
+  },
+  async listInvitationsAsync(organizationId: string): Promise<PendingInvitation[]> {
+    try {
+      return (
+        await authApi.get<PendingInvitation[]>(`/organizations/${organizationId}/invitations`)
+      ).data;
+    } catch (error) {
+      throw normalizeApiError(error, "api.organizations.loadInvitations");
+    }
+  },
+  async revokeInvitationAsync(organizationId: string, invitationId: string): Promise<void> {
+    try {
+      await authApi.delete(`/organizations/${organizationId}/invitations/${invitationId}`);
+    } catch (error) {
+      throw normalizeApiError(error, "api.organizations.revokeInvitation");
+    }
+  },
+  async renewInvitationAsync(
+    organizationId: string,
+    invitationId: string,
+  ): Promise<InvitationResult> {
+    try {
+      return (
+        await authApi.post<InvitationResult>(
+          `/organizations/${organizationId}/invitations/${invitationId}/renew`,
+        )
+      ).data;
+    } catch (error) {
+      throw normalizeApiError(error, "api.organizations.renewInvitation");
     }
   },
   async updateMemberRoleAsync(

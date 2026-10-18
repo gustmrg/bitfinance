@@ -28,3 +28,11 @@ export function useBillQuery(organizationId: string | null, billId?: string) {
     enabled: Boolean(organizationId && billId),
   });
 }
+
+export function useBillSeriesQuery(organizationId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.bills.series(organizationId ?? ""),
+    queryFn: () => billsService.listSeriesAsync(organizationId!),
+    enabled: Boolean(organizationId),
+  });
+}

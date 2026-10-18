@@ -101,6 +101,17 @@ public class BillsRepository : IBillsRepository
             .ToListAsync();
     }
 
+    public async Task<List<Bill>> GetForReportAsync(Guid organizationId, DateOnly startDate, DateOnly endDate)
+    {
+        return await _dbContext.Set<Bill>()
+            .AsNoTracking()
+            .Where(b => b.OrganizationId == organizationId
+                        && b.Status != BillStatus.Cancelled
+                        && b.DueDate >= startDate
+                        && b.DueDate <= endDate)
+            .ToListAsync();
+    }
+
     public async Task<int> GetMonthlyCountByOrganizationAsync(Guid organizationId, DateTime monthStartUtc, DateTime monthEndUtc)
     {
         return await _dbContext.Bills

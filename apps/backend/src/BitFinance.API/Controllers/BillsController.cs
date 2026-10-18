@@ -536,6 +536,34 @@ public class BillsController : ControllerBase
         }
     }
 
+    [HttpGet("series")]
+    [EndpointSummary("List bill series")]
+    [EndpointDescription("Returns the recurring and installment bill series of the organization, with the next open occurrence of each one.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<BillSeriesResponse>>> GetBillSeriesAsync([FromRoute] Guid organizationId)
+    {
+        var series = await _billSeriesRepository.GetAllByOrganizationWithNextBillAsync(organizationId);
+
+        return Ok(series.Select(item =>
+        {
+            var nextBill = item.Bills.FirstOrDefault();
+            return new BillSeriesResponse(
+                item.Id,
+                item.Description,
+                item.Category,
+                item.Frequency,
+                item.Type,
+                item.AmountDue,
+                item.StartDate,
+                item.TotalOccurrences,
+                item.NextOccurrenceNumber - 1,
+                item.IsActive,
+                item.StoppedAt,
+                nextBill?.Id,
+                nextBill?.DueDate);
+        }).ToList());
+    }
+
     [HttpPost]
     [Route("series/{seriesId:guid}/stop")]
     [EndpointSummary("Stop future bill generation for a series")]

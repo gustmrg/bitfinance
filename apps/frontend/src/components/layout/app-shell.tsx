@@ -1,58 +1,125 @@
 import {
+  BarChart3,
   Building2,
-  CircleDollarSign,
   CreditCard,
   Globe2,
-  LayoutDashboard,
+  House,
   LogOut,
   Moon,
   MoreHorizontal,
   ReceiptText,
-  Settings2,
+  Repeat,
   SunMedium,
   UsersRound,
 } from "lucide-react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, matchPath, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/auth-provider";
 import { useOrganizationStore } from "@/auth/auth-store";
+import { AppIcon } from "@/components/base/app-icon";
+import { Avatar } from "@/components/base/avatar";
+import { Badge } from "@/components/base/badge";
+import { IconButton } from "@/components/base/icon-button";
+import { Select } from "@/components/base/select";
 import { NotificationBell } from "@/components/navigation/notification-bell";
-import { Avatar } from "@/components/ui/avatar";
-import { BrandMark } from "@/components/ui/brand-mark";
-import { IconButton } from "@/components/ui/icon-button";
-import { Select } from "@/components/ui/select";
+import { QuickAddMenu } from "@/components/navigation/quick-add-menu";
 import { useOrganizationsQuery } from "@/hooks/queries/use-organization-queries";
 import { useTheme } from "@/hooks/use-theme";
+import { cn } from "@/lib/cn";
 
-const navItems = [
-  { to: "/dashboard", labelKey: "nav.overview", icon: LayoutDashboard, end: true },
-  { to: "/dashboard/bills", labelKey: "nav.bills", icon: ReceiptText },
-  { to: "/dashboard/expenses", labelKey: "nav.expenses", icon: CreditCard },
+type NavItem = {
+  to: string;
+  labelKey: string;
+  icon: typeof House;
+  end?: boolean;
+  activeFor?: string[];
+};
+
+const primaryNavItems: NavItem[] = [
+  { to: "/dashboard", labelKey: "nav.overview", icon: House, end: true },
+  { to: "/bills", labelKey: "nav.bills", icon: ReceiptText },
+  { to: "/expenses", labelKey: "nav.expenses", icon: CreditCard },
+  { to: "/recurrences", labelKey: "nav.recurrences", icon: Repeat },
+  { to: "/reports", labelKey: "nav.reports", icon: BarChart3 },
 ];
 
-function OrganizationSwitcher() {
+const settingsNavItems: NavItem[] = [
+  { to: "/settings/organization", labelKey: "nav.organization", icon: Building2 },
+  { to: "/settings/members", labelKey: "nav.members", icon: UsersRound },
+];
+
+const moreNavItem: NavItem = {
+  to: "/settings",
+  labelKey: "common.more",
+  icon: MoreHorizontal,
+  activeFor: ["/recurrences", "/reports"],
+};
+
+const breadcrumbs = [
+  { path: "/dashboard", labelKey: "nav.overview" },
+  { path: "/bills/*", labelKey: "nav.bills" },
+  { path: "/expenses/*", labelKey: "nav.expenses" },
+  { path: "/recurrences", labelKey: "nav.recurrences" },
+  { path: "/reports", labelKey: "nav.reports" },
+  { path: "/settings/organization", labelKey: "nav.organization" },
+  { path: "/settings/members", labelKey: "nav.members" },
+  { path: "/settings/account", labelKey: "nav.account" },
+  { path: "/settings", labelKey: "nav.settings" },
+];
+
+const themeColors = { light: "#ffffff", dark: "#131c2e" } as const;
+
+function breadcrumbLabelKey(pathname: string) {
+  return breadcrumbs.find(({ path }) => matchPath(path, pathname))?.labelKey ?? "nav.overview";
+}
+
+function SidebarLink({ item }: { item: NavItem }) {
+  const { t } = useTranslation();
+  const Icon = item.icon;
+  return (
+    <NavLink
+      to={item.to}
+      end={item.end}
+      className={({ isActive }) =>
+        cn(
+          "flex h-11 items-center gap-3 rounded-control px-3.5 text-sm font-semibold transition-colors",
+          "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+          isActive
+            ? "bg-brand-soft text-brand-ink"
+            : "text-ink-muted hover:bg-surface-muted hover:text-ink",
+        )
+      }
+    >
+      <Icon size={20} aria-hidden="true" />
+      <span>{t(item.labelKey)}</span>
+    </NavLink>
+  );
+}
+
+function OrganizationSwitcher({ compact = false }: { compact?: boolean }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const organizations = useOrganizationsQuery(Boolean(user));
   const selectedId = useOrganizationStore((state) => state.selectedOrganizationId);
   const setSelectedId = useOrganizationStore((state) => state.setSelectedOrganizationId);
   const items = organizations.data ?? user?.organizations ?? [];
-  const { t } = useTranslation();
   const activeId = selectedId ?? items[0]?.id ?? null;
   const activePlan = items.find((item) => item.id === activeId)?.planTier;
   return (
-    <div className="org-switcher">
-      <Building2 size={16} />
+    <div className="grid min-w-0 gap-2">
       <Select
         ariaLabel={t("common.selectOrganization")}
         value={activeId}
         onValueChange={(value) => setSelectedId(value)}
         disabled={!items.length}
         options={items.map((item) => ({ value: item.id, label: item.name }))}
+        className={cn("font-semibold", compact ? "h-10 border-transparent bg-surface-muted" : "")}
       />
-      {activePlan && (
-        <span className={`plan-badge plan-badge--${activePlan.toLowerCase()}`}>
+      {!compact && activePlan && (
+        <Badge tone={activePlan === "Free" ? "neutral" : "brand"} className="justify-self-start">
           {t(`organization.planTiers.${activePlan.toLowerCase()}`)}
-        </span>
+        </Badge>
       )}
     </div>
   );
@@ -61,183 +128,166 @@ function OrganizationSwitcher() {
 function ThemeSwitcher() {
   const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
-  const label = t("common.theme");
   return (
-    <IconButton label={label} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-      {theme === "dark" ? <SunMedium size={18} /> : <Moon size={18} />}
+    <IconButton
+      label={t("common.theme")}
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+    >
+      {theme === "dark" ? (
+        <SunMedium size={20} aria-hidden="true" />
+      ) : (
+        <Moon size={20} aria-hidden="true" />
+      )}
     </IconButton>
   );
 }
 
 function LanguageSwitcher() {
   const { t, i18n } = useTranslation();
-  const label = t("common.language");
   return (
     <IconButton
-      label={label}
+      label={t("common.language")}
       onClick={() => {
         const next = i18n.language === "en-US" ? "pt-BR" : "en-US";
         void i18n.changeLanguage(next);
         localStorage.setItem("bitfinance-locale", next);
       }}
     >
-      <Globe2 size={18} />
+      <Globe2 size={20} aria-hidden="true" />
     </IconButton>
   );
 }
 
-function UserMenu() {
+function SidebarUser() {
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   if (!user) return null;
-  const initials = user.fullName
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
   return (
-    <div className="sidebar-user">
-      <Link className="user-menu" to="/account/settings">
-        <Avatar initials={initials} src={user.avatarUrl ?? undefined} size="sm" />
-        <span>
-          <strong>{user.fullName}</strong>
-          <small>{user.email}</small>
+    <div className="flex items-center gap-1 border-t border-line p-3">
+      <Link
+        to="/settings/account"
+        aria-label={t("nav.account")}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-control p-2 hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-brand"
+      >
+        <Avatar name={user.fullName} src={user.avatarUrl} />
+        <span className="grid min-w-0">
+          <span className="truncate text-sm font-bold text-ink">{user.fullName}</span>
+          <span className="truncate text-xs text-ink-muted">{user.email}</span>
         </span>
       </Link>
       <IconButton
-        className="sidebar-user__logout"
         label={t("account.signOut")}
         onClick={() => {
           void signOut().finally(() => navigate("/auth/sign-in"));
         }}
       >
-        <LogOut size={16} />
+        <LogOut size={18} aria-hidden="true" />
       </IconButton>
     </div>
+  );
+}
+
+function MobileNavLink({ item }: { item: NavItem }) {
+  const { t } = useTranslation();
+  const { pathname } = useLocation();
+  const Icon = item.icon;
+  const activeElsewhere = item.activeFor?.some((path) => matchPath(path, pathname)) ?? false;
+  return (
+    <NavLink
+      to={item.to}
+      end={item.end}
+      className={({ isActive }) =>
+        cn(
+          "flex h-14 flex-col items-center justify-center gap-1 rounded-control text-[11px] font-semibold",
+          "focus-visible:outline-2 focus-visible:outline-brand",
+          isActive || activeElsewhere ? "text-brand-ink" : "text-ink-muted",
+        )
+      }
+    >
+      <Icon size={22} aria-hidden="true" />
+      <span>{t(item.labelKey)}</span>
+    </NavLink>
   );
 }
 
 export function AppShell() {
   const { t } = useTranslation();
   const location = useLocation();
+  const { theme } = useTheme();
+
+  useEffect(() => {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColors[theme]);
+  }, [theme]);
+
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="sidebar__brand">
-          <BrandMark compact />
-          <span className="sidebar__brand-label">{t("common.financeDesk")}</span>
-        </div>
-        <div className="sidebar__org">
+    <div className="min-h-dvh bg-canvas font-sans text-ink lg:pl-60">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-line bg-surface lg:flex">
+        <Link
+          to="/dashboard"
+          aria-label={t("nav.overview")}
+          className="flex h-16 shrink-0 items-center gap-2.5 px-6"
+        >
+          <AppIcon size={30} />
+          <span className="text-lg font-extrabold tracking-[-0.03em] text-ink">bitfinance</span>
+        </Link>
+        <div className="px-4 pb-4">
           <OrganizationSwitcher />
         </div>
-        <nav className="sidebar__nav" aria-label={t("common.primaryNavigation")}>
-          <p className="sidebar__section-label">{t("common.workspace")}</p>
-          {navItems.map(({ to, labelKey, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}
-            >
-              <Icon size={18} />
-              <span>{t(labelKey)}</span>
-            </NavLink>
+        <nav
+          aria-label={t("common.primaryNavigation")}
+          className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3"
+        >
+          {primaryNavItems.map((item) => (
+            <SidebarLink key={item.to} item={item} />
           ))}
-          <p className="sidebar__section-label sidebar__section-label--spaced">
-            {t("common.workspaceSettings")}
-          </p>
-          <NavLink
-            to="/account/organization"
-            className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}
-          >
-            <Building2 size={18} />
-            <span>{t("nav.organization")}</span>
-          </NavLink>
-          <NavLink
-            to="/organization/members"
-            className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}
-          >
-            <UsersRound size={18} />
-            <span>{t("nav.members")}</span>
-          </NavLink>
-          <NavLink
-            to="/account/settings"
-            className={({ isActive }) => `nav-link ${isActive ? "nav-link--active" : ""}`}
-          >
-            <Settings2 size={18} />
-            <span>{t("nav.account")}</span>
-          </NavLink>
+          <p className="mx-3.5 mb-1.5 mt-6 text-xs font-bold text-ink-muted">{t("nav.settings")}</p>
+          {settingsNavItems.map((item) => (
+            <SidebarLink key={item.to} item={item} />
+          ))}
         </nav>
-        <div className="sidebar__footer">
-          <div className="sidebar__signal">
-            <CircleDollarSign size={18} />
-            <span>
-              <strong>{t("common.cashFlow")}</strong>
-              <small>{t("common.healthyThisMonth")}</small>
-            </span>
-            <span className="signal-dot" />
-          </div>
-          <UserMenu />
-        </div>
+        <SidebarUser />
       </aside>
-      <main className="main-content">
-        <div className="mobile-topbar">
-          <BrandMark />
-          <div className="mobile-topbar__actions">
-            <OrganizationSwitcher />
-            <ThemeSwitcher />
-            <LanguageSwitcher />
-            <NotificationBell />
-          </div>
+
+      <header className="sticky top-0 z-20 hidden h-16 items-center justify-between border-b border-line bg-canvas/85 px-8 backdrop-blur lg:flex">
+        <span className="text-sm font-semibold text-ink-muted">
+          {t(breadcrumbLabelKey(location.pathname))}
+        </span>
+        <div className="flex items-center gap-1">
+          <ThemeSwitcher />
+          <LanguageSwitcher />
+          <NotificationBell />
         </div>
-        <header className="content-topbar">
-          <div className="content-topbar__crumb">
-            <span className="live-dot" />
-            {t("common.liveWorkspace")} <span>/</span>{" "}
-            {location.pathname.includes("bills")
-              ? t("nav.bills")
-              : location.pathname.includes("expenses")
-                ? t("nav.expenses")
-                : location.pathname.includes("organization")
-                  ? t("nav.organization")
-                  : t("nav.overview")}
-          </div>
-          <div className="content-topbar__actions">
-            <ThemeSwitcher />
-            <LanguageSwitcher />
-            <NotificationBell />
-          </div>
-        </header>
-        <div className="content-scroll">
-          <Outlet />
+      </header>
+
+      <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-line bg-surface px-3 lg:hidden">
+        <Link
+          to="/dashboard"
+          aria-label={t("nav.overview")}
+          className="inline-grid size-11 shrink-0 place-items-center"
+        >
+          <AppIcon size={30} />
+        </Link>
+        <div className="min-w-0 flex-1">
+          <OrganizationSwitcher compact />
         </div>
-        <nav className="mobile-bottom-nav" aria-label={t("common.mobileNavigation")}>
-          {navItems.map(({ to, labelKey, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`
-              }
-            >
-              <Icon size={20} />
-              <span>{t(labelKey)}</span>
-            </NavLink>
-          ))}
-          <NavLink
-            to="/account/more"
-            className={({ isActive }) =>
-              `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`
-            }
-          >
-            <MoreHorizontal size={20} />
-            <span>{t("common.more")}</span>
-          </NavLink>
-        </nav>
+        <NotificationBell />
+      </header>
+
+      <main className="pb-[calc(88px+env(safe-area-inset-bottom))] lg:pb-0">
+        <Outlet />
       </main>
+
+      <nav
+        aria-label={t("common.mobileNavigation")}
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-center border-t border-line bg-surface/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      >
+        <MobileNavLink item={primaryNavItems[0]} />
+        <MobileNavLink item={primaryNavItems[1]} />
+        <QuickAddMenu />
+        <MobileNavLink item={primaryNavItems[2]} />
+        <MobileNavLink item={moreNavItem} />
+      </nav>
     </div>
   );
 }

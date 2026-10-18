@@ -1,4 +1,5 @@
 using BitFinance.API.Models;
+using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 
 namespace BitFinance.API.Services.Interfaces;
@@ -18,6 +19,21 @@ public interface IInvitationsService
     /// <param name="invitedByUserId">The ID of the user creating the invitation.</param>
     /// <returns>A <see cref="CreateInvitationResult"/> indicating success or the specific failure reason.</returns>
     Task<CreateInvitationResult> CreateInvitationAsync(Guid organizationId, string email, OrgRole role, string invitedByUserId);
+
+    /// <summary>
+    /// Lists the pending, unexpired invitations of an organization. Only owners and admins can list them.
+    /// </summary>
+    Task<OrganizationActionResult<List<Invitation>>> GetPendingInvitationsAsync(Guid organizationId, string actingUserId);
+
+    /// <summary>
+    /// Revokes a pending invitation so its link can no longer be used. Admins can only revoke member invitations.
+    /// </summary>
+    Task<OrganizationActionResult<Invitation>> RevokeInvitationAsync(Guid organizationId, Guid invitationId, string actingUserId);
+
+    /// <summary>
+    /// Issues a new token for a pending invitation and extends its expiry. The previous link stops working.
+    /// </summary>
+    Task<CreateInvitationResult> RenewInvitationAsync(Guid organizationId, Guid invitationId, string actingUserId);
 
     /// <summary>
     /// Processes accepting an invitation: validates the token, checks expiry and status,

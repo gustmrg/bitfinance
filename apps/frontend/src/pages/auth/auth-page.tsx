@@ -1,4 +1,4 @@
-import { ArrowUpRight, LockKeyhole, Mail, ShieldCheck, Sparkles, UserPlus } from "lucide-react";
+import { LockKeyhole, UserPlus } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -7,13 +7,16 @@ import { z } from "zod";
 import { authService } from "@/api/auth/auth.service";
 import { useAuth } from "@/auth/auth-provider";
 import { safeReturnTo } from "@/auth/safe-return-to";
+import { Button } from "@/components/base/button";
+import { buttonClasses } from "@/components/base/button-styles";
+import { Field, Input } from "@/components/base/field";
+import { GoogleMark } from "@/components/base/google-mark";
+import { CenterCard } from "@/components/layout/center-card";
 import { PublicLayout } from "@/components/layout/public-layout";
-import { Button } from "@/components/ui/button";
-import { GoogleMark } from "@/components/ui/google-mark";
 import { useExternalProvidersQuery } from "@/hooks/queries/use-auth-queries";
 
 export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const auth = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -25,6 +28,10 @@ export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   );
   const [pending, setPending] = useState(false);
   const isSignIn = mode === "sign-in";
+  const returnTo = searchParams.get("returnTo");
+  const switchHref = `${isSignIn ? "/auth/sign-up" : "/auth/sign-in"}${
+    returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""
+  }`;
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
@@ -54,10 +61,9 @@ export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
             },
       );
       toast.success(isSignIn ? t("auth.welcomeBack") : t("auth.accountCreated"));
+      const joining = returnTo?.startsWith("/join-organization") ?? false;
       navigate(
-        user.organizations.length
-          ? safeReturnTo(searchParams.get("returnTo"))
-          : "/account/create-organization",
+        user.organizations.length || joining ? safeReturnTo(returnTo) : "/organizations/new",
         { replace: true },
       );
     } catch (nextError) {
@@ -68,115 +74,88 @@ export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   };
   return (
     <PublicLayout>
-      <main className="auth-layout">
-        <section className="auth-aside">
-          <div className="auth-aside__inner">
-            <p className="eyebrow">
-              <span className="eyebrow-mark" />
-              BitFinance / {t("common.financeDesk")}
-            </p>
-            <h1>{isSignIn ? t("auth.signInTitle") : t("auth.signUpTitle")}</h1>
-            <p>{isSignIn ? t("auth.signInBody") : t("auth.signUpBody")}</p>
-            <div className="auth-aside__note">
-              <Sparkles size={18} />
-              <span>{isSignIn ? t("auth.protectedSession") : t("auth.minimumPassword")}</span>
+      <CenterCard
+        icon={
+          isSignIn ? (
+            <LockKeyhole size={22} aria-hidden="true" />
+          ) : (
+            <UserPlus size={22} aria-hidden="true" />
+          )
+        }
+        title={isSignIn ? t("auth.signInTitle") : t("auth.signUpTitle")}
+        description={isSignIn ? t("auth.signInBody") : t("auth.signUpBody")}
+      >
+        <form className="grid gap-4" onSubmit={(event) => void submit(event)}>
+          {!isSignIn && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={t("auth.firstName")}>
+                {(control) => (
+                  <Input {...control} name="firstName" autoComplete="given-name" required />
+                )}
+              </Field>
+              <Field label={t("auth.lastName")}>
+                {(control) => (
+                  <Input {...control} name="lastName" autoComplete="family-name" required />
+                )}
+              </Field>
             </div>
-          </div>
-          <div className="auth-aside__stamp">BF / live</div>
-        </section>
-        <section className="auth-panel">
-          <div className="auth-panel__top">
-            <Link to="/" className="back-link">
-              ← {t("common.backHome")}
-            </Link>
-            <button
-              className="language-switch"
-              onClick={() => {
-                const next = i18n.language === "en-US" ? "pt-BR" : "en-US";
-                void i18n.changeLanguage(next);
-                localStorage.setItem("bitfinance-locale", next);
-              }}
-            >
-              {i18n.language === "en-US" ? "EN" : "PT"}
-            </button>
-          </div>
-          <form className="auth-form" onSubmit={submit}>
-            <div className="auth-form__heading">
-              <span className="auth-form__icon">
-                {isSignIn ? <LockKeyhole size={21} /> : <UserPlus size={21} />}
-              </span>
-              <div>
-                <p className="eyebrow">
-                  01 / {isSignIn ? t("auth.signInStep") : t("auth.getStarted")}
-                </p>
-                <h2>{isSignIn ? t("common.signIn") : t("common.signUp")}</h2>
-              </div>
-            </div>
-            {!isSignIn && (
-              <div className="form-grid">
-                <label>
-                  <span>{t("auth.firstName")}</span>
-                  <input name="firstName" autoComplete="given-name" required />
-                </label>
-                <label>
-                  <span>{t("auth.lastName")}</span>
-                  <input name="lastName" autoComplete="family-name" required />
-                </label>
-              </div>
+          )}
+          <Field label={t("auth.email")}>
+            {(control) => (
+              <Input
+                {...control}
+                name="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                required
+              />
             )}
-            <label>
-              <span>{t("auth.email")}</span>
-              <div className="input-with-icon">
-                <Mail size={17} />
-                <input name="email" type="email" autoComplete="email" required />
-              </div>
-            </label>
-            <label>
-              <span>{t("auth.password")}</span>
-              <input
+          </Field>
+          <Field label={t("auth.password")} hint={isSignIn ? undefined : t("auth.minimumPassword")}>
+            {(control) => (
+              <Input
+                {...control}
                 name="password"
                 type="password"
                 autoComplete={isSignIn ? "current-password" : "new-password"}
                 minLength={isSignIn ? 1 : 8}
                 required
               />
-            </label>
-            {error && (
-              <p className="form-error" role="alert">
-                {error}
-              </p>
             )}
-            <Button type="submit" disabled={pending} className="button--full button--large">
-              {pending ? t("common.loading") : isSignIn ? t("common.signIn") : t("common.continue")}{" "}
-              {!pending && <ArrowUpRight size={17} />}
-            </Button>
-            {googleEnabled && (
-              <>
-                <div className="auth-divider">
-                  <span>{t("auth.or")}</span>
-                </div>
-                <a
-                  className="button button--secondary button--full button--large"
-                  href={authService.googleSignInUrl(safeReturnTo(searchParams.get("returnTo")))}
-                >
-                  <GoogleMark /> {t("auth.continueWithGoogle")}
-                </a>
-              </>
-            )}
-            <p className="auth-form__switch">
-              {isSignIn ? t("auth.noAccount") : t("auth.haveAccount")}{" "}
-              <Link to={isSignIn ? "/auth/sign-up" : "/auth/sign-in"}>
-                {isSignIn ? t("common.signUp") : t("common.signIn")}
-              </Link>
+          </Field>
+          {error && (
+            <p
+              role="alert"
+              className="m-0 rounded-control bg-danger-soft px-4 py-3 text-sm font-semibold text-danger"
+            >
+              {error}
             </p>
-          </form>
-          <div className="auth-panel__footer">
-            <span>
-              <ShieldCheck size={14} /> {t("auth.serverData")}
-            </span>
-          </div>
-        </section>
-      </main>
+          )}
+          <Button type="submit" size="lg" fullWidth disabled={pending}>
+            {pending ? t("common.loading") : isSignIn ? t("common.signIn") : t("common.signUp")}
+          </Button>
+          {googleEnabled && (
+            <>
+              <div className="flex items-center gap-3 text-[11px] text-ink-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
+                <span>{t("auth.or")}</span>
+              </div>
+              <a
+                className={buttonClasses({ variant: "secondary", size: "lg", fullWidth: true })}
+                href={authService.googleSignInUrl(safeReturnTo(returnTo))}
+              >
+                <GoogleMark /> {t("auth.continueWithGoogle")}
+              </a>
+            </>
+          )}
+          <p className="m-0 text-center text-sm text-ink-muted">
+            {isSignIn ? t("auth.noAccount") : t("auth.haveAccount")}{" "}
+            <Link to={switchHref} className="font-bold text-brand-ink hover:underline">
+              {isSignIn ? t("common.signUp") : t("common.signIn")}
+            </Link>
+          </p>
+        </form>
+      </CenterCard>
     </PublicLayout>
   );
 }
