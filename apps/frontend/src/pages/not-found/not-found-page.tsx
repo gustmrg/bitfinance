@@ -1,25 +1,23 @@
-import { ArrowRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { buttonClasses } from "@/components/base/button-styles";
+import { CenterCard } from "@/components/layout/center-card";
 import { PublicLayout } from "@/components/layout/public-layout";
 
 export function NotFoundPage() {
   const { t } = useTranslation();
   return (
     <PublicLayout>
-      <main className="center-page">
-        <div className="center-card">
-          <span className="center-card__icon">
-            <Search size={25} />
-          </span>
-          <p className="eyebrow">{t("common.notFound")}</p>
-          <h1>{t("common.pageMoved")}</h1>
-          <p>{t("common.findFinanceDesk")}</p>
-          <Link to="/dashboard" className="button button--primary">
-            {t("common.backToDesk")} <ArrowRight size={16} />
-          </Link>
-        </div>
-      </main>
+      <CenterCard
+        icon={<Search size={22} aria-hidden="true" />}
+        title={t("common.pageMoved")}
+        description={t("common.findFinanceDesk")}
+      >
+        <Link to="/dashboard" className={buttonClasses({ fullWidth: true })}>
+          {t("common.backToDesk")}
+        </Link>
+      </CenterCard>
     </PublicLayout>
   );
 }

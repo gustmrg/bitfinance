@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { ArrowRight, Home } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -7,9 +7,11 @@ import { toast } from "sonner";
 import { organizationsService } from "@/api/organizations/organizations.service";
 import { useAuth } from "@/auth/auth-provider";
 import { useOrganizationStore } from "@/auth/auth-store";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { Button } from "@/components/base/button";
+import { LoadingState } from "@/components/base/feedback";
+import { Field, Input } from "@/components/base/field";
+import { CenterCard } from "@/components/layout/center-card";
 import { PublicLayout } from "@/components/layout/public-layout";
-import { Button } from "@/components/ui/button";
 
 export function CreateOrganizationPage() {
   const { t } = useTranslation();
@@ -26,37 +28,56 @@ export function CreateOrganizationPage() {
     },
   });
   if (auth.status === "initializing")
-    return <LoadingState label={t("createOrganization.preparing")} />;
+    return (
+      <PublicLayout>
+        <LoadingState label={t("createOrganization.preparing")} />
+      </PublicLayout>
+    );
   return (
     <PublicLayout>
-      <main className="center-page">
-        <div className="center-card center-card--wide">
-          <span className="center-card__icon">
-            <Home size={25} />
-          </span>
-          <p className="eyebrow">{t("createOrganization.eyebrow")}</p>
-          <h1>{t("createOrganization.title")}</h1>
-          <p>{t("createOrganization.body")}</p>
-          <label className="field-label">
-            <span>{t("createOrganization.workspaceName")}</span>
-            <input value={name} onChange={(event) => setName(event.target.value)} required />
-          </label>
-          {create.error && (
-            <p className="form-error" role="alert">
-              {create.error instanceof Error
-                ? create.error.message
-                : t("createOrganization.unable")}
-            </p>
-          )}
-          <Button
-            disabled={!name.trim() || create.isPending || auth.status !== "authenticated"}
-            onClick={() => create.mutate()}
+      <CenterCard
+        icon={<Building2 size={22} aria-hidden="true" />}
+        title={t("createOrganization.title")}
+        description={t("createOrganization.body")}
+      >
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            create.mutate();
+          }}
+        >
+          <Field
+            label={t("createOrganization.workspaceName")}
+            hint={t("createOrganization.nameHint")}
+            error={
+              create.error
+                ? create.error instanceof Error
+                  ? create.error.message
+                  : t("createOrganization.unable")
+                : undefined
+            }
           >
-            {create.isPending ? t("createOrganization.creating") : t("common.continue")}{" "}
-            <ArrowRight size={16} />
+            {(control) => (
+              <Input
+                {...control}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                autoFocus
+                required
+              />
+            )}
+          </Field>
+          <Button
+            type="submit"
+            size="lg"
+            fullWidth
+            disabled={!name.trim() || create.isPending || auth.status !== "authenticated"}
+          >
+            {create.isPending ? t("createOrganization.creating") : t("common.continue")}
           </Button>
-        </div>
-      </main>
+        </form>
+      </CenterCard>
     </PublicLayout>
   );
 }
