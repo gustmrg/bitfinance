@@ -162,4 +162,101 @@ public class InvitationsServiceTests
             It.Is<NotificationEventPayload>(payload => payload.MemberUserId == "member1"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    private Invitation SetupPendingInvitation(Organization organization, OrgRole role)
+    {
+        var invitation = new Invitation
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organization.Id,
+            Email = "invitee@test.com",
+            Role = role,
+            Status = InvitationStatus.Pending,
+            TokenHash = "old-hash",
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+        };
+        _invitationsRepositoryMock
+            .Setup(repository => repository.GetByIdAsync(invitation.Id))
+            .ReturnsAsync(invitation);
+        return invitation;
+    }
+
+    [Fact]
+    public async Task GetPendingInvitations_Member_ShouldFail()
+    {
+        var organization = CreateOrganizationWithMembers(
+        [
+            ("owner1", OrgRole.Owner),
+            ("member1", OrgRole.Member),
+        ]);
+
+        var result = await _sut.GetPendingInvitationsAsync(organization.Id, "member1");
+
+        Assert.False(result.Success);
+        Assert.Equal(OrganizationActionError.NotAuthorized, result.Error);
+    }
+
+    [Fact]
+    public async Task RevokeInvitation_Owner_ShouldMarkRevoked()
+    {
+        var organization = CreateOrganizationWithMembers([("owner1", OrgRole.Owner)]);
+        var invitation = SetupPendingInvitation(organization, OrgRole.Admin);
+
+        var result = await _sut.RevokeInvitationAsync(organization.Id, invitation.Id, "owner1");
+
+        Assert.True(result.Success);
+        Assert.Equal(InvitationStatus.Revoked, invitation.Status);
+        _invitationsRepositoryMock.Verify(repository => repository.UpdateAsync(invitation), Times.Once);
+    }
+
+    [Fact]
+    public async Task RevokeInvitation_AdminCannotRevokeAdminInvitation_ShouldFail()
+    {
+        var organization = CreateOrganizationWithMembers(
+        [
+            ("owner1", OrgRole.Owner),
+            ("admin1", OrgRole.Admin),
+        ]);
+        var invitation = SetupPendingInvitation(organization, OrgRole.Admin);
+
+        var result = await _sut.RevokeInvitationAsync(organization.Id, invitation.Id, "admin1");
+
+        Assert.False(result.Success);
+        Assert.Equal(OrganizationActionError.NotAuthorized, result.Error);
+        Assert.Equal(InvitationStatus.Pending, invitation.Status);
+    }
+
+    [Fact]
+    public async Task RevokeInvitation_FromAnotherOrganization_ShouldFail()
+    {
+        var organization = CreateOrganizationWithMembers([("owner1", OrgRole.Owner)]);
+        var otherOrganization = CreateOrganizationWithMembers([("owner2", OrgRole.Owner)]);
+        var invitation = SetupPendingInvitation(otherOrganization, OrgRole.Member);
+
+        var result = await _sut.RevokeInvitationAsync(organization.Id, invitation.Id, "owner1");
+
+        Assert.False(result.Success);
+        Assert.Equal(OrganizationActionError.InvitationNotFound, result.Error);
+        Assert.Equal(InvitationStatus.Pending, invitation.Status);
+    }
+
+    [Fact]
+    public async Task RenewInvitation_Admin_ShouldIssueNewToken()
+    {
+        var organization = CreateOrganizationWithMembers(
+        [
+            ("owner1", OrgRole.Owner),
+            ("admin1", OrgRole.Admin),
+        ]);
+        var invitation = SetupPendingInvitation(organization, OrgRole.Member);
+        var previousExpiry = invitation.ExpiresAt;
+
+        var result = await _sut.RenewInvitationAsync(organization.Id, invitation.Id, "admin1");
+
+        Assert.True(result.Success);
+        Assert.False(string.IsNullOrEmpty(result.RawToken));
+        Assert.NotEqual("old-hash", invitation.TokenHash);
+        Assert.True(invitation.ExpiresAt > previousExpiry);
+        _invitationsRepositoryMock.Verify(repository => repository.UpdateAsync(invitation), Times.Once);
+    }
 }

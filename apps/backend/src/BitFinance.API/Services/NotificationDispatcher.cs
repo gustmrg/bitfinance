@@ -97,8 +97,8 @@ public sealed class NotificationDispatcher(
                 ? organization.Members.Select(member => member.UserId).Distinct(StringComparer.Ordinal).ToList()
                 : NotificationRules.GetMembershipRecipientIds(organization.Members).ToList();
             var actionPath = IsBillType(message.Type) && payload.BillId is { } billId
-                ? $"/dashboard/bills/{billId}"
-                : "/organization/members";
+                ? $"/bills/{billId}"
+                : "/settings/members";
 
             foreach (var recipientId in recipientIds)
             {

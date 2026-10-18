@@ -39,20 +39,30 @@ public interface IOrganizationsService
     Task<Organization> CreateAsync(string name, string ownerUserId);
 
     /// <summary>
-    /// Updates the name of an existing organization.
+    /// Updates the name of an existing organization. Only owners and admins can update it.
     /// </summary>
     /// <param name="organizationId">The organization's ID.</param>
     /// <param name="name">The new name for the organization.</param>
-    /// <returns>The updated <see cref="Organization"/> entity, or <c>null</c> if not found.</returns>
-    Task<Organization?> UpdateAsync(Guid organizationId, string name);
+    /// <param name="actingUserId">The ID of the user performing the update.</param>
+    Task<OrganizationActionResult<Organization>> UpdateAsync(Guid organizationId, string name, string actingUserId);
 
     /// <summary>
-    /// Creates or updates the configured budget for an organization.
+    /// Creates or updates the configured budget for an organization. Only owners and admins can update it.
     /// </summary>
     /// <param name="organizationId">The organization's ID.</param>
     /// <param name="amount">The monthly budget amount.</param>
-    /// <returns>The created or updated <see cref="Budget"/> entity.</returns>
-    Task<Budget> UpsertBudgetAsync(Guid organizationId, decimal amount);
+    /// <param name="actingUserId">The ID of the user performing the update.</param>
+    Task<OrganizationActionResult<Budget>> UpsertBudgetAsync(Guid organizationId, decimal amount, string actingUserId);
+
+    /// <summary>
+    /// Makes another member the owner of the organization. The acting owner becomes an admin.
+    /// </summary>
+    Task<OrganizationActionResult<OrganizationMember>> TransferOwnershipAsync(Guid organizationId, string targetUserId, string actingUserId);
+
+    /// <summary>
+    /// Permanently deletes the organization with all of its data and stored documents. Only owners can delete it.
+    /// </summary>
+    Task<OrganizationActionResult<Organization>> DeleteAsync(Guid organizationId, string actingUserId);
 
     /// <summary>
     /// Updates the role of a member in the organization.

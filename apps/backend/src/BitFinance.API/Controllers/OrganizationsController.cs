@@ -121,11 +121,60 @@ public class OrganizationsController : ControllerBase
     [EndpointDescription("Updates the details of a specific organization.")]
     public async Task<IActionResult> UpdateOrganization(Guid organizationId, [FromBody] UpdateOrganizationRequest request)
     {
-        var organization = await _organizationsService.UpdateAsync(organizationId, request.Name);
+        var userId = User.Claims.FirstOrDefault(a => a.Type == ClaimTypes.NameIdentifier)?.Value;
 
-        if (organization is null) return NotFound();
+        if (string.IsNullOrEmpty(userId)) return BadRequest("Invalid user");
 
+        var result = await _organizationsService.UpdateAsync(organizationId, request.Name, userId);
+
+        if (!result.Success) return ToErrorResponse(result.Error, result.ErrorMessage);
+
+        var organization = result.Value!;
         return Ok(new OrganizationResponseModel(organization.Id, organization.Name, organization.EffectivePlanTier));
+    }
+
+    [HttpDelete("{organizationId:guid}")]
+    [OrganizationAuthorization]
+    [EndpointSummary("Delete an organization")]
+    [EndpointDescription("Permanently deletes the organization, its bills, expenses and documents. Only owners can delete it.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteOrganization(Guid organizationId)
+    {
+        var userId = User.Claims.FirstOrDefault(a => a.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId)) return BadRequest("Invalid user");
+
+        var result = await _organizationsService.DeleteAsync(organizationId, userId);
+
+        if (!result.Success) return ToErrorResponse(result.Error, result.ErrorMessage);
+
+        return NoContent();
+    }
+
+    [HttpPost("{organizationId:guid}/transfer-ownership")]
+    [OrganizationAuthorization]
+    [EndpointSummary("Transfer ownership")]
+    [EndpointDescription("Makes another member the owner of the organization. The current owner becomes an admin.")]
+    public async Task<IActionResult> TransferOwnership(
+        [FromRoute] Guid organizationId,
+        [FromBody] TransferOwnershipRequest request)
+    {
+        var actingUserId = User.Claims.FirstOrDefault(a => a.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(actingUserId)) return BadRequest("Invalid user");
+
+        var result = await _organizationsService.TransferOwnershipAsync(organizationId, request.UserId, actingUserId);
+
+        if (!result.Success) return ToErrorResponse(result.Error, result.ErrorMessage);
+
+        var member = result.Value!;
+        return Ok(new OrganizationMemberResponse(
+            member.UserId,
+            member.User?.UserName ?? string.Empty,
+            member.User?.Email ?? string.Empty,
+            member.Role,
+            member.JoinedAt));
     }
 
     [HttpGet("{organizationId:guid}/budget")]
@@ -158,9 +207,80 @@ public class OrganizationsController : ControllerBase
             return BadRequest("Budget amount must be greater than or equal to zero.");
         }
 
-        var budget = await _organizationsService.UpsertBudgetAsync(organizationId, request.Amount);
+        var userId = User.Claims.FirstOrDefault(a => a.Type == ClaimTypes.NameIdentifier)?.Value;
 
-        return Ok(ToBudgetResponse(budget));
+        if (string.IsNullOrEmpty(userId)) return BadRequest("Invalid user");
+
+        var result = await _organizationsService.UpsertBudgetAsync(organizationId, request.Amount, userId);
+
+        if (!result.Success) return ToErrorResponse(result.Error, result.ErrorMessage);
+
+        return Ok(ToBudgetResponse(result.Value!));
+    }
+
+    [HttpGet("{organizationId:guid}/invitations")]
+    [OrganizationAuthorization]
+    [EndpointSummary("List pending invitations")]
+    [EndpointDescription("Returns the pending, unexpired invitations of the organization. Only owners and admins can list them.")]
+    public async Task<ActionResult<List<InvitationResponse>>> GetInvitations([FromRoute] Guid organizationId)
+    {
+        var userId = User.Claims.FirstOrDefault(a => a.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId)) return BadRequest("Invalid user");
+
+        var result = await _invitationsService.GetPendingInvitationsAsync(organizationId, userId);
+
+        if (!result.Success) return ToErrorResponse(result.Error, result.ErrorMessage);
+
+        return Ok(result.Value!.Select(invitation => new InvitationResponse(
+            invitation.Id,
+            invitation.Email,
+            invitation.Role,
+            invitation.InvitedBy?.FullName ?? invitation.InvitedBy?.UserName,
+            invitation.CreatedAt,
+            invitation.ExpiresAt)).ToList());
+    }
+
+    [HttpDelete("{organizationId:guid}/invitations/{invitationId:guid}")]
+    [OrganizationAuthorization]
+    [EndpointSummary("Revoke an invitation")]
+    [EndpointDescription("Revokes a pending invitation so its link can no longer be used.")]
+    public async Task<IActionResult> RevokeInvitation([FromRoute] Guid organizationId, [FromRoute] Guid invitationId)
+    {
+        var userId = User.Claims.FirstOrDefault(a => a.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId)) return BadRequest("Invalid user");
+
+        var result = await _invitationsService.RevokeInvitationAsync(organizationId, invitationId, userId);
+
+        if (!result.Success) return ToErrorResponse(result.Error, result.ErrorMessage);
+
+        return NoContent();
+    }
+
+    [HttpPost("{organizationId:guid}/invitations/{invitationId:guid}/renew")]
+    [OrganizationAuthorization]
+    [EndpointSummary("Renew an invitation")]
+    [EndpointDescription("Issues a new link for a pending invitation, valid for 24 hours. The previous link stops working.")]
+    public async Task<IActionResult> RenewInvitation([FromRoute] Guid organizationId, [FromRoute] Guid invitationId)
+    {
+        var userId = User.Claims.FirstOrDefault(a => a.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId)) return BadRequest("Invalid user");
+
+        var result = await _invitationsService.RenewInvitationAsync(organizationId, invitationId, userId);
+
+        if (!result.Success)
+        {
+            return result.Error switch
+            {
+                CreateInvitationError.NotAuthorized => Forbid(),
+                _ => NotFound(result.ErrorMessage),
+            };
+        }
+
+        var invitation = result.Invitation!;
+        return Ok(new CreateInvitationResponse(invitation.Id, result.RawToken!, invitation.ExpiresAt));
     }
 
     [HttpPost("{organizationId:guid}/invite")]
@@ -287,6 +407,18 @@ public class OrganizationsController : ControllerBase
         }
 
         return Ok();
+    }
+
+    private ActionResult ToErrorResponse(OrganizationActionError? error, string? message)
+    {
+        return error switch
+        {
+            OrganizationActionError.NotAuthorized => StatusCode(403, new { error = message }),
+            OrganizationActionError.OrganizationNotFound => NotFound(message),
+            OrganizationActionError.MemberNotFound => NotFound(message),
+            OrganizationActionError.InvitationNotFound => NotFound(message),
+            _ => BadRequest(message),
+        };
     }
 
     private static BudgetResponse ToBudgetResponse(Budget budget)

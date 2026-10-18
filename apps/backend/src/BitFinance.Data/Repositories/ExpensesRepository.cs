@@ -133,6 +133,14 @@ public class ExpensesRepository : IExpensesRepository
         await _dbContext.SaveChangesAsync();
     }
 
+    public async Task<List<Expense>> GetForReportAsync(Guid organizationId, DateTime startUtc, DateTime endUtc)
+    {
+        return await _dbContext.Set<Expense>()
+            .AsNoTracking()
+            .Where(e => e.OrganizationId == organizationId && e.OccurredAt >= startUtc && e.OccurredAt < endUtc)
+            .ToListAsync();
+    }
+
     public async Task<int> GetMonthlyCountByOrganizationAsync(Guid organizationId, DateTime monthStartUtc, DateTime monthEndUtc)
     {
         return await _dbContext.Expenses

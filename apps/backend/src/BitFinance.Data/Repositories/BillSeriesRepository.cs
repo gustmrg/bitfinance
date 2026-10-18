@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using BitFinance.Business.Entities;
+using BitFinance.Business.Enums;
 using BitFinance.Data.Contexts;
 using BitFinance.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +39,20 @@ public class BillSeriesRepository : IBillSeriesRepository
             .AsNoTracking()
             .Where(s => s.OrganizationId == organizationId && s.IsActive)
             .OrderBy(s => s.StartDate)
+            .ToListAsync();
+    }
+
+    public async Task<List<BillSeries>> GetAllByOrganizationWithNextBillAsync(Guid organizationId)
+    {
+        return await _dbContext.Set<BillSeries>()
+            .AsNoTracking()
+            .Where(s => s.OrganizationId == organizationId)
+            .Include(s => s.Bills
+                .Where(b => b.Status != BillStatus.Paid && b.Status != BillStatus.Cancelled)
+                .OrderBy(b => b.DueDate)
+                .Take(1))
+            .OrderByDescending(s => s.IsActive)
+            .ThenBy(s => s.Description)
             .ToListAsync();
     }
 

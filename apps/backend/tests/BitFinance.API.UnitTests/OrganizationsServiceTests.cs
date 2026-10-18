@@ -4,6 +4,7 @@ using BitFinance.API.Services.Interfaces;
 using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 using BitFinance.Data.Repositories.Interfaces;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -13,6 +14,8 @@ public class OrganizationsServiceTests
 {
     private readonly Mock<IOrganizationsRepository> _orgRepoMock;
     private readonly Mock<IBudgetsRepository> _budgetRepoMock;
+    private readonly Mock<IAttachmentsRepository> _attachmentsRepoMock;
+    private readonly Mock<IFileStorageService> _storageServiceMock;
     private readonly Mock<INotificationService> _notificationServiceMock;
     private readonly Mock<ITransactionRunner> _transactionRunnerMock;
     private readonly OrganizationsService _sut;
@@ -21,6 +24,8 @@ public class OrganizationsServiceTests
     {
         _orgRepoMock = new Mock<IOrganizationsRepository>();
         _budgetRepoMock = new Mock<IBudgetsRepository>();
+        _attachmentsRepoMock = new Mock<IAttachmentsRepository>();
+        _storageServiceMock = new Mock<IFileStorageService>();
         _notificationServiceMock = new Mock<INotificationService>();
         _transactionRunnerMock = new Mock<ITransactionRunner>();
         _transactionRunnerMock
@@ -29,8 +34,11 @@ public class OrganizationsServiceTests
         _sut = new OrganizationsService(
             _orgRepoMock.Object,
             _budgetRepoMock.Object,
+            _attachmentsRepoMock.Object,
+            _storageServiceMock.Object,
             _notificationServiceMock.Object,
-            _transactionRunnerMock.Object);
+            _transactionRunnerMock.Object,
+            NullLogger<OrganizationsService>.Instance);
     }
 
     private Organization CreateOrganizationWithMembers(List<(string UserId, OrgRole Role)> members)
@@ -424,5 +432,174 @@ public class OrganizationsServiceTests
 
         Assert.False(result.Success);
         Assert.Equal(RemoveMemberError.OrganizationNotFound, result.Error);
+    }
+
+    // ===== UpdateAsync / UpsertBudgetAsync Tests =====
+
+    [Theory]
+    [InlineData(OrgRole.Owner)]
+    [InlineData(OrgRole.Admin)]
+    public async Task Update_OwnerOrAdmin_ShouldSucceed(OrgRole role)
+    {
+        var org = CreateOrganizationWithMembers([("user1", role)]);
+
+        var result = await _sut.UpdateAsync(org.Id, "Renamed", "user1");
+
+        Assert.True(result.Success);
+        Assert.Equal("Renamed", org.Name);
+        _orgRepoMock.Verify(r => r.UpdateAsync(org), Times.Once);
+    }
+
+    [Fact]
+    public async Task Update_Member_ShouldFail()
+    {
+        var org = CreateOrganizationWithMembers(
+        [
+            ("owner1", OrgRole.Owner),
+            ("member1", OrgRole.Member),
+        ]);
+
+        var result = await _sut.UpdateAsync(org.Id, "Renamed", "member1");
+
+        Assert.False(result.Success);
+        Assert.Equal(OrganizationActionError.NotAuthorized, result.Error);
+        Assert.Equal("Test Org", org.Name);
+        _orgRepoMock.Verify(r => r.UpdateAsync(It.IsAny<Organization>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpsertBudget_Member_ShouldFail()
+    {
+        var org = CreateOrganizationWithMembers(
+        [
+            ("owner1", OrgRole.Owner),
+            ("member1", OrgRole.Member),
+        ]);
+
+        var result = await _sut.UpsertBudgetAsync(org.Id, 1000M, "member1");
+
+        Assert.False(result.Success);
+        Assert.Equal(OrganizationActionError.NotAuthorized, result.Error);
+        _budgetRepoMock.Verify(r => r.UpsertByOrganizationIdAsync(It.IsAny<Guid>(), It.IsAny<decimal>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpsertBudget_Admin_ShouldSucceed()
+    {
+        var org = CreateOrganizationWithMembers(
+        [
+            ("owner1", OrgRole.Owner),
+            ("admin1", OrgRole.Admin),
+        ]);
+        var budget = new Budget { Id = Guid.NewGuid(), OrganizationId = org.Id, Amount = 1000M };
+        _budgetRepoMock.Setup(r => r.UpsertByOrganizationIdAsync(org.Id, 1000M)).ReturnsAsync(budget);
+
+        var result = await _sut.UpsertBudgetAsync(org.Id, 1000M, "admin1");
+
+        Assert.True(result.Success);
+        Assert.Same(budget, result.Value);
+    }
+
+    // ===== TransferOwnershipAsync Tests =====
+
+    [Fact]
+    public async Task TransferOwnership_OwnerToMember_ShouldSwapRoles()
+    {
+        var org = CreateOrganizationWithMembers(
+        [
+            ("owner1", OrgRole.Owner),
+            ("member1", OrgRole.Member),
+        ]);
+
+        var result = await _sut.TransferOwnershipAsync(org.Id, "member1", "owner1");
+
+        Assert.True(result.Success);
+        Assert.Equal(OrgRole.Owner, org.Members.Single(m => m.UserId == "member1").Role);
+        Assert.Equal(OrgRole.Admin, org.Members.Single(m => m.UserId == "owner1").Role);
+        _orgRepoMock.Verify(r => r.UpdateAsync(org), Times.Once);
+        _notificationServiceMock.Verify(service => service.EnqueueAsync(
+            org.Id,
+            NotificationType.MemberRoleChanged,
+            "member1",
+            It.Is<string>(key => key.StartsWith("membership:role:")),
+            It.Is<NotificationEventPayload>(payload => payload.PreviousRole == "Member" && payload.NewRole == "Owner"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TransferOwnership_Admin_ShouldFail()
+    {
+        var org = CreateOrganizationWithMembers(
+        [
+            ("owner1", OrgRole.Owner),
+            ("admin1", OrgRole.Admin),
+            ("member1", OrgRole.Member),
+        ]);
+
+        var result = await _sut.TransferOwnershipAsync(org.Id, "member1", "admin1");
+
+        Assert.False(result.Success);
+        Assert.Equal(OrganizationActionError.NotAuthorized, result.Error);
+        Assert.Equal(OrgRole.Member, org.Members.Single(m => m.UserId == "member1").Role);
+    }
+
+    [Fact]
+    public async Task TransferOwnership_ToSelf_ShouldFail()
+    {
+        var org = CreateOrganizationWithMembers([("owner1", OrgRole.Owner)]);
+
+        var result = await _sut.TransferOwnershipAsync(org.Id, "owner1", "owner1");
+
+        Assert.False(result.Success);
+        Assert.Equal(OrganizationActionError.InvalidTarget, result.Error);
+    }
+
+    [Fact]
+    public async Task TransferOwnership_TargetNotMember_ShouldFail()
+    {
+        var org = CreateOrganizationWithMembers([("owner1", OrgRole.Owner)]);
+
+        var result = await _sut.TransferOwnershipAsync(org.Id, "stranger", "owner1");
+
+        Assert.False(result.Success);
+        Assert.Equal(OrganizationActionError.MemberNotFound, result.Error);
+    }
+
+    // ===== DeleteAsync Tests =====
+
+    [Fact]
+    public async Task Delete_Owner_ShouldDeleteOrganizationAndStoredFiles()
+    {
+        var org = CreateOrganizationWithMembers([("owner1", OrgRole.Owner)]);
+        _attachmentsRepoMock
+            .Setup(r => r.GetStoragePathsByOrganizationAsync(org.Id))
+            .ReturnsAsync(["bills/a.pdf", "expenses/b.png"]);
+        _storageServiceMock.Setup(s => s.DeleteFileAsync(It.IsAny<string>())).ReturnsAsync(true);
+
+        var result = await _sut.DeleteAsync(org.Id, "owner1");
+
+        Assert.True(result.Success);
+        _orgRepoMock.Verify(r => r.DeleteAsync(org), Times.Once);
+        _storageServiceMock.Verify(s => s.DeleteFileAsync("bills/a.pdf"), Times.Once);
+        _storageServiceMock.Verify(s => s.DeleteFileAsync("expenses/b.png"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(OrgRole.Admin)]
+    [InlineData(OrgRole.Member)]
+    public async Task Delete_NonOwner_ShouldFail(OrgRole role)
+    {
+        var org = CreateOrganizationWithMembers(
+        [
+            ("owner1", OrgRole.Owner),
+            ("user1", role),
+        ]);
+
+        var result = await _sut.DeleteAsync(org.Id, "user1");
+
+        Assert.False(result.Success);
+        Assert.Equal(OrganizationActionError.NotAuthorized, result.Error);
+        _orgRepoMock.Verify(r => r.DeleteAsync(It.IsAny<Organization>()), Times.Never);
+        _storageServiceMock.Verify(s => s.DeleteFileAsync(It.IsAny<string>()), Times.Never);
     }
 }
