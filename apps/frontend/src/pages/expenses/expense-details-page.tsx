@@ -1,55 +1,61 @@
-import { FilePlus2, MoreHorizontal } from "lucide-react";
-import { useRef, useState } from "react";
+import { ArrowLeft, Pencil } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { FileCategory } from "@/api/bills/bills.types";
+import type { FileCategory } from "@/api/bills/bills.types";
 import { expensesService } from "@/api/expenses/expenses.service";
-import { EmptyState } from "@/components/feedback/empty-state";
-import { ErrorState } from "@/components/feedback/error-state";
-import { LoadingState } from "@/components/feedback/loading-state";
-import { PageContainer } from "@/components/layout/page-container";
-import { Button } from "@/components/ui/button";
-import { DataIcon } from "@/components/ui/data-icon";
-import { IconButton } from "@/components/ui/icon-button";
-import { ConfirmDialog } from "@/components/ui/modal";
-import { PageHeader } from "@/components/ui/page-header";
-import { SectionHeading } from "@/components/ui/section-heading";
-import { Select } from "@/components/ui/select";
-import { StatusPill } from "@/components/ui/status-pill";
-import { formatCurrency, formatLongDate } from "@/lib/format";
+import { useAuth } from "@/auth/auth-provider";
+import { Amount } from "@/components/base/amount";
+import { Badge } from "@/components/base/badge";
+import { Button } from "@/components/base/button";
+import { Card } from "@/components/base/card";
+import { ConfirmDialog } from "@/components/base/dialog";
+import { ErrorState, LoadingState } from "@/components/base/feedback";
+import { PageHeader } from "@/components/base/page-header";
+import { DocumentsCard } from "@/components/finance/documents-card";
+import { Page } from "@/components/layout/page";
 import { useExpenseMutations } from "@/hooks/mutations/use-expense-mutations";
 import { useAttachmentUploadAvailability } from "@/hooks/queries/use-organization-queries";
 import { useExpenseQuery } from "@/hooks/queries/use-expense-queries";
 import { useLocale } from "@/hooks/use-locale";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
-import {
-  acceptedDocumentTypes,
-  documentCategories,
-  isAcceptedDocument,
-} from "@/lib/file-validation";
+import { isAcceptedDocument } from "@/lib/file-validation";
 import { categoryLabel, paymentMethodLabels } from "@/lib/finance-categories";
+import { formatLongDate } from "@/lib/format";
+import { ExpenseModal } from "@/pages/expenses/components/expense-modal";
+
+function DetailItem({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid gap-1 border-t border-line py-3.5 first:border-t-0 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-4">
+      <dt className="text-[13px] font-semibold text-ink-muted">{label}</dt>
+      <dd className="m-0 text-sm text-ink">{children}</dd>
+    </div>
+  );
+}
 
 export function ExpenseDetailsPage() {
   const { t } = useTranslation();
   const { expenseId } = useParams();
   const organizationId = useSelectedOrganization();
   const locale = useLocale();
+  const { user } = useAuth();
   const query = useExpenseQuery(organizationId, expenseId);
   const attachmentUploads = useAttachmentUploadAvailability(organizationId);
   const mutations = useExpenseMutations(organizationId);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [fileCategory, setFileCategory] = useState<FileCategory>("Receipt");
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const expense = query.data;
-  const upload = (file: File) => {
-    if (!attachmentUploads.available || !isAcceptedDocument(file)) {
+
+  const upload = (files: File[], category: FileCategory) => {
+    const file = files[0];
+    if (!attachmentUploads.available || !file || !isAcceptedDocument(file)) {
       toast.error(t("bills.invalidFile"));
       return;
     }
     if (expenseId)
       mutations.upload.mutate(
-        { id: expenseId, file, category: fileCategory },
+        { id: expenseId, file, category },
         {
           onSuccess: () => toast.success(t("bills.uploaded")),
           onError: (error) => toast.error(error.message),
@@ -68,164 +74,135 @@ export function ExpenseDetailsPage() {
       toast.error(error instanceof Error ? error.message : t("api.expenses.openDocument"));
     }
   };
+
+  const backLink = (
+    <Link
+      to="/expenses"
+      className="inline-flex w-fit items-center gap-1.5 text-sm font-bold text-brand-ink"
+    >
+      <ArrowLeft size={16} aria-hidden="true" /> {t("nav.expenses")}
+    </Link>
+  );
+
   if (query.isPending)
     return (
-      <PageContainer>
-        <LoadingState />
-      </PageContainer>
+      <Page>
+        {backLink}
+        <Card>
+          <LoadingState />
+        </Card>
+      </Page>
     );
   if (query.error || !expense)
     return (
-      <PageContainer>
-        <ErrorState
-          message={query.error?.message ?? t("expenses.notFound")}
-          onRetry={() => {
-            void query.refetch();
-          }}
-        />
-      </PageContainer>
+      <Page>
+        {backLink}
+        <Card>
+          <ErrorState
+            message={query.error?.message ?? t("expenses.notFound")}
+            onRetry={() => void query.refetch()}
+          />
+        </Card>
+      </Page>
     );
+
   return (
-    <PageContainer>
-      <Link to="/expenses" className="back-link">
-        ← {t("nav.expenses")}
-      </Link>
+    <Page>
+      {backLink}
       <PageHeader
-        eyebrow={t("expenses.detail")}
         title={expense.description}
         description={`${t(categoryLabel(expense.category))} · ${formatLongDate(expense.occurredAt, locale)}`}
+        actions={
+          <Button variant="secondary" onClick={() => setEditOpen(true)}>
+            <Pencil size={16} aria-hidden="true" /> {t("expenses.edit")}
+          </Button>
+        }
       />
-      <div className="detail-grid">
-        <section className="surface-card detail-card">
-          <div className="detail-card__amount">
-            <span>{t("expenses.amount")}</span>
-            <strong>{formatCurrency(expense.amount, locale)}</strong>
-            <StatusPill status={expense.status} />
-          </div>
-          <dl className="detail-list">
-            <div>
-              <dt>{t("expenses.occurred")}</dt>
-              <dd>{formatLongDate(expense.occurredAt, locale)}</dd>
-            </div>
-            <div>
-              <dt>{t("common.category")}</dt>
-              <dd>{t(categoryLabel(expense.category))}</dd>
-            </div>
-            <div>
-              <dt>{t("expenses.createdBy")}</dt>
-              <dd>{expense.createdBy}</dd>
-            </div>
-            <div>
-              <dt>{t("expenses.paymentMethod")}</dt>
-              <dd>
-                {expense.paymentMethod
-                  ? t(paymentMethodLabels[expense.paymentMethod])
-                  : t("common.notSpecified")}
-              </dd>
-            </div>
-            <div className="detail-list__notes">
-              <dt>{t("common.notes")}</dt>
-              <dd>{expense.notes || t("common.notSpecified")}</dd>
-            </div>
-          </dl>
-        </section>
-        <section className="surface-card detail-card">
-          <SectionHeading
-            title={t("common.attachments")}
-            description={
-              attachmentUploads.isFree
-                ? t("common.attachmentsPaidPlan")
-                : t("expenses.attachmentDescription")
-            }
-            action={
-              <div className="section-heading__actions">
-                <div className="select-field">
-                  <Select
-                    ariaLabel={t("common.documentCategory")}
-                    value={fileCategory}
-                    onValueChange={setFileCategory}
-                    disabled={!attachmentUploads.available}
-                    options={documentCategories.map((value) => ({
-                      value,
-                      label: t(`documents.${value}`),
-                    }))}
-                  />
-                </div>
-                <Button
-                  variant="secondary"
-                  disabled={!attachmentUploads.available || mutations.upload.isPending}
-                  onClick={() => inputRef.current?.click()}
-                >
-                  <FilePlus2 size={16} /> {t("common.addFile")}
-                </Button>
-                <input
-                  ref={inputRef}
-                  type="file"
-                  accept={acceptedDocumentTypes}
-                  disabled={!attachmentUploads.available}
-                  hidden
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) upload(file);
-                    event.currentTarget.value = "";
-                  }}
-                />
-              </div>
-            }
-          />
-          {expense.documents.length ? (
-            expense.documents.map((document) => (
-              <div className="attachment-row" key={document.id}>
-                <DataIcon type="expense" />
-                <span>
-                  <strong>{document.fileName}</strong>
-                  <small>{t(`documents.${document.fileCategory}`)}</small>
-                </span>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    void download(document.id);
-                  }}
-                >
-                  {t("common.download")}
-                </Button>
-                <IconButton
-                  label={t("common.removeFile", { name: document.fileName })}
-                  onClick={() => setPendingDocumentId(document.id)}
-                >
-                  <MoreHorizontal size={16} />
-                </IconButton>
-              </div>
-            ))
-          ) : (
-            <EmptyState
-              icon={FilePlus2}
-              title={t("expenses.noAttachments")}
-              description={t("expenses.receiptHint")}
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+        <Card className="grid gap-5">
+          <div className="grid gap-2">
+            <span className="text-sm font-semibold text-ink-muted">{t("expenses.amount")}</span>
+            <Amount
+              value={expense.amount}
+              className="text-[40px] font-extrabold leading-none tracking-[-0.04em]"
             />
-          )}
-        </section>
+            <div>
+              <Badge
+                tone={
+                  expense.status === "paid"
+                    ? "success"
+                    : expense.status === "pending"
+                      ? "warning"
+                      : "neutral"
+                }
+              >
+                {t(`statuses.${expense.status}`)}
+              </Badge>
+            </div>
+          </div>
+          <dl className="m-0">
+            <DetailItem label={t("expenses.occurred")}>
+              {formatLongDate(expense.occurredAt, locale)}
+            </DetailItem>
+            <DetailItem label={t("common.category")}>
+              {t(categoryLabel(expense.category))}
+            </DetailItem>
+            <DetailItem label={t("expenses.paymentMethod")}>
+              {expense.paymentMethod
+                ? t(paymentMethodLabels[expense.paymentMethod])
+                : t("common.notSpecified")}
+            </DetailItem>
+            <DetailItem label={t("expenses.createdBy")}>{expense.createdBy}</DetailItem>
+            <DetailItem label={t("common.notesTitle")}>
+              <span className="whitespace-pre-line">
+                {expense.notes || (
+                  <span className="text-ink-muted">{t("common.notSpecified")}</span>
+                )}
+              </span>
+            </DetailItem>
+          </dl>
+        </Card>
+        <DocumentsCard
+          documents={expense.documents}
+          available={attachmentUploads.available}
+          isFree={attachmentUploads.isFree}
+          description={t("expenses.attachmentDescription")}
+          emptyTitle={t("expenses.noAttachments")}
+          emptyDescription={t("expenses.receiptHint")}
+          uploading={mutations.upload.isPending}
+          defaultCategory="Receipt"
+          onUpload={upload}
+          onDownload={(document) => void download(document.id)}
+          onRemove={(document) => setPendingDocumentId(document.id)}
+        />
       </div>
-      {pendingDocumentId && (
-        <ConfirmDialog
-          title={t("common.removeDocumentConfirm")}
-          confirmLabel={t("common.remove")}
-          pending={mutations.removeDocument.isPending}
-          onConfirm={() =>
-            mutations.removeDocument.mutate(
-              { expenseId: expense.id, attachmentId: pendingDocumentId },
-              {
-                onSuccess: () => {
-                  setPendingDocumentId(null);
-                  toast.success(t("bills.documentRemoved"));
-                },
-                onError: (error) => toast.error(error.message),
-              },
-            )
-          }
-          onClose={() => setPendingDocumentId(null)}
+      {editOpen && organizationId && user && (
+        <ExpenseModal
+          expense={expense}
+          organizationId={organizationId}
+          userId={user.id}
+          onClose={() => setEditOpen(false)}
         />
       )}
-    </PageContainer>
+      <ConfirmDialog
+        open={Boolean(pendingDocumentId)}
+        onOpenChange={(next) => !next && setPendingDocumentId(null)}
+        title={t("common.removeDocumentConfirm")}
+        confirmLabel={t("common.remove")}
+        pending={mutations.removeDocument.isPending}
+        onConfirm={() =>
+          mutations.removeDocument.mutate(
+            { expenseId: expense.id, attachmentId: pendingDocumentId! },
+            {
+              onSuccess: () => {
+                setPendingDocumentId(null);
+                toast.success(t("bills.documentRemoved"));
+              },
+              onError: (error) => toast.error(error.message),
+            },
+          )
+        }
+      />
+    </Page>
   );
 }
