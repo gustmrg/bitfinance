@@ -122,7 +122,8 @@ export const ptBR = {
       removeAvatarConfirm: "Remover seu avatar?",
       signOutAllConfirm: "Sair de todos os dispositivos?",
       leaveOrganizationConfirm: "Sair desta organização?",
-      stopFutureBillsConfirm: "Parar contas futuras? As ocorrências existentes permanecerão.",
+      stopFutureBillsConfirm:
+        "Parar contas futuras? As contas não pagas com vencimento após hoje serão excluídas; as passadas e as pagas permanecerão.",
       removeMemberConfirm: "Remover {{name}} desta organização?",
     },
     home: {
