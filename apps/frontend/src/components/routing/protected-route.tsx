@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Navigate, useLocation } from "react-router-dom";
 
 import { useAuth } from "@/auth/auth-provider";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/base/feedback";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
