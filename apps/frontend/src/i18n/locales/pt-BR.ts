@@ -173,6 +173,15 @@ export const ptBR = {
       welcomeBack: "Bem-vinda de volta",
       accountCreated: "Conta criada",
       unableContinue: "Não foi possível continuar.",
+      or: "ou",
+      continueWithGoogle: "Continuar com Google",
+      googleErrors: {
+        "email-in-use":
+          "Este e-mail já tem uma conta no BitFinance. Entre com sua senha e vincule o Google nas configurações da conta.",
+        "email-not-verified": "O e-mail da sua conta Google não está verificado.",
+        "locked-out": "Esta conta está temporariamente bloqueada. Tente novamente mais tarde.",
+        failed: "Não foi possível entrar com o Google. Tente novamente.",
+      },
     },
     join: {
       eyebrow: "Convite / ao vivo",
@@ -406,6 +415,20 @@ export const ptBR = {
       avatarUpdated: "Avatar atualizado",
       unableUpload: "Não foi possível enviar o avatar",
       avatarRemoved: "Avatar removido",
+      google: "Conta Google",
+      googleDescription: "Vincule o Google para entrar sem senha",
+      googleLinkedDescription: "Você pode entrar com o Google ou com sua senha",
+      googleOnlyDescription: "Esta conta entra apenas com o Google",
+      linkGoogle: "Vincular",
+      unlinkGoogle: "Desvincular",
+      googleLinked: "Conta Google vinculada",
+      googleUnlinked: "Conta Google desvinculada",
+      googleErrors: {
+        "already-linked": "Outra conta Google já está vinculada. Desvincule-a primeiro.",
+        "linked-to-another-account":
+          "Esta conta Google está vinculada a outra conta do BitFinance.",
+        failed: "Não foi possível vincular a conta Google.",
+      },
     },
     notifications: {
       currentOrganization: "Da organização selecionada",
@@ -444,6 +467,7 @@ export const ptBR = {
       healthFailed: "A verificação de saúde falhou com {{status}}",
       account: {
         updateProfile: "Não foi possível atualizar seu perfil.",
+        unlinkGoogle: "Não foi possível desvincular a conta Google.",
         uploadAvatar: "Não foi possível enviar seu avatar.",
         removeAvatar: "Não foi possível remover seu avatar.",
       },
@@ -454,6 +478,7 @@ export const ptBR = {
         signOut: "Não foi possível sair.",
         signOutAll: "Não foi possível sair de todas as sessões.",
         loadAccount: "Não foi possível carregar sua conta.",
+        loadProviders: "Não foi possível carregar as opções de acesso.",
       },
       bills: {
         load: "Não foi possível carregar as contas.",

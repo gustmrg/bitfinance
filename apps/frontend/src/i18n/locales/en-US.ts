@@ -173,6 +173,15 @@ export const enUS = {
       welcomeBack: "Welcome back",
       accountCreated: "Account created",
       unableContinue: "Unable to continue.",
+      or: "or",
+      continueWithGoogle: "Continue with Google",
+      googleErrors: {
+        "email-in-use":
+          "This email already has a BitFinance account. Sign in with your password, then link Google in your account settings.",
+        "email-not-verified": "Your Google account email is not verified.",
+        "locked-out": "This account is temporarily locked. Try again later.",
+        failed: "Unable to sign in with Google. Try again.",
+      },
     },
     join: {
       eyebrow: "Invitation / live",
@@ -406,6 +415,19 @@ export const enUS = {
       avatarUpdated: "Avatar updated",
       unableUpload: "Unable to upload avatar",
       avatarRemoved: "Avatar removed",
+      google: "Google account",
+      googleDescription: "Link Google to sign in without a password",
+      googleLinkedDescription: "You can sign in with Google or your password",
+      googleOnlyDescription: "This account signs in only with Google",
+      linkGoogle: "Link",
+      unlinkGoogle: "Unlink",
+      googleLinked: "Google account linked",
+      googleUnlinked: "Google account unlinked",
+      googleErrors: {
+        "already-linked": "Another Google account is already linked. Unlink it first.",
+        "linked-to-another-account": "This Google account is linked to another BitFinance account.",
+        failed: "Unable to link the Google account.",
+      },
     },
     notifications: {
       currentOrganization: "For the selected organization",
@@ -444,6 +466,7 @@ export const enUS = {
       healthFailed: "Health check failed with {{status}}",
       account: {
         updateProfile: "Unable to update your profile.",
+        unlinkGoogle: "Unable to unlink the Google account.",
         uploadAvatar: "Unable to upload your avatar.",
         removeAvatar: "Unable to remove your avatar.",
       },
@@ -454,6 +477,7 @@ export const enUS = {
         signOut: "Unable to sign out.",
         signOutAll: "Unable to sign out all sessions.",
         loadAccount: "Unable to load your account.",
+        loadProviders: "Unable to load sign-in options.",
       },
       bills: {
         load: "Unable to load bills.",
