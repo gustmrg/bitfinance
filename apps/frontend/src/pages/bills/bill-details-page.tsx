@@ -1,7 +1,7 @@
 import { Check, FilePlus2, MoreHorizontal } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { billsService } from "@/api/bills/bills.service";
 import { FileCategory } from "@/api/bills/bills.types";
@@ -35,6 +35,7 @@ import { buildMarkPaidInput } from "@/pages/bills/mark-paid";
 export function BillDetailsPage() {
   const { t } = useTranslation();
   const { billId } = useParams();
+  const navigate = useNavigate();
   const organizationId = useSelectedOrganization();
   const locale = useLocale();
   const query = useBillQuery(organizationId, billId);
@@ -281,9 +282,11 @@ export function BillDetailsPage() {
           pending={mutations.stopSeries.isPending}
           onConfirm={() =>
             mutations.stopSeries.mutate(bill.billSeriesId!, {
-              onSuccess: () => {
+              onSuccess: async () => {
                 setStopSeriesConfirm(false);
                 toast.success(t("bills.futureStopped"));
+                const result = await query.refetch();
+                if (result.isError) navigate("/dashboard/bills", { replace: true });
               },
               onError: (error) => toast.error(error.message),
             })

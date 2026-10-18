@@ -122,7 +122,8 @@ export const enUS = {
       removeAvatarConfirm: "Remove your avatar?",
       signOutAllConfirm: "Sign out from every device?",
       leaveOrganizationConfirm: "Leave this organization?",
-      stopFutureBillsConfirm: "Stop future bills? Existing occurrences remain.",
+      stopFutureBillsConfirm:
+        "Stop future bills? Unpaid bills due after today will be deleted; past and paid bills remain.",
       removeMemberConfirm: "Remove {{name}} from this organization?",
     },
     home: {

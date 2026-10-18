@@ -539,7 +539,7 @@ public class BillsController : ControllerBase
     [HttpPost]
     [Route("series/{seriesId:guid}/stop")]
     [EndpointSummary("Stop future bill generation for a series")]
-    [EndpointDescription("Stops a recurring or installment bill series from generating any future occurrences. Existing generated bills are preserved.")]
+    [EndpointDescription("Stops a recurring or installment bill series from generating any future occurrences and deletes its unpaid occurrences due after today, along with their documents. Past, current, and paid occurrences are preserved.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -552,15 +552,29 @@ public class BillsController : ControllerBase
             if (series is null || series.OrganizationId != organizationId)
                 return NotFound();
 
-            if (!series.IsActive)
-                return NoContent();
+            var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+            if (organization is null) return NotFound();
 
-            series.IsActive = false;
-            series.StoppedAt = DateTime.UtcNow;
+            if (series.IsActive)
+            {
+                series.IsActive = false;
+                series.StoppedAt = DateTime.UtcNow;
 
-            await _billSeriesRepository.UpdateAsync(series,
-                s => s.IsActive,
-                s => s.StoppedAt);
+                await _billSeriesRepository.UpdateAsync(series,
+                    s => s.IsActive,
+                    s => s.StoppedAt);
+            }
+
+            // Runs for already-stopped series too, so series stopped before future occurrences were removed get cleaned up.
+            var futureBills = await _billsRepository.GetUnpaidSeriesBillsDueAfterAsync(
+                series.Id, organization.GetCurrentLocalDate());
+
+            foreach (var attachment in futureBills.SelectMany(b => b.Attachments).ToList())
+            {
+                await _attachmentService.DeleteAttachmentAsync(attachment.Id);
+            }
+
+            await _billsRepository.DeleteRangeAsync(futureBills);
 
             // Cached occurrences embed the series, so drop them to expose the new IsActive state.
             await _billsRepository.RemoveSeriesBillsFromCacheAsync(series.Id);

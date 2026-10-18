@@ -208,6 +208,17 @@ public class BillsRepository : IBillsRepository
         }
     }
 
+    public async Task<List<Bill>> GetUnpaidSeriesBillsDueAfterAsync(Guid seriesId, DateOnly date)
+    {
+        return await _dbContext.Bills
+            .Include(b => b.Attachments)
+            .Where(b => b.BillSeriesId == seriesId
+                        && b.DueDate > date
+                        && b.Status != BillStatus.Paid
+                        && b.AmountPaid == null)
+            .ToListAsync();
+    }
+
     public async Task<Bill> CreateAsync(Bill bill)
     {
         _dbContext.Set<Bill>().Add(bill);
@@ -268,6 +279,20 @@ public class BillsRepository : IBillsRepository
         await _dbContext.SaveChangesAsync();
 
         await RemoveFromCacheAsync(bill.Id);
+    }
+
+    public async Task DeleteRangeAsync(List<Bill> bills)
+    {
+        if (bills.Count == 0)
+            return;
+
+        _dbContext.Bills.RemoveRange(bills);
+        await _dbContext.SaveChangesAsync();
+
+        foreach (var bill in bills)
+        {
+            await RemoveFromCacheAsync(bill.Id);
+        }
     }
 
     public async Task SaveChangesAsync()
