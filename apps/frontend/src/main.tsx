@@ -20,7 +20,11 @@ createRoot(document.getElementById("root")!).render(
       <AuthProvider>
         <BrowserRouter>
           <App />
-          <Toaster position="bottom-right" toastOptions={{ className: "toast" }} />
+          <Toaster
+            position="bottom-right"
+            mobileOffset={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}
+            toastOptions={{ className: "toast" }}
+          />
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>

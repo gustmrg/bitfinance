@@ -13,6 +13,7 @@ export const ptBR = {
       account: "Conta",
       recurrences: "Recorrências",
       reports: "Relatórios",
+      quickAdd: "Novo lançamento",
       settings: "Configurações",
     },
     common: {
@@ -52,9 +53,6 @@ export const ptBR = {
       selectOrganization: "Selecionar organização",
       primaryNavigation: "Navegação principal",
       mobileNavigation: "Navegação móvel",
-      workspace: "Espaço de trabalho",
-      workspaceSettings: "Configurações do espaço",
-      liveWorkspace: "Espaço ao vivo",
       financeDesk: "mesa financeira",
       active: "Ativo",
       protected: "Protegido",

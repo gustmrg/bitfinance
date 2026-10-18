@@ -15,21 +15,12 @@
   --ink-deep: #0c1626;
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
 }
-[data-theme="dark"] body,
-[data-theme="dark"] .sidebar,
-[data-theme="dark"] .content-topbar,
-[data-theme="dark"] .mobile-topbar {
+[data-theme="dark"] body {
   background: var(--paper);
 }
-[data-theme="dark"] .sidebar,
-[data-theme="dark"] .content-topbar {
-  background: #101c2e;
-}
-[data-theme="dark"] .nav-link:hover,
 [data-theme="dark"] .compact-row:hover {
   background: #1b2a42;
 }
-[data-theme="dark"] .org-switcher,
 [data-theme="dark"] .button--secondary,
 [data-theme="dark"] .icon-button:hover,
 [data-theme="dark"] .search-field,

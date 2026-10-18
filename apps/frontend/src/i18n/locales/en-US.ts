@@ -13,6 +13,7 @@ export const enUS = {
       account: "Account",
       recurrences: "Recurrences",
       reports: "Reports",
+      quickAdd: "New entry",
       settings: "Settings",
     },
     common: {
@@ -52,9 +53,6 @@ export const enUS = {
       selectOrganization: "Select organization",
       primaryNavigation: "Primary navigation",
       mobileNavigation: "Mobile navigation",
-      workspace: "Workspace",
-      workspaceSettings: "Workspace settings",
-      liveWorkspace: "Live workspace",
       financeDesk: "finance desk",
       active: "Active",
       protected: "Protected",

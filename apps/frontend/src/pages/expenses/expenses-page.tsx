@@ -1,5 +1,6 @@
 import { BarChart3, Building2, Filter, Plus, Search } from "lucide-react";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Expense, ExpenseStatus, PaymentMethod } from "@/api/expenses/expenses.types";
@@ -37,6 +38,19 @@ export function ExpensesPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "all">("all");
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const quickAdd = searchParams.has("new");
+  const closeModal = () => {
+    setModal(null);
+    if (quickAdd)
+      setSearchParams(
+        (params) => {
+          params.delete("new");
+          return params;
+        },
+        { replace: true },
+      );
+  };
   const [selected, setSelected] = useState<Expense | null>(null);
   const query = useExpensesQuery(
     organizationId
@@ -203,11 +217,11 @@ export function ExpensesPage() {
           <Pagination page={page} totalPages={query.data.totalPages} onPageChange={setPage} />
         </div>
       )}
-      {modal && (
+      {(modal || quickAdd) && (
         <ExpenseModal
           expense={modal === "edit" ? (selected ?? undefined) : undefined}
           onClose={() => {
-            setModal(null);
+            closeModal();
             setSelected(null);
           }}
           organizationId={organizationId}

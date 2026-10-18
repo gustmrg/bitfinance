@@ -1,5 +1,6 @@
 import { Building2, Filter, Plus, ReceiptText, RotateCcw, Search } from "lucide-react";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Bill, BillSeriesType, BillStatus } from "@/api/bills/bills.types";
@@ -36,6 +37,19 @@ export function BillsPage() {
   const [series, setSeries] = useState<BillSeriesType | "all">("all");
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const quickAdd = searchParams.has("new");
+  const closeModal = () => {
+    setModal(null);
+    if (quickAdd)
+      setSearchParams(
+        (params) => {
+          params.delete("new");
+          return params;
+        },
+        { replace: true },
+      );
+  };
   const [selected, setSelected] = useState<Bill | null>(null);
   const query = useBillsQuery(
     organizationId
@@ -239,8 +253,8 @@ export function BillsPage() {
       {query.data && query.data.totalPages > 1 && (
         <Pagination page={page} totalPages={query.data.totalPages} onPageChange={setPage} />
       )}
-      {modal === "add" && (
-        <BillModal onClose={() => setModal(null)} organizationId={organizationId} />
+      {(modal === "add" || quickAdd) && (
+        <BillModal onClose={closeModal} organizationId={organizationId} />
       )}
       {modal === "edit" && selected && (
         <BillModal
