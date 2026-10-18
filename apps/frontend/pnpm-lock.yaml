@@ -32,6 +32,9 @@ importers:
       react-dom:
         specifier: 19.2.7
         version: 19.2.7(react@19.2.7)
+      react-easy-crop:
+        specifier: 6.2.4
+        version: 6.2.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-i18next:
         specifier: 17.0.9
         version: 17.0.9(i18next@26.3.6(typescript@5.9.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
@@ -2205,6 +2208,9 @@ packages:
     resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
     engines: {node: '>=18'}
 
+  normalize-wheel@1.0.1:
+    resolution: {integrity: sha512-1OnlAPZ3zgrk8B91HyRj+eVv+kS5u+Z0SCsak6Xil/kmgEia50ga7zfkumayonZrImffAxPU/5WcyGhzetHNPA==}
+
   object-inspect@1.13.4:
     resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
     engines: {node: '>= 0.4'}
@@ -2298,6 +2304,12 @@ packages:
     resolution: {integrity: sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ==}
     peerDependencies:
       react: ^19.2.7
+
+  react-easy-crop@6.2.4:
+    resolution: {integrity: sha512-OWdnFYctzUNlekjob+bQfloG9wyhIBkkmeISnM5XVE4Byqn0jmVxDF7oz85ovUF+EIPQyj0yAHbBEFtnxwGv4g==}
+    peerDependencies:
+      react: '>=16.4.0'
+      react-dom: '>=16.4.0'
 
   react-i18next@17.0.9:
     resolution: {integrity: sha512-buLzOSqHtXxjf+qgSrLWNTXVZ1jSwO6kUv3uJqSP1roGBPgNnbhFm7OmdVwWcgf2gIbUyP0J333uPyx+Btsi3w==}
@@ -4972,6 +4984,8 @@ snapshots:
 
   node-releases@2.0.51: {}
 
+  normalize-wheel@1.0.1: {}
+
   object-inspect@1.13.4: {}
 
   object-keys@1.1.1: {}
@@ -5052,6 +5066,12 @@ snapshots:
     dependencies:
       react: 19.2.7
       scheduler: 0.27.0
+
+  react-easy-crop@6.2.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+    dependencies:
+      normalize-wheel: 1.0.1
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
 
   react-i18next@17.0.9(i18next@26.3.6(typescript@5.9.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3):
     dependencies:
