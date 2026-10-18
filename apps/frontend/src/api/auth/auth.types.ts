@@ -13,7 +13,15 @@ export interface User {
   email: string;
   organizations: OrganizationSummary[];
   hasAvatar: boolean;
+  hasPassword: boolean;
+  hasGoogleLogin: boolean;
   avatarUrl?: string | null;
+}
+
+export type ExternalProvider = "google";
+
+export interface ExternalProvidersResponse {
+  providers: ExternalProvider[];
 }
 
 export interface AuthSessionResponse {
@@ -39,6 +47,8 @@ interface MeResponse {
   userName: string;
   organizations?: OrganizationSummary[];
   hasAvatar?: boolean;
+  hasPassword?: boolean;
+  hasGoogleLogin?: boolean;
 }
 
 export function mapMeResponse(response: MeResponse): User {
@@ -49,5 +59,7 @@ export function mapMeResponse(response: MeResponse): User {
     email: response.email,
     organizations: response.organizations ?? [],
     hasAvatar: response.hasAvatar ?? false,
+    hasPassword: response.hasPassword ?? true,
+    hasGoogleLogin: response.hasGoogleLogin ?? false,
   };
 }

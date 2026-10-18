@@ -14,6 +14,9 @@ services:
       - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
       - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
       - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - GoogleAuth__ClientId=${GOOGLE_CLIENT_ID}
+      - GoogleAuth__ClientSecret=${GOOGLE_CLIENT_SECRET}
+      - GoogleAuth__RedirectUri=${GOOGLE_REDIRECT_URI}
       - Storage__BucketName=${S3_BUCKET_NAME}
       - Storage__Region=${S3_REGION}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}

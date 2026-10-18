@@ -1,18 +1,21 @@
 import { Check, Globe2, Mail, SunMedium } from "lucide-react";
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { authService } from "@/api/auth/auth.service";
 import { useAuth } from "@/auth/auth-provider";
 import { PageContainer } from "@/components/layout/page-container";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { GoogleMark } from "@/components/ui/google-mark";
 import { ConfirmDialog } from "@/components/ui/modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Select } from "@/components/ui/select";
 import { useAccountMutations } from "@/hooks/mutations/use-account-mutations";
 import { useNotificationMutations } from "@/hooks/mutations/use-notification-mutations";
+import { useExternalProvidersQuery } from "@/hooks/queries/use-auth-queries";
 import { useNotificationPreferencesQuery } from "@/hooks/queries/use-notification-queries";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
 import { useTheme } from "@/hooks/use-theme";
@@ -23,7 +26,9 @@ export function AccountPage() {
   const { t, i18n } = useTranslation();
   const auth = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const mutations = useAccountMutations();
+  const providers = useExternalProvidersQuery();
   const user = auth.user;
   const organizationId = useSelectedOrganization();
   const notificationPreferences = useNotificationPreferencesQuery(organizationId);
@@ -35,7 +40,32 @@ export function AccountPage() {
   const [signOutAllConfirm, setSignOutAllConfirm] = useState(false);
   const { theme, setTheme } = useTheme();
   const avatarInput = useRef<HTMLInputElement>(null);
+  const googleStatus = searchParams.get("google");
+  const googleError = searchParams.get("googleError");
+  useEffect(() => {
+    if (!googleStatus && !googleError) return;
+    if (googleError)
+      toast.error(t(`account.googleErrors.${googleError}`, t("account.googleErrors.failed")));
+    else if (googleStatus === "linked") toast.success(t("account.googleLinked"));
+    setSearchParams(
+      (params) => {
+        params.delete("google");
+        params.delete("googleError");
+        return params;
+      },
+      { replace: true },
+    );
+  }, [googleError, googleStatus, setSearchParams, t]);
   if (!user) return null;
+  const showGoogle = user.hasGoogleLogin || providers.data?.providers.includes("google");
+  const unlinkGoogle = () =>
+    mutations.unlinkGoogle.mutate(undefined, {
+      onSuccess: () => {
+        void auth.refreshUser();
+        toast.success(t("account.googleUnlinked"));
+      },
+      onError: (error) => toast.error(error.message),
+    });
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
@@ -214,6 +244,39 @@ export function AccountPage() {
               <span />
             </label>
           </div>
+          {showGoogle && (
+            <div className="preference-row">
+              <span>
+                <GoogleMark />
+                <span>
+                  <strong>{t("account.google")}</strong>
+                  <small>
+                    {!user.hasGoogleLogin
+                      ? t("account.googleDescription")
+                      : user.hasPassword
+                        ? t("account.googleLinkedDescription")
+                        : t("account.googleOnlyDescription")}
+                  </small>
+                </span>
+              </span>
+              {user.hasGoogleLogin ? (
+                <Button
+                  variant="ghost"
+                  disabled={!user.hasPassword || mutations.unlinkGoogle.isPending}
+                  onClick={unlinkGoogle}
+                >
+                  {t("account.unlinkGoogle")}
+                </Button>
+              ) : (
+                <a
+                  className="button button--secondary"
+                  href={authService.googleLinkUrl("/account/settings")}
+                >
+                  {t("account.linkGoogle")}
+                </a>
+              )}
+            </div>
+          )}
           <div className="account-signout">
             <Button
               variant="danger"
