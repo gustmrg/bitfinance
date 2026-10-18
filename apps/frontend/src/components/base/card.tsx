@@ -5,7 +5,7 @@ const paddings = { none: "", md: "p-5", lg: "p-6 sm:p-7" } as const;
 
 const tones = {
   default: "border border-line bg-surface text-ink",
-  brand: "bg-brand text-on-brand",
+  brand: "bg-brand-hero text-on-brand",
 } as const;
 
 export function Card({

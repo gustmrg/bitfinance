@@ -16,6 +16,7 @@
   --color-ink-muted: var(--bf-ink-muted);
   --color-brand: var(--bf-brand);
   --color-brand-hover: var(--bf-brand-hover);
+  --color-brand-hero: var(--bf-brand-hero);
   --color-brand-ink: var(--bf-brand-ink);
   --color-brand-soft: var(--bf-brand-soft);
   --color-on-brand: var(--bf-on-brand);
@@ -41,6 +42,7 @@
   --bf-ink-muted: #5d6779;
   --bf-brand: #1747d1;
   --bf-brand-hover: #1239ad;
+  --bf-brand-hero: #1747d1;
   --bf-brand-ink: #1747d1;
   --bf-brand-soft: #e8eefd;
   --bf-on-brand: #ffffff;
@@ -66,6 +68,7 @@
   --bf-ink-muted: #9aa6ba;
   --bf-brand: #2f5fe0;
   --bf-brand-hover: #4672ea;
+  --bf-brand-hero: #1d44b8;
   --bf-brand-ink: #8fb0ff;
   --bf-brand-soft: #1c2944;
   --bf-on-brand: #ffffff;

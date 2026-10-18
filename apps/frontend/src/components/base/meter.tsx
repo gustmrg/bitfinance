@@ -7,6 +7,7 @@ const segmentColors = {
   "chart-3": "bg-chart-3",
   inverse: "bg-white",
   "inverse-muted": "bg-white/55",
+  "inverse-soft": "bg-white/30",
 } as const;
 
 export type MeterSegment = { value: number; color: keyof typeof segmentColors };
