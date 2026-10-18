@@ -50,12 +50,17 @@
 }
 .button:focus-visible,
 .icon-button:focus-visible,
-input:focus-visible,
 .select-trigger:focus-visible,
-a:focus-visible,
 .nav-link:focus-visible {
   outline: 3px solid rgba(47, 91, 234, 0.24);
   outline-offset: 2px;
+}
+@layer base {
+  input:focus-visible,
+  a:focus-visible {
+    outline: 3px solid rgba(47, 91, 234, 0.24);
+    outline-offset: 2px;
+  }
 }
 .button--secondary {
   border-color: var(--line-strong);

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/app-shell";
@@ -18,6 +19,14 @@ import { MembersPage } from "@/pages/organizations/members-page";
 import { OrganizationPage } from "@/pages/organizations/organization-page";
 import { RecurrencesPage } from "@/pages/recurrences/recurrences-page";
 import { ReportsPage } from "@/pages/reports/reports-page";
+
+const DesignSystemPage = import.meta.env.DEV
+  ? lazy(() =>
+      import("@/pages/dev/design-system-page").then((module) => ({
+        default: module.DesignSystemPage,
+      })),
+    )
+  : null;
 
 function LegacyRedirect({ to }: { to: string }) {
   const params = useParams();
@@ -68,6 +77,16 @@ export function App() {
       {legacyRoutes.map(([from, to]) => (
         <Route key={from} path={from} element={<LegacyRedirect to={to} />} />
       ))}
+      {DesignSystemPage && (
+        <Route
+          path="/dev/design-system"
+          element={
+            <Suspense>
+              <DesignSystemPage />
+            </Suspense>
+          }
+        />
+      )}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
