@@ -1,7 +1,7 @@
 import { ArrowLeft, Check, Pencil } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { billsService } from "@/api/bills/bills.service";
 import type { FileCategory } from "@/api/bills/bills.types";
@@ -37,6 +37,7 @@ function DetailItem({ label, children }: { label: string; children: ReactNode })
 export function BillDetailsPage() {
   const { t } = useTranslation();
   const { billId } = useParams();
+  const navigate = useNavigate();
   const organizationId = useSelectedOrganization();
   const locale = useLocale();
   const query = useBillQuery(organizationId, billId);
@@ -240,9 +241,11 @@ export function BillDetailsPage() {
         pending={mutations.stopSeries.isPending}
         onConfirm={() =>
           mutations.stopSeries.mutate(bill.billSeriesId!, {
-            onSuccess: () => {
+            onSuccess: async () => {
               setStopSeriesConfirm(false);
               toast.success(t("bills.futureStopped"));
+              const result = await query.refetch();
+              if (result.isError) navigate("/dashboard/bills", { replace: true });
             },
             onError: (error) => toast.error(error.message),
           })

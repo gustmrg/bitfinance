@@ -6,4 +6,6 @@ public record UserViewModel(
     string Email,
     string UserName,
     List<OrganizationViewModel> Organizations,
-    bool HasAvatar);
+    bool HasAvatar,
+    bool HasPassword,
+    bool HasGoogleLogin);

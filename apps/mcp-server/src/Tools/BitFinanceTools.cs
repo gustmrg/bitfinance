@@ -145,7 +145,7 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Stops a recurring or installment bill series from generating future occurrences. Existing generated bills are preserved. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Stops a recurring or installment bill series from generating future occurrences and deletes its unpaid occurrences due after today, along with their documents. Past, current, and paid occurrences are preserved. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
     public async Task<StopBillSeriesResponse> bitfinance_stop_bill_series(
         [Description("Bill series ID, available as billSeriesId on a generated bill.")] Guid seriesId,
         [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,

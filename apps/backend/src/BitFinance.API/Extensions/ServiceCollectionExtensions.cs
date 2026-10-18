@@ -39,6 +39,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFileValidationService, FileValidationService>();
         services.AddScoped<IAttachmentService, AttachmentService>();
         services.AddScoped<ICookieService, CookieService>();
+        services.AddScoped<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<IOrganizationsService, OrganizationsService>();
         services.AddScoped<IInvitationsService, InvitationsService>();
         services.AddScoped<IReportsService, ReportsService>();
@@ -66,6 +67,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<JwtSettings>, JwtSettingsValidator>();
         services.AddOptions<JwtSettings>()
             .Bind(configuration.GetSection(JwtSettings.SectionName))
+            .ValidateOnStart();
+
+        services.AddSingleton<IValidateOptions<GoogleAuthSettings>, GoogleAuthSettingsValidator>();
+        services.AddOptions<GoogleAuthSettings>()
+            .Bind(configuration.GetSection(GoogleAuthSettings.SectionName))
             .ValidateOnStart();
 
         services.AddSingleton<IValidateOptions<StorageSettings>, StorageSettingsValidator>();
