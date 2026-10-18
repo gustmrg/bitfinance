@@ -1,7 +1,11 @@
 const dateKey = (value?: Date | null) => value?.toISOString() ?? null;
 
 export const queryKeys = {
-  auth: { all: ["auth"] as const, me: () => ["auth", "me"] as const },
+  auth: {
+    all: ["auth"] as const,
+    me: () => ["auth", "me"] as const,
+    providers: () => ["auth", "providers"] as const,
+  },
   health: { all: ["health"] as const },
   organizations: {
     all: ["organizations"] as const,

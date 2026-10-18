@@ -4,17 +4,25 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
+import { authService } from "@/api/auth/auth.service";
 import { useAuth } from "@/auth/auth-provider";
 import { safeReturnTo } from "@/auth/safe-return-to";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { Button } from "@/components/ui/button";
+import { GoogleMark } from "@/components/base/google-mark";
+import { useExternalProvidersQuery } from "@/hooks/queries/use-auth-queries";
 
 export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   const { t, i18n } = useTranslation();
   const auth = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [error, setError] = useState("");
+  const providers = useExternalProvidersQuery();
+  const googleEnabled = providers.data?.providers.includes("google") ?? false;
+  const googleError = searchParams.get("googleError");
+  const [error, setError] = useState(() =>
+    googleError ? t(`auth.googleErrors.${googleError}`, t("auth.googleErrors.failed")) : "",
+  );
   const [pending, setPending] = useState(false);
   const isSignIn = mode === "sign-in";
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -142,6 +150,19 @@ export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
               {pending ? t("common.loading") : isSignIn ? t("common.signIn") : t("common.continue")}{" "}
               {!pending && <ArrowUpRight size={17} />}
             </Button>
+            {googleEnabled && (
+              <>
+                <div className="auth-divider">
+                  <span>{t("auth.or")}</span>
+                </div>
+                <a
+                  className="button button--secondary button--full button--large"
+                  href={authService.googleSignInUrl(safeReturnTo(searchParams.get("returnTo")))}
+                >
+                  <GoogleMark /> {t("auth.continueWithGoogle")}
+                </a>
+              </>
+            )}
             <p className="auth-form__switch">
               {isSignIn ? t("auth.noAccount") : t("auth.haveAccount")}{" "}
               <Link to={isSignIn ? "/auth/sign-up" : "/auth/sign-in"}>
