@@ -1,6 +1,13 @@
+import { env } from "../../env";
 import { authApi, publicApi } from "../shared/client";
 import { normalizeApiError } from "../shared/errors";
-import type { AuthCredentials, AuthSessionResponse, RegisterCredentials, User } from "./auth.types";
+import type {
+  AuthCredentials,
+  AuthSessionResponse,
+  ExternalProvidersResponse,
+  RegisterCredentials,
+  User,
+} from "./auth.types";
 import { mapMeResponse } from "./auth.types";
 
 export const authService = {
@@ -38,6 +45,19 @@ export const authService = {
     } catch (error) {
       throw normalizeApiError(error, "api.auth.signOutAll");
     }
+  },
+  async getExternalProvidersAsync(): Promise<ExternalProvidersResponse> {
+    try {
+      return (await publicApi.get<ExternalProvidersResponse>("/identity/external/providers")).data;
+    } catch (error) {
+      throw normalizeApiError(error, "api.auth.loadProviders");
+    }
+  },
+  googleSignInUrl(returnTo: string) {
+    return `${env.VITE_API_URL}/identity/external/google?returnTo=${encodeURIComponent(returnTo)}`;
+  },
+  googleLinkUrl(returnTo: string) {
+    return `${env.VITE_API_URL}/identity/external/google/link?returnTo=${encodeURIComponent(returnTo)}`;
   },
   async getMeAsync(): Promise<User> {
     try {

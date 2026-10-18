@@ -46,3 +46,5 @@ dotnet run --project apps/mcp-server/src/BitFinance.MCP.csproj
 Each component keeps its own README with setup and configuration details.
 
 Releases and production deployment for all components are described in [`docs/deployment.md`](docs/deployment.md).
+
+Signing in with Google, and setting it up in Google Cloud, is described in [`docs/google-sign-in.md`](docs/google-sign-in.md).
