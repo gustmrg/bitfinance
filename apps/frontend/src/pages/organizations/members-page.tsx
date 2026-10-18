@@ -1,4 +1,4 @@
-import { ArrowUpRight, Mail, RefreshCw, ShieldCheck, UserPlus } from "lucide-react";
+import { Copy, LogOut, Mail, RefreshCw, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -10,16 +10,18 @@ import type {
 } from "@/api/organizations/organizations.types";
 import { useAuth } from "@/auth/auth-provider";
 import { useOrganizationStore } from "@/auth/auth-store";
-import { ErrorState } from "@/components/feedback/error-state";
-import { LoadingState } from "@/components/feedback/loading-state";
-import { PageContainer } from "@/components/layout/page-container";
-import { Avatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { ConfirmDialog, Modal } from "@/components/ui/modal";
-import { PageHeader } from "@/components/ui/page-header";
-import { SectionHeading } from "@/components/ui/section-heading";
-import { Select } from "@/components/ui/select";
-import { formatLongDate, relativeDate } from "@/lib/format";
+import { Avatar } from "@/components/base/avatar";
+import { Badge, type BadgeTone } from "@/components/base/badge";
+import { Button } from "@/components/base/button";
+import { Card, CardHeader } from "@/components/base/card";
+import { ConfirmDialog, Dialog, DialogActions } from "@/components/base/dialog";
+import { ErrorState, LoadingState } from "@/components/base/feedback";
+import { Field, Input } from "@/components/base/field";
+import { IconButton } from "@/components/base/icon-button";
+import { PageHeader } from "@/components/base/page-header";
+import { Select } from "@/components/base/select";
+import { Page } from "@/components/layout/page";
+import { SettingsTabs } from "@/components/navigation/settings-tabs";
 import {
   useInvitationMutations,
   useOrganizationMemberMutations,
@@ -30,12 +32,21 @@ import {
 } from "@/hooks/queries/use-organization-queries";
 import { useLocale } from "@/hooks/use-locale";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
+import { formatLongDate, relativeDate } from "@/lib/format";
 import {
   canManageOrganization,
   findMemberRole,
   isEditableMemberRole,
   isKnownMemberRole,
 } from "@/pages/organizations/member-permissions";
+
+type Member = OrganizationDetails["members"][number];
+
+const roleTones: Record<string, BadgeTone> = {
+  Owner: "brand",
+  Admin: "warning",
+  Member: "neutral",
+};
 
 export function MembersPage() {
   const { t } = useTranslation();
@@ -47,12 +58,11 @@ export function MembersPage() {
   const memberMutations = useOrganizationMemberMutations(organizationId);
   const invitationMutations = useInvitationMutations(organizationId);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteRole, setInviteRole] = useState<"Admin" | "Member">("Member");
   const [invite, setInvite] = useState<{ email: string; url: string; expiresAt: string } | null>(
     null,
   );
-  const [pendingRemoval, setPendingRemoval] = useState<
-    OrganizationDetails["members"][number] | null
-  >(null);
+  const [pendingRemoval, setPendingRemoval] = useState<Member | null>(null);
   const [pendingRevocation, setPendingRevocation] = useState<PendingInvitation | null>(null);
   const currentRole = findMemberRole(detail.data?.members, auth.user?.id);
   const inviteRoles: Array<"Admin" | "Member"> =
@@ -100,34 +110,62 @@ export function MembersPage() {
     });
   };
 
+  const header = (
+    <>
+      <PageHeader
+        title={t("nav.settings")}
+        description={t("nav.settingsBody")}
+        actions={
+          canInvite ? (
+            <Button
+              onClick={() => {
+                setInviteRole(inviteRoles[inviteRoles.length - 1]);
+                setInviteOpen(true);
+              }}
+            >
+              <UserPlus size={17} aria-hidden="true" /> {t("common.invite")}
+            </Button>
+          ) : undefined
+        }
+      />
+      <SettingsTabs />
+    </>
+  );
+
   if (!organizationId || detail.isPending)
     return (
-      <PageContainer>
-        <LoadingState />
-      </PageContainer>
+      <Page>
+        {header}
+        <Card>
+          <LoadingState />
+        </Card>
+      </Page>
     );
   if (detail.error || !detail.data)
     return (
-      <PageContainer>
-        <ErrorState
-          message={detail.error?.message ?? t("organization.membersUnavailable")}
-          onRetry={() => {
-            void detail.refetch();
-          }}
-        />
-      </PageContainer>
+      <Page>
+        {header}
+        <Card>
+          <ErrorState
+            message={detail.error?.message ?? t("organization.membersUnavailable")}
+            onRetry={() => void detail.refetch()}
+          />
+        </Card>
+      </Page>
     );
 
+  const members = detail.data.members;
   const copy = async () => {
     if (invite) {
       await navigator.clipboard.writeText(invite.url);
       toast.success(t("organization.invitationCopied"));
     }
   };
-  const canChangeRole = (member: (typeof detail.data.members)[number]) =>
+  const canChangeRole = (member: Member) =>
     currentRole === "Owner" && isEditableMemberRole(member.role);
-  const canRemove = (member: (typeof detail.data.members)[number]) =>
-    member.id === auth.user?.id ||
+  const ownerCount = members.filter((member) => member.role === "Owner").length;
+  const canRemove = (member: Member) =>
+    (member.id === auth.user?.id && !(member.role === "Owner" && ownerCount <= 1)) ||
     (currentRole === "Owner" && isEditableMemberRole(member.role)) ||
     (currentRole === "Admin" && member.role === "Member");
   const confirmRemoval = () => {
@@ -146,62 +184,72 @@ export function MembersPage() {
         );
         useOrganizationStore.getState().setSelectedOrganizationId(nextOrganization?.id ?? null);
         toast.success(t("organization.left"));
-        navigate(nextOrganization ? "/dashboard" : "/organizations/new", {
-          replace: true,
-        });
+        navigate(nextOrganization ? "/dashboard" : "/organizations/new", { replace: true });
       },
       onError: (error) =>
         toast.error(error instanceof Error ? error.message : t("organization.removeError")),
     });
   };
+  const removingSelf = pendingRemoval?.id === auth.user?.id;
 
   return (
-    <PageContainer>
-      <PageHeader
-        eyebrow={t("organization.eyebrow")}
-        title={t("organization.membersTitle")}
-        description={t("organization.membersBody")}
-        actions={
-          canInvite ? (
-            <Button onClick={() => setInviteOpen(true)}>
-              <UserPlus size={17} /> {t("common.invite")}
+    <Page>
+      {header}
+      {invite && (
+        <Card className="grid gap-3 border-brand/40 bg-brand-soft/40">
+          <CardHeader
+            className="mb-0"
+            title={t("organization.invitationReady")}
+            description={t("organization.invitationReadyFor", {
+              email: invite.email,
+              date: formatLongDate(invite.expiresAt, locale),
+            })}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Input
+              readOnly
+              value={invite.url}
+              aria-label={t("organization.invitationLink")}
+              className="min-w-0 flex-1 basis-64 font-mono text-[13px]"
+              onFocus={(event) => event.currentTarget.select()}
+            />
+            <Button onClick={() => void copy()}>
+              <Copy size={16} aria-hidden="true" /> {t("common.copy")}
             </Button>
-          ) : undefined
-        }
-      />
-      <section className="surface-card members-card">
-        <div className="members-card__summary">
-          <div>
-            <span className="eyebrow">{t("organization.accessOverview")}</span>
-            <strong>{t("common.peopleCount", { count: detail.data.members.length })}</strong>
-            <p>{t("organization.everyoneAccess")}</p>
           </div>
-          <span className="members-card__badge">
-            <ShieldCheck size={15} /> {t("organization.protected")}
-          </span>
-        </div>
-        <div className="members-list">
-          {detail.data.members.map((member) => {
+          <p className="m-0 text-[13px] text-ink-muted">
+            {t("organization.invitationEmailHint", { email: invite.email })}
+          </p>
+        </Card>
+      )}
+      <Card aria-labelledby="members-title" padding="md" className="sm:p-6">
+        <CardHeader
+          titleId="members-title"
+          title={t("organization.membersTitle")}
+          description={t("common.peopleCount", { count: members.length })}
+        />
+        <ul className="m-0 grid list-none p-0">
+          {members.map((member) => {
             const role = isKnownMemberRole(member.role) ? member.role : null;
-            const roleClass = role ? role.toLowerCase() : "unknown";
+            const isSelf = member.id === auth.user?.id;
             return (
-              <div className="member-row" key={member.id}>
-                <Avatar initials={member.username.slice(0, 2).toUpperCase()} size="md" />
-                <span>
-                  <strong>{member.username}</strong>
-                  <small>{member.email}</small>
+              <li
+                key={member.id}
+                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-line py-3.5 first:border-t-0 md:grid-cols-[auto_minmax(0,1fr)_170px_150px_auto]"
+              >
+                <Avatar name={member.username} size="md" />
+                <span className="grid min-w-0">
+                  <span className="truncate text-sm font-bold">
+                    {member.username}
+                    {isSelf && (
+                      <span className="font-medium text-ink-muted"> · {t("organization.you")}</span>
+                    )}
+                  </span>
+                  <span className="truncate text-[13px] text-ink-muted">{member.email}</span>
                 </span>
-                <span className={`role-badge role-badge--${roleClass}`}>
-                  {role ? t(`roles.${role}`) : t("organization.roleUnavailable")}
-                </span>
-                <small className="member-row__joined">
-                  {member.joinedAt
-                    ? t("common.joined", { date: formatLongDate(member.joinedAt, locale) })
-                    : t("organization.joinedUnavailable")}
-                </small>
-                {(canChangeRole(member) || canRemove(member)) && (
-                  <div className="member-row__actions">
-                    {canChangeRole(member) && (
+                <span className="justify-self-end md:justify-self-start">
+                  {canChangeRole(member) ? (
+                    <div className="w-36">
                       <Select<"Admin" | "Member">
                         ariaLabel={`${t("organization.roleFor")} ${member.username}`}
                         value={isEditableMemberRole(role) ? role : "Member"}
@@ -225,50 +273,48 @@ export function MembersPage() {
                           { value: "Member", label: t("roles.Member") },
                         ]}
                       />
-                    )}
-                    {canRemove(member) && (
+                    </div>
+                  ) : (
+                    <Badge tone={role ? roleTones[role] : "neutral"}>
+                      {role ? t(`roles.${role}`) : t("organization.roleUnavailable")}
+                    </Badge>
+                  )}
+                </span>
+                <span className="col-start-2 text-[13px] text-ink-muted md:col-start-auto">
+                  {member.joinedAt
+                    ? t("common.joined", { date: formatLongDate(member.joinedAt, locale) })
+                    : t("organization.joinedUnavailable")}
+                </span>
+                <span className="col-start-3 row-start-2 justify-self-end md:col-start-auto md:row-start-auto">
+                  {canRemove(member) &&
+                    (isSelf ? (
                       <Button
                         variant="ghost"
+                        size="sm"
                         disabled={memberMutations.remove.isPending}
                         onClick={() => setPendingRemoval(member)}
                       >
-                        {member.id === auth.user?.id
-                          ? t("organization.leave")
-                          : t("organization.remove")}
+                        <LogOut size={15} aria-hidden="true" /> {t("organization.leave")}
                       </Button>
-                    )}
-                  </div>
-                )}
-              </div>
+                    ) : (
+                      <IconButton
+                        label={`${t("organization.remove")} ${member.username}`}
+                        disabled={memberMutations.remove.isPending}
+                        onClick={() => setPendingRemoval(member)}
+                      >
+                        <Trash2 size={17} className="text-danger" aria-hidden="true" />
+                      </IconButton>
+                    ))}
+                </span>
+              </li>
             );
           })}
-        </div>
-      </section>
-      {invite && (
-        <section className="surface-card detail-card">
-          <SectionHeading
-            title={t("organization.invitationReady")}
-            description={t("organization.invitationReadyFor", {
-              email: invite.email,
-              date: formatLongDate(invite.expiresAt, locale),
-            })}
-            action={
-              <Button
-                onClick={() => {
-                  void copy();
-                }}
-              >
-                {t("common.copy")}
-              </Button>
-            }
-          />
-          <input readOnly value={invite.url} aria-label={t("organization.invitationLink")} />
-          <p className="muted">{t("organization.invitationEmailHint", { email: invite.email })}</p>
-        </section>
-      )}
+        </ul>
+      </Card>
       {canInvite && (
-        <section className="surface-card members-card invitations-card">
-          <SectionHeading
+        <Card aria-labelledby="invitations-title" padding="md" className="sm:p-6">
+          <CardHeader
+            titleId="invitations-title"
             title={t("organization.pendingInvitations")}
             description={t("organization.pendingInvitationsBody")}
           />
@@ -277,129 +323,125 @@ export function MembersPage() {
           ) : invitations.error ? (
             <ErrorState
               message={invitations.error.message}
-              onRetry={() => {
-                void invitations.refetch();
-              }}
+              onRetry={() => void invitations.refetch()}
             />
           ) : invitations.data.length ? (
-            <div className="members-list">
+            <ul className="m-0 grid list-none p-0">
               {invitations.data.map((invitation) => (
-                <div className="member-row" key={invitation.id}>
-                  <span className="member-row__icon">
-                    <Mail size={16} />
+                <li
+                  key={invitation.id}
+                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-line py-3.5 first:border-t-0 md:grid-cols-[auto_minmax(0,1fr)_170px_150px_auto]"
+                >
+                  <span className="inline-grid size-11 place-items-center rounded-full bg-surface-muted text-ink-muted">
+                    <Mail size={18} aria-hidden="true" />
                   </span>
-                  <span>
-                    <strong>{invitation.email}</strong>
-                    <small>
+                  <span className="grid min-w-0">
+                    <span className="truncate text-sm font-bold">{invitation.email}</span>
+                    <span className="truncate text-[13px] text-ink-muted">
                       {invitation.invitedBy
                         ? t("organization.invitedBy", { name: invitation.invitedBy })
                         : t("organization.invited")}
-                    </small>
+                    </span>
                   </span>
-                  <span className={`role-badge role-badge--${invitation.role.toLowerCase()}`}>
-                    {t(`roles.${invitation.role}`)}
+                  <span className="justify-self-end md:justify-self-start">
+                    <Badge tone={roleTones[invitation.role]}>{t(`roles.${invitation.role}`)}</Badge>
                   </span>
-                  <small className="member-row__joined">
+                  <span className="col-start-2 text-[13px] text-ink-muted md:col-start-auto">
                     {t("organization.expiresIn", {
                       time: relativeDate(invitation.expiresAt, locale),
                     })}
-                  </small>
-                  {canManageInvitation(invitation) && (
-                    <div className="member-row__actions">
-                      <Button
-                        variant="ghost"
-                        disabled={invitationMutations.renew.isPending}
-                        onClick={() => renewInvitation(invitation)}
-                      >
-                        <RefreshCw size={14} /> {t("organization.newLink")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        disabled={invitationMutations.revoke.isPending}
-                        onClick={() => setPendingRevocation(invitation)}
-                      >
-                        {t("organization.revoke")}
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                  </span>
+                  <span className="col-start-3 row-start-2 flex justify-end gap-1 md:col-start-auto md:row-start-auto">
+                    {canManageInvitation(invitation) && (
+                      <>
+                        <IconButton
+                          label={`${t("organization.newLink")} · ${invitation.email}`}
+                          disabled={invitationMutations.renew.isPending}
+                          onClick={() => renewInvitation(invitation)}
+                        >
+                          <RefreshCw size={17} aria-hidden="true" />
+                        </IconButton>
+                        <IconButton
+                          label={`${t("organization.revoke")} · ${invitation.email}`}
+                          disabled={invitationMutations.revoke.isPending}
+                          onClick={() => setPendingRevocation(invitation)}
+                        >
+                          <Trash2 size={17} className="text-danger" aria-hidden="true" />
+                        </IconButton>
+                      </>
+                    )}
+                  </span>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : (
-            <p className="muted">{t("organization.noPendingInvitations")}</p>
+            <p className="m-0 py-4 text-sm text-ink-muted">
+              {t("organization.noPendingInvitations")}
+            </p>
           )}
-        </section>
+        </Card>
       )}
-      {inviteOpen && canInvite && (
-        <Modal
-          title={t("common.invite")}
-          description={t("organization.invitationDescription")}
-          onClose={() => setInviteOpen(false)}
+      <Dialog
+        open={inviteOpen && canInvite}
+        onOpenChange={setInviteOpen}
+        title={t("common.invite")}
+        description={t("organization.invitationDescription")}
+      >
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const data = new FormData(event.currentTarget);
+            createInvite(String(data.get("email")), inviteRole);
+          }}
         >
-          <form
-            className="modal-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const data = new FormData(event.currentTarget);
-              createInvite(
-                String(data.get("email")),
-                String(data.get("role")) as "Admin" | "Member",
-              );
-            }}
-          >
-            <label>
-              <span>{t("organization.email")}</span>
-              <input name="email" type="email" required />
-            </label>
-            <label>
-              <span>{t("organization.role")}</span>
+          <Field label={t("organization.email")}>
+            {(control) => <Input {...control} name="email" type="email" required autoFocus />}
+          </Field>
+          <Field label={t("organization.role")}>
+            {(control) => (
               <Select
-                name="role"
-                defaultValue={inviteRoles[0]}
+                id={control.id}
+                value={inviteRole}
+                onValueChange={setInviteRole}
                 options={inviteRoles.map((role) => ({ value: role, label: t(`roles.${role}`) }))}
               />
-            </label>
-            <div className="modal-form__actions">
-              <Button type="button" variant="ghost" onClick={() => setInviteOpen(false)}>
-                {t("common.cancel")}
-              </Button>
-              <Button type="submit" disabled={invitationMutations.create.isPending}>
-                {t("common.invite")} <ArrowUpRight size={16} />
-              </Button>
-            </div>
-          </form>
-        </Modal>
-      )}
-      {pendingRevocation && (
-        <ConfirmDialog
-          title={t("organization.revokeConfirm", { email: pendingRevocation.email })}
-          description={t("organization.revokeDescription")}
-          confirmLabel={t("organization.revoke")}
-          pending={invitationMutations.revoke.isPending}
-          onConfirm={confirmRevocation}
-          onClose={() => setPendingRevocation(null)}
-        />
-      )}
-      {pendingRemoval && (
-        <ConfirmDialog
-          title={
-            pendingRemoval.id === auth.user?.id
-              ? t("common.leaveOrganizationConfirm")
-              : t("common.removeMemberConfirm", { name: pendingRemoval.username })
-          }
-          description={
-            pendingRemoval.id === auth.user?.id
-              ? t("organization.leaveDescription")
-              : t("organization.removeDescription")
-          }
-          confirmLabel={
-            pendingRemoval.id === auth.user?.id ? t("organization.leave") : t("organization.remove")
-          }
-          pending={memberMutations.remove.isPending}
-          onConfirm={confirmRemoval}
-          onClose={() => setPendingRemoval(null)}
-        />
-      )}
-    </PageContainer>
+            )}
+          </Field>
+          <DialogActions>
+            <Button variant="ghost" onClick={() => setInviteOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" disabled={invitationMutations.create.isPending}>
+              {t("organization.sendInvite")}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+      <ConfirmDialog
+        open={Boolean(pendingRevocation)}
+        onOpenChange={(next) => !next && setPendingRevocation(null)}
+        title={t("organization.revokeConfirm", { email: pendingRevocation?.email ?? "" })}
+        description={t("organization.revokeDescription")}
+        confirmLabel={t("organization.revoke")}
+        pending={invitationMutations.revoke.isPending}
+        onConfirm={confirmRevocation}
+      />
+      <ConfirmDialog
+        open={Boolean(pendingRemoval)}
+        onOpenChange={(next) => !next && setPendingRemoval(null)}
+        title={
+          removingSelf
+            ? t("common.leaveOrganizationConfirm")
+            : t("common.removeMemberConfirm", { name: pendingRemoval?.username ?? "" })
+        }
+        description={
+          removingSelf ? t("organization.leaveDescription") : t("organization.removeDescription")
+        }
+        confirmLabel={removingSelf ? t("organization.leave") : t("organization.remove")}
+        pending={memberMutations.remove.isPending}
+        onConfirm={confirmRemoval}
+      />
+    </Page>
   );
 }

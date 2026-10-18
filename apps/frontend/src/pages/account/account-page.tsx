@@ -1,22 +1,51 @@
-import { Check, Globe2, Mail, SunMedium } from "lucide-react";
-import { type FormEvent, useRef, useState } from "react";
+import { Camera, Globe2, LogOut, Mail, SunMedium } from "lucide-react";
+import { type FormEvent, type ReactNode, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/auth/auth-provider";
-import { PageContainer } from "@/components/layout/page-container";
-import { Avatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/modal";
-import { PageHeader } from "@/components/ui/page-header";
-import { SectionHeading } from "@/components/ui/section-heading";
-import { Select } from "@/components/ui/select";
+import { Avatar } from "@/components/base/avatar";
+import { Button } from "@/components/base/button";
+import { Card, CardHeader } from "@/components/base/card";
+import { ConfirmDialog } from "@/components/base/dialog";
+import { Field, Input } from "@/components/base/field";
+import { PageHeader } from "@/components/base/page-header";
+import { SegmentedControl } from "@/components/base/segmented-control";
+import { Select } from "@/components/base/select";
+import { Switch } from "@/components/base/switch";
+import { Page } from "@/components/layout/page";
+import { SettingsTabs } from "@/components/navigation/settings-tabs";
 import { useAccountMutations } from "@/hooks/mutations/use-account-mutations";
 import { useNotificationMutations } from "@/hooks/mutations/use-notification-mutations";
 import { useNotificationPreferencesQuery } from "@/hooks/queries/use-notification-queries";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
-import { useTheme } from "@/hooks/use-theme";
+import { type Theme, useTheme } from "@/hooks/use-theme";
 import { acceptedAvatarTypes } from "@/lib/file-validation";
+
+function PreferenceRow({
+  icon,
+  title,
+  description,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line py-4 first:border-t-0">
+      <span className="flex min-w-0 flex-1 basis-56 items-start gap-3">
+        <span className="mt-0.5 text-ink-muted">{icon}</span>
+        <span className="grid gap-0.5">
+          <strong className="text-sm">{title}</strong>
+          <span className="text-[13px] text-ink-muted">{description}</span>
+        </span>
+      </span>
+      {children}
+    </div>
+  );
+}
 
 export function AccountPage() {
   const { t, i18n } = useTranslation();
@@ -58,31 +87,37 @@ export function AccountPage() {
     }
   };
   return (
-    <PageContainer>
-      <PageHeader
-        eyebrow={t("account.eyebrow")}
-        title={t("account.title")}
-        description={t("account.body")}
-      />
-      <div className="account-layout">
-        <section className="surface-card profile-card">
-          <SectionHeading
+    <Page>
+      <PageHeader title={t("nav.settings")} description={t("nav.settingsBody")} />
+      <SettingsTabs />
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+        <Card aria-labelledby="account-profile">
+          <CardHeader
+            titleId="account-profile"
             title={t("account.profile")}
             description={t("account.profileDescription")}
           />
-          <div className="profile-card__identity">
+          <div className="mb-5 flex flex-wrap items-center gap-4">
             <Avatar
-              initials={firstName.slice(0, 1) + lastName.slice(0, 1)}
-              src={user.avatarUrl ?? undefined}
-              size="lg"
+              name={user.fullName}
+              src={user.avatarUrl}
+              size="md"
+              className="size-16 text-lg"
             />
-            <div>
-              <strong>{user.fullName}</strong>
-              <span>{user.email}</span>
+            <span className="grid min-w-0 flex-1 gap-0.5">
+              <strong className="truncate text-base">{user.fullName}</strong>
+              <span className="truncate text-sm text-ink-muted">{user.email}</span>
+            </span>
+            <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+              <Button variant="secondary" size="sm" onClick={() => avatarInput.current?.click()}>
+                <Camera size={15} aria-hidden="true" /> {t("account.changeAvatar")}
+              </Button>
+              {user.hasAvatar && (
+                <Button variant="ghost" size="sm" onClick={() => setRemoveAvatarConfirm(true)}>
+                  {t("account.removeAvatar")}
+                </Button>
+              )}
             </div>
-            <Button variant="secondary" onClick={() => avatarInput.current?.click()}>
-              {t("account.changeAvatar")}
-            </Button>
             <input
               ref={avatarInput}
               hidden
@@ -95,158 +130,152 @@ export function AccountPage() {
               }}
             />
           </div>
-          <form
-            className="form-grid account-form"
-            onSubmit={(event) => {
-              void save(event);
-            }}
-          >
-            <label>
-              <span>{t("auth.firstName")}</span>
-              <input
-                value={firstName}
-                onChange={(event) => setFirstName(event.target.value)}
-                required
-              />
-            </label>
-            <label>
-              <span>{t("auth.lastName")}</span>
-              <input
-                value={lastName}
-                onChange={(event) => setLastName(event.target.value)}
-                required
-              />
-            </label>
-            <Button type="submit" disabled={mutations.profile.isPending}>
-              {t("common.save")} <Check size={16} />
-            </Button>
+          <form className="grid gap-4" onSubmit={(event) => void save(event)}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={t("auth.firstName")}>
+                {(control) => (
+                  <Input
+                    {...control}
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                    autoComplete="given-name"
+                    required
+                  />
+                )}
+              </Field>
+              <Field label={t("auth.lastName")}>
+                {(control) => (
+                  <Input
+                    {...control}
+                    value={lastName}
+                    onChange={(event) => setLastName(event.target.value)}
+                    autoComplete="family-name"
+                    required
+                  />
+                )}
+              </Field>
+            </div>
+            <div>
+              <Button type="submit" disabled={mutations.profile.isPending}>
+                {t("common.save")}
+              </Button>
+            </div>
           </form>
-          {user.hasAvatar ? (
-            <Button variant="ghost" onClick={() => setRemoveAvatarConfirm(true)}>
-              {t("account.removeAvatar")}
-            </Button>
-          ) : null}
-        </section>
-        <section className="surface-card preferences-card">
-          <SectionHeading title={t("account.appearance")} description={t("account.reset")} />
-          <div className="preference-row">
-            <span>
-              <Globe2 size={17} />
-              <span>
-                <strong>{t("account.language")}</strong>
-                <small>{t("account.languageDescription")}</small>
-              </span>
-            </span>
-            <Select<string>
-              ariaLabel={t("account.language")}
-              value={i18n.language}
-              onValueChange={(value) => {
-                void i18n.changeLanguage(value);
-                localStorage.setItem("bitfinance-locale", value);
-              }}
-              options={[
-                { value: "en-US", label: t("common.english") },
-                { value: "pt-BR", label: t("common.portuguese") },
-              ]}
+        </Card>
+        <div className="grid gap-5">
+          <Card aria-labelledby="account-preferences">
+            <CardHeader
+              titleId="account-preferences"
+              title={t("account.appearance")}
+              description={t("account.reset")}
             />
-          </div>
-          <div className="preference-row">
-            <span>
-              <SunMedium size={17} />
-              <span>
-                <strong>{t("account.theme")}</strong>
-                <small>{t("account.themeDescription")}</small>
-              </span>
-            </span>
-            <span className="theme-pills">
-              <button
-                type="button"
-                className={`theme-pill ${theme === "light" ? "theme-pill--active" : ""}`}
-                onClick={() => setTheme("light")}
-              >
-                {t("common.light")}
-              </button>
-              <button
-                type="button"
-                className={`theme-pill ${theme === "dark" ? "theme-pill--active" : ""}`}
-                onClick={() => setTheme("dark")}
-              >
-                {t("common.dark")}
-              </button>
-            </span>
-          </div>
-          <div className="preference-row">
-            <span>
-              <Mail size={17} />
-              <span>
-                <strong>{t("account.billReminderEmails")}</strong>
-                <small>
-                  {notificationPreferences.data?.emailAvailable
-                    ? t("account.billReminderEmailsDescription")
-                    : t("account.billReminderEmailsUpgrade")}
-                </small>
-              </span>
-            </span>
-            <label className="switch">
-              <input
-                type="checkbox"
+            <PreferenceRow
+              icon={<Globe2 size={18} aria-hidden="true" />}
+              title={t("account.language")}
+              description={t("account.languageDescription")}
+            >
+              <div className="w-44">
+                <Select<string>
+                  ariaLabel={t("account.language")}
+                  value={i18n.language}
+                  onValueChange={(value) => {
+                    void i18n.changeLanguage(value);
+                    localStorage.setItem("bitfinance-locale", value);
+                  }}
+                  options={[
+                    { value: "pt-BR", label: t("common.portuguese") },
+                    { value: "en-US", label: t("common.english") },
+                  ]}
+                />
+              </div>
+            </PreferenceRow>
+            <PreferenceRow
+              icon={<SunMedium size={18} aria-hidden="true" />}
+              title={t("account.theme")}
+              description={t("account.themeDescription")}
+            >
+              <SegmentedControl<Theme>
+                label={t("account.theme")}
+                value={theme}
+                onChange={setTheme}
+                options={[
+                  { value: "light", label: t("common.light") },
+                  { value: "dark", label: t("common.dark") },
+                ]}
+              />
+            </PreferenceRow>
+            <PreferenceRow
+              icon={<Mail size={18} aria-hidden="true" />}
+              title={t("account.billReminderEmails")}
+              description={
+                notificationPreferences.data?.emailAvailable
+                  ? t("account.billReminderEmailsDescription")
+                  : t("account.billReminderEmailsUpgrade")
+              }
+            >
+              <Switch
+                ariaLabel={t("account.billReminderEmails")}
                 checked={notificationPreferences.data?.emailBillRemindersEnabled ?? false}
                 disabled={
                   !notificationPreferences.data?.emailAvailable ||
                   notificationMutations.updatePreferences.isPending
                 }
-                onChange={(event) =>
-                  notificationMutations.updatePreferences.mutate(event.target.checked, {
+                onCheckedChange={(checked) =>
+                  notificationMutations.updatePreferences.mutate(checked, {
                     onError: (error) => toast.error(error.message),
                   })
                 }
               />
-              <span />
-            </label>
-          </div>
-          <div className="account-signout">
-            <Button
-              variant="danger"
-              onClick={() => {
-                void auth.signOut().then(() => navigate("/auth/sign-in", { replace: true }));
-              }}
-            >
-              {t("account.signOut")}
-            </Button>
-            <Button variant="ghost" onClick={() => setSignOutAllConfirm(true)}>
-              {t("account.signOutAll")}
-            </Button>
-          </div>
-        </section>
+            </PreferenceRow>
+          </Card>
+          <Card aria-labelledby="account-sessions">
+            <CardHeader
+              titleId="account-sessions"
+              title={t("account.sessions")}
+              description={t("account.sessionsBody")}
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  void auth.signOut().then(() => navigate("/auth/sign-in", { replace: true }));
+                }}
+              >
+                <LogOut size={16} aria-hidden="true" /> {t("account.signOut")}
+              </Button>
+              <Button variant="ghost" onClick={() => setSignOutAllConfirm(true)}>
+                {t("account.signOutAll")}
+              </Button>
+            </div>
+          </Card>
+        </div>
       </div>
-      {removeAvatarConfirm && (
-        <ConfirmDialog
-          title={t("common.removeAvatarConfirm")}
-          confirmLabel={t("account.removeAvatar")}
-          pending={mutations.deleteAvatar.isPending}
-          onConfirm={() =>
-            mutations.deleteAvatar.mutate(undefined, {
-              onSuccess: () => {
-                setRemoveAvatarConfirm(false);
-                void auth.refreshUser();
-                toast.success(t("account.avatarRemoved"));
-              },
-              onError: (error) => toast.error(error.message),
-            })
-          }
-          onClose={() => setRemoveAvatarConfirm(false)}
-        />
-      )}
-      {signOutAllConfirm && (
-        <ConfirmDialog
-          title={t("common.signOutAllConfirm")}
-          confirmLabel={t("account.signOutAll")}
-          onConfirm={() => {
-            void auth.signOut(true).then(() => navigate("/auth/sign-in", { replace: true }));
-          }}
-          onClose={() => setSignOutAllConfirm(false)}
-        />
-      )}
-    </PageContainer>
+      <ConfirmDialog
+        open={removeAvatarConfirm}
+        onOpenChange={setRemoveAvatarConfirm}
+        title={t("common.removeAvatarConfirm")}
+        confirmLabel={t("account.removeAvatar")}
+        pending={mutations.deleteAvatar.isPending}
+        onConfirm={() =>
+          mutations.deleteAvatar.mutate(undefined, {
+            onSuccess: () => {
+              setRemoveAvatarConfirm(false);
+              void auth.refreshUser();
+              toast.success(t("account.avatarRemoved"));
+            },
+            onError: (error) => toast.error(error.message),
+          })
+        }
+      />
+      <ConfirmDialog
+        open={signOutAllConfirm}
+        onOpenChange={setSignOutAllConfirm}
+        title={t("common.signOutAllConfirm")}
+        confirmLabel={t("account.signOutAll")}
+        onConfirm={() => {
+          void auth.signOut(true).then(() => navigate("/auth/sign-in", { replace: true }));
+        }}
+      />
+    </Page>
   );
 }
