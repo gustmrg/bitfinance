@@ -26,6 +26,7 @@ public class IdentityController : ControllerBase
     private readonly ICookieService _cookieService;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IAttachmentService _attachmentService;
+    private readonly IGoogleAuthService _googleAuthService;
     private readonly ILogger<IdentityController> _logger;
 
     private const int AccessTokenExpirationMinutes = 60;
@@ -38,7 +39,8 @@ public class IdentityController : ControllerBase
         ITokenService tokenService,
         ICookieService cookieService,
         IRefreshTokenRepository refreshTokenRepository,
-        IAttachmentService attachmentService)
+        IAttachmentService attachmentService,
+        IGoogleAuthService googleAuthService)
     {
         _usersService = usersService;
         _userManager = userManager;
@@ -48,6 +50,7 @@ public class IdentityController : ControllerBase
         _cookieService = cookieService;
         _refreshTokenRepository = refreshTokenRepository;
         _attachmentService = attachmentService;
+        _googleAuthService = googleAuthService;
     }
 
     [HttpPost("register")]
@@ -253,16 +256,7 @@ public class IdentityController : ControllerBase
 
         if (user == null) return BadRequest("Invalid user");
 
-        List<OrganizationViewModel> organizations = [];
-        organizations.AddRange(user.OrganizationMemberships.Select(m => new OrganizationViewModel(m.Organization.Id, m.Organization.Name)));
-
-        return Ok(new UserViewModel(
-            user.Id,
-            user.FullName,
-            user.Email ?? string.Empty,
-            ReplaceUserName(user.UserName),
-            organizations,
-            user.Avatar is not null));
+        return Ok(await BuildUserViewModelAsync(user));
     }
 
     [Authorize]
@@ -284,16 +278,7 @@ public class IdentityController : ControllerBase
 
         await _usersService.UpdateUserAsync(user);
 
-        List<OrganizationViewModel> organizations = [];
-        organizations.AddRange(user.OrganizationMemberships.Select(m => new OrganizationViewModel(m.Organization.Id, m.Organization.Name)));
-
-        return Ok(new UserViewModel(
-            user.Id,
-            user.FullName,
-            user.Email ?? string.Empty,
-            ReplaceUserName(user.UserName),
-            organizations,
-            user.Avatar is not null));
+        return Ok(await BuildUserViewModelAsync(user));
     }
 
     [Authorize]
@@ -372,6 +357,22 @@ public class IdentityController : ControllerBase
         return await _attachmentService.DeleteUserAvatarAsync(userId)
             ? NoContent()
             : NotFound();
+    }
+
+    private async Task<UserViewModel> BuildUserViewModelAsync(User user)
+    {
+        List<OrganizationViewModel> organizations = [];
+        organizations.AddRange(user.OrganizationMemberships.Select(m => new OrganizationViewModel(m.Organization.Id, m.Organization.Name)));
+
+        return new UserViewModel(
+            user.Id,
+            user.FullName,
+            user.Email ?? string.Empty,
+            ReplaceUserName(user.UserName),
+            organizations,
+            user.Avatar is not null,
+            await _userManager.HasPasswordAsync(user),
+            await _googleAuthService.HasGoogleLoginAsync(user));
     }
 
     private static string ReplaceUserName(string? email)
