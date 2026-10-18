@@ -17,6 +17,10 @@ export function useAccountMutations() {
       mutationFn: accountService.deleteAvatarAsync,
       onSuccess: invalidate,
     }),
+    unlinkGoogle: useMutation({
+      mutationFn: accountService.unlinkGoogleAsync,
+      onSuccess: invalidate,
+    }),
     logoutAll: useMutation({ mutationFn: authService.logoutAllAsync }),
   };
 }
