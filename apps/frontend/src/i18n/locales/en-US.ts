@@ -165,6 +165,7 @@ export const enUS = {
       welcomeBack: "Good to have you back",
       accountCreated: "Account created",
       unableContinue: "Unable to continue.",
+      protectedSession: "Checking your session",
     },
     join: {
       title: "You have an invitation",

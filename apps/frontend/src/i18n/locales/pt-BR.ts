@@ -166,6 +166,7 @@ export const ptBR = {
       welcomeBack: "Que bom ter você de volta",
       accountCreated: "Conta criada",
       unableContinue: "Não foi possível continuar.",
+      protectedSession: "Verificando sua sessão",
     },
     join: {
       title: "Você recebeu um convite",
