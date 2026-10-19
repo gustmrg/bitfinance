@@ -30,6 +30,14 @@ export function formatLongDate(value: string, locale = "en-US") {
   );
 }
 
+export function formatMediumDate(value: string, locale = "en-US") {
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(parseDate(value));
+}
+
 export function relativeDate(value: string, locale = "en-US") {
   return formatDistanceToNow(parseDate(value), {
     addSuffix: true,

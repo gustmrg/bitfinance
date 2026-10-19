@@ -13,7 +13,7 @@ export function SettingsTabs() {
   return (
     <nav
       aria-label={t("nav.settings")}
-      className="flex max-w-full overflow-x-auto border-b border-line"
+      className="flex max-w-full overflow-x-auto shadow-[inset_0_-1px_0_var(--color-line)]"
     >
       {tabs.map((tab) => (
         <NavLink
@@ -21,7 +21,7 @@ export function SettingsTabs() {
           to={tab.to}
           className={({ isActive }) =>
             cn(
-              "-mb-px inline-flex h-11 shrink-0 items-center border-b-2 px-4 text-sm font-bold transition-colors",
+              "inline-flex h-11 shrink-0 items-center border-b-2 px-4 text-sm font-bold transition-colors",
               "focus-visible:outline-2 focus-visible:outline-brand",
               isActive
                 ? "border-brand text-brand-ink"

@@ -1,3 +1,4 @@
+import { Menu } from "@base-ui/react/menu";
 import {
   BarChart3,
   Building2,
@@ -8,6 +9,7 @@ import {
   Moon,
   MoreHorizontal,
   ReceiptText,
+  UserRound,
   Repeat,
   SunMedium,
   UsersRound,
@@ -107,21 +109,22 @@ function OrganizationSwitcher({ compact = false }: { compact?: boolean }) {
   const activeId = selectedId ?? items[0]?.id ?? null;
   const activePlan = items.find((item) => item.id === activeId)?.planTier;
   return (
-    <div className="grid min-w-0 gap-2">
-      <Select
-        ariaLabel={t("common.selectOrganization")}
-        value={activeId}
-        onValueChange={(value) => setSelectedId(value)}
-        disabled={!items.length}
-        options={items.map((item) => ({ value: item.id, label: item.name }))}
-        className={cn("font-semibold", compact ? "h-10 border-transparent bg-surface-muted" : "")}
-      />
-      {!compact && activePlan && (
-        <Badge tone={activePlan === "Free" ? "neutral" : "brand"} className="justify-self-start">
-          {t(`organization.planTiers.${activePlan.toLowerCase()}`)}
-        </Badge>
-      )}
-    </div>
+    <Select
+      ariaLabel={t("common.selectOrganization")}
+      value={activeId}
+      onValueChange={(value) => setSelectedId(value)}
+      disabled={!items.length}
+      options={items.map((item) => ({ value: item.id, label: item.name }))}
+      className={cn("font-semibold", compact ? "h-10 border-transparent bg-surface-muted" : "")}
+      suffix={
+        !compact &&
+        activePlan && (
+          <Badge tone={activePlan === "Free" ? "neutral" : "brand"} className="shrink-0">
+            {t(`organization.planTiers.${activePlan.toLowerCase()}`)}
+          </Badge>
+        )
+      }
+    />
   );
 }
 
@@ -164,26 +167,38 @@ function SidebarUser() {
   const navigate = useNavigate();
   if (!user) return null;
   return (
-    <div className="flex items-center gap-1 border-t border-line p-3">
-      <Link
-        to="/settings/account"
-        aria-label={t("nav.account")}
-        className="flex min-w-0 flex-1 items-center gap-3 rounded-control p-2 hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-brand"
-      >
-        <Avatar name={user.fullName} src={user.avatarUrl} />
-        <span className="grid min-w-0">
-          <span className="truncate text-sm font-bold text-ink">{user.fullName}</span>
-          <span className="truncate text-xs text-ink-muted">{user.email}</span>
-        </span>
-      </Link>
-      <IconButton
-        label={t("account.signOut")}
-        onClick={() => {
-          void signOut().finally(() => navigate("/auth/sign-in"));
-        }}
-      >
-        <LogOut size={18} aria-hidden="true" />
-      </IconButton>
+    <div className="border-t border-line p-3">
+      <Menu.Root>
+        <Menu.Trigger className="flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-control p-2 text-left hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-brand data-popup-open:bg-surface-muted">
+          <Avatar name={user.fullName} src={user.avatarUrl} />
+          <span className="grid min-w-0">
+            <span className="truncate text-sm font-bold text-ink">{user.fullName}</span>
+            <span className="truncate text-xs text-ink-muted">{user.email}</span>
+          </span>
+        </Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Positioner side="top" align="start" sideOffset={6} className="z-50">
+            <Menu.Popup className="w-(--anchor-width) rounded-control border border-line bg-surface p-1 font-sans shadow-xl outline-none">
+              <Menu.Item
+                onClick={() => navigate("/settings/account")}
+                className="flex h-10 cursor-pointer items-center gap-2.5 rounded-[8px] px-3 text-sm font-semibold text-ink outline-none data-highlighted:bg-surface-muted"
+              >
+                <UserRound size={16} aria-hidden="true" />
+                {t("nav.account")}
+              </Menu.Item>
+              <Menu.Item
+                onClick={() => {
+                  void signOut().finally(() => navigate("/auth/sign-in"));
+                }}
+                className="flex h-10 cursor-pointer items-center gap-2.5 rounded-[8px] px-3 text-sm font-semibold text-danger outline-none data-highlighted:bg-surface-muted"
+              >
+                <LogOut size={16} aria-hidden="true" />
+                {t("account.signOut")}
+              </Menu.Item>
+            </Menu.Popup>
+          </Menu.Positioner>
+        </Menu.Portal>
+      </Menu.Root>
     </div>
   );
 }
