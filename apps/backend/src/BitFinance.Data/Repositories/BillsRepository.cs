@@ -188,6 +188,28 @@ public class BillsRepository : IBillsRepository
             : (summary.TotalAmount, summary.Count);
     }
 
+    public async Task<decimal> GetPaidBillsTotalAsync(
+        Guid organizationId,
+        DateOnly? startDate = null,
+        DateOnly? endDate = null)
+    {
+        var query = _dbContext.Set<Bill>()
+            .AsNoTracking()
+            .Where(x => x.OrganizationId == organizationId && x.Status == BillStatus.Paid);
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(x => x.DueDate >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(x => x.DueDate <= endDate.Value);
+        }
+
+        return await query.SumAsync(x => x.AmountPaid ?? x.AmountDue);
+    }
+
     public async Task UpdateRangeAsync(List<Bill> bills)
     {
         if (bills.Count == 0)

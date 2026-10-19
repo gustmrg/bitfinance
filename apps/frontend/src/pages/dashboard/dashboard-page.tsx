@@ -46,14 +46,21 @@ function greetingKey(hour: number) {
   return "dashboard.greetingEvening";
 }
 
-function topCategories(expenses: DashboardExpense[]) {
+type SpendingSegment = { key: string; label: string | null; total: number };
+
+function spendingSegments(expenses: DashboardExpense[], billsTotal: number) {
+  const bills: SpendingSegment[] =
+    billsTotal > 0 ? [{ key: "bills", label: "dashboard.billsSegment", total: billsTotal }] : [];
   const totals = new Map<string, number>();
   for (const expense of expenses)
     totals.set(expense.category, (totals.get(expense.category) ?? 0) + expense.amount);
   const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]);
-  const top = sorted.slice(0, 2).map(([category, total]) => ({ category, total }));
-  const rest = sorted.slice(2).reduce((sum, [, total]) => sum + total, 0);
-  return rest > 0 ? [...top, { category: null, total: rest }] : top;
+  const shown = 2 - bills.length;
+  const top = sorted
+    .slice(0, shown)
+    .map(([category, total]) => ({ key: category, label: categoryLabel(category), total }));
+  const rest = sorted.slice(shown).reduce((sum, [, total]) => sum + total, 0);
+  return [...bills, ...top, ...(rest > 0 ? [{ key: "other", label: null, total: rest }] : [])];
 }
 
 function BillRow({ bill }: { bill: DashboardBill }) {
@@ -158,7 +165,7 @@ export function DashboardPage() {
   const spent = summary?.spentThisMonth ?? 0;
   const budget = summary?.monthlyBudget ?? null;
   const overBudget = budget !== null && spent > budget ? spent - budget : 0;
-  const categories = topCategories(expenses);
+  const categories = spendingSegments(expenses, summary?.spentOnBills ?? 0);
   const overdueCount = bills.filter(
     (bill) => dueState(bill.dueDate, bill.status).kind === "overdue",
   ).length;
@@ -241,9 +248,9 @@ export function DashboardPage() {
             />
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-on-brand/85">
               {categories.map((item, index) => (
-                <span key={item.category ?? "other"} className="inline-flex items-center gap-1.5">
+                <span key={item.key} className="inline-flex items-center gap-1.5">
                   <span className={`size-2.5 rounded-[3px] ${legendSwatches[index]}`} />
-                  {item.category ? t(categoryLabel(item.category)) : t("dashboard.otherCategories")}
+                  {t(item.label ?? "dashboard.otherCategories")}
                   <Amount value={item.total} className="font-semibold text-on-brand" />
                 </span>
               ))}
