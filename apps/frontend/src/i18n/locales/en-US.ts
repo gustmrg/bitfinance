@@ -181,6 +181,7 @@ export const enUS = {
       overBudget: "Over budget by {{amount}}",
       setBudget: "Set a budget",
       otherCategories: "Other",
+      billsSegment: "Bills",
       toPay: "Due in the period",
       billsCount_one: "{{count}} bill",
       billsCount_other: "{{count}} bills",

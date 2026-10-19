@@ -6,6 +6,7 @@ namespace BitFinance.API.Models.Response;
 public record DashboardSummaryResponse(
     decimal? MonthlyBudget,
     decimal SpentThisMonth,
+    decimal SpentOnBills,
     decimal? RemainingBudget,
     int? SpentPercentage,
     decimal UpcomingBillsAmount,

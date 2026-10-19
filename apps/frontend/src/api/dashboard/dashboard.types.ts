@@ -1,6 +1,7 @@
 export interface DashboardSummary {
   monthlyBudget: number | null;
   spentThisMonth: number;
+  spentOnBills: number;
   remainingBudget: number | null;
   spentPercentage: number | null;
   upcomingBillsAmount: number;

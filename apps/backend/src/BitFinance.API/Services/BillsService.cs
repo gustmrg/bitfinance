@@ -25,4 +25,9 @@ public class BillsService : IBillsService
     {
         return await _billsRepository.GetUpcomingBillsSummaryAsync(organizationId, from, to);
     }
+
+    public async Task<decimal> GetPaidBillsTotalAsync(Guid organizationId, DateOnly? from = null, DateOnly? to = null)
+    {
+        return await _billsRepository.GetPaidBillsTotalAsync(organizationId, from, to);
+    }
 }

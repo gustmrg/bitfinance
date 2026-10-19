@@ -182,6 +182,7 @@ export const ptBR = {
       overBudget: "Acima do orçamento em {{amount}}",
       setBudget: "Definir orçamento",
       otherCategories: "Outras",
+      billsSegment: "Contas",
       toPay: "A pagar no período",
       billsCount_one: "{{count}} conta",
       billsCount_other: "{{count}} contas",

@@ -14,6 +14,7 @@ public interface IBillsRepository : IRepository<Bill, Guid>
     Task<List<Bill>> GetUpcomingBills(Guid organizationId, DateOnly? startDate = null, DateOnly? endDate = null);
     Task<(decimal TotalAmount, int Count)> GetUpcomingBillsSummaryAsync(Guid organizationId, DateOnly? startDate = null,
         DateOnly? endDate = null);
+    Task<decimal> GetPaidBillsTotalAsync(Guid organizationId, DateOnly? startDate = null, DateOnly? endDate = null);
     Task UpdateAsync(Bill bill, params Expression<Func<Bill, object>>[] properties);
     Task UpdateRangeAsync(List<Bill> bills);
     Task RemoveSeriesBillsFromCacheAsync(Guid seriesId);

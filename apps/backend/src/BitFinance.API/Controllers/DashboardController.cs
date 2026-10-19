@@ -54,11 +54,12 @@ public class DashboardController : ControllerBase
 
         var (effectiveFrom, effectiveTo) = GetEffectiveDateRange(organization, from, to);
         var monthlyBudget = organization.Budget?.Amount;
-        var spentThisMonth = await _expensesService.GetTotalAmountAsync(organizationId, effectiveFrom, effectiveTo);
-        var upcomingBillsSummary = await _billsService.GetUpcomingBillsSummaryAsync(
-            organizationId,
-            GetLocalDate(organization, effectiveFrom),
-            GetLocalDate(organization, effectiveTo));
+        var localFrom = GetLocalDate(organization, effectiveFrom);
+        var localTo = GetLocalDate(organization, effectiveTo);
+        var spentOnExpenses = await _expensesService.GetTotalAmountAsync(organizationId, effectiveFrom, effectiveTo);
+        var spentOnBills = await _billsService.GetPaidBillsTotalAsync(organizationId, localFrom, localTo);
+        var spentThisMonth = spentOnExpenses + spentOnBills;
+        var upcomingBillsSummary = await _billsService.GetUpcomingBillsSummaryAsync(organizationId, localFrom, localTo);
         var remainingBudget = monthlyBudget.HasValue
             ? Math.Max(monthlyBudget.Value - spentThisMonth, 0M)
             : (decimal?)null;
@@ -71,6 +72,7 @@ public class DashboardController : ControllerBase
         var response = new DashboardSummaryResponse(
             monthlyBudget,
             spentThisMonth,
+            spentOnBills,
             remainingBudget,
             spentPercentage,
             upcomingBillsSummary.TotalAmount,

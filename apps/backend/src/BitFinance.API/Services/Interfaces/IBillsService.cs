@@ -22,4 +22,13 @@ public interface IBillsService
     /// <param name="to">Optional end date for due date filtering.</param>
     /// <returns>The total amount and count of upcoming bills.</returns>
     Task<(decimal TotalAmount, int Count)> GetUpcomingBillsSummaryAsync(Guid organizationId, DateOnly? from = null, DateOnly? to = null);
+
+    /// <summary>
+    /// Retrieves the total paid on bills due within a period.
+    /// </summary>
+    /// <param name="organizationId">The ID of the organization.</param>
+    /// <param name="from">Optional start date for due date filtering.</param>
+    /// <param name="to">Optional end date for due date filtering.</param>
+    /// <returns>The sum of the paid amounts, falling back to the amount due when none was recorded.</returns>
+    Task<decimal> GetPaidBillsTotalAsync(Guid organizationId, DateOnly? from = null, DateOnly? to = null);
 }
