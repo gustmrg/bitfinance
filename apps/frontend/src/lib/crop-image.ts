@@ -16,7 +16,7 @@ export async function getCroppedAvatar(src: string, area: Area, size = avatarOut
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
-  const context = canvas.getContext("2d");
+  const context = canvas.getContext("2d", { willReadFrequently: true });
   if (!context) throw new Error("Canvas is not supported");
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, size, size);
