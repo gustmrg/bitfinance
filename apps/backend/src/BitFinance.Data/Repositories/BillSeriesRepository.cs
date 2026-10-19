@@ -52,6 +52,9 @@ public class BillSeriesRepository : IBillSeriesRepository
                 .OrderBy(b => b.DueDate)
                 .Take(1))
             .OrderByDescending(s => s.IsActive)
+            .ThenBy(s => s.Bills
+                .Where(b => b.Status != BillStatus.Paid && b.Status != BillStatus.Cancelled)
+                .Min(b => (DateOnly?)b.DueDate) ?? DateOnly.MaxValue)
             .ThenBy(s => s.Description)
             .ToListAsync();
     }

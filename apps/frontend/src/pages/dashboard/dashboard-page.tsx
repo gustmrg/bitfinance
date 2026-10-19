@@ -35,6 +35,8 @@ function shortDate(value: string, locale: string) {
   );
 }
 
+const summaryGrid = "lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]";
+
 const legendSwatches = ["bg-white", "bg-white/55", "bg-white/30"] as const;
 const meterColors: MeterSegment["color"][] = ["inverse", "inverse-muted", "inverse-soft"];
 
@@ -203,8 +205,8 @@ export function DashboardPage() {
           />
         </Card>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-3">
-          <Card tone="brand" className="grid gap-4 lg:col-span-2">
+        <div className={`grid gap-5 ${summaryGrid}`}>
+          <Card tone="brand" className="grid gap-4">
             <div className="flex flex-wrap justify-between gap-2 text-sm font-semibold text-on-brand/85">
               <span>{t("dashboard.spentInPeriod")}</span>
               {budget !== null && (
@@ -291,7 +293,7 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+      <div className={`grid gap-5 ${summaryGrid}`}>
         <Card aria-labelledby="dashboard-bills" padding="md">
           <CardHeader
             titleId="dashboard-bills"

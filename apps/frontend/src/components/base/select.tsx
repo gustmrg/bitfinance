@@ -1,5 +1,6 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { Check, ChevronDown } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 export type SelectOption<T extends string = string> = { value: T; label: string };
@@ -16,6 +17,7 @@ export function Select<T extends string>({
   ariaLabel,
   placeholder,
   className,
+  suffix,
 }: {
   options: SelectOption<T>[];
   value?: T | null;
@@ -28,6 +30,7 @@ export function Select<T extends string>({
   ariaLabel?: string;
   placeholder?: string;
   className?: string;
+  suffix?: ReactNode;
 }) {
   return (
     <BaseSelect.Root<T>
@@ -51,7 +54,8 @@ export function Select<T extends string>({
           className,
         )}
       >
-        <BaseSelect.Value placeholder={placeholder ?? ""} className="truncate" />
+        <BaseSelect.Value placeholder={placeholder ?? ""} className="min-w-0 flex-1 truncate" />
+        {suffix}
         <BaseSelect.Icon className="text-ink-muted">
           <ChevronDown size={16} aria-hidden="true" />
         </BaseSelect.Icon>

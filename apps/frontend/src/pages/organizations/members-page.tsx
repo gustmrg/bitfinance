@@ -32,7 +32,7 @@ import {
 } from "@/hooks/queries/use-organization-queries";
 import { useLocale } from "@/hooks/use-locale";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
-import { formatLongDate, relativeDate } from "@/lib/format";
+import { formatLongDate, formatMediumDate, relativeDate } from "@/lib/format";
 import {
   canManageOrganization,
   findMemberRole,
@@ -235,7 +235,7 @@ export function MembersPage() {
             return (
               <li
                 key={member.id}
-                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-line py-3.5 first:border-t-0 md:grid-cols-[auto_minmax(0,1fr)_170px_150px_auto]"
+                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-line py-3.5 first:border-t-0 md:grid-cols-[auto_minmax(0,1fr)_184px_200px_auto]"
               >
                 <Avatar name={member.username} size="md" />
                 <span className="grid min-w-0">
@@ -249,7 +249,7 @@ export function MembersPage() {
                 </span>
                 <span className="justify-self-end md:justify-self-start">
                   {canChangeRole(member) ? (
-                    <div className="w-36">
+                    <div className="w-46">
                       <Select<"Admin" | "Member">
                         ariaLabel={`${t("organization.roleFor")} ${member.username}`}
                         value={isEditableMemberRole(role) ? role : "Member"}
@@ -280,9 +280,9 @@ export function MembersPage() {
                     </Badge>
                   )}
                 </span>
-                <span className="col-start-2 text-[13px] text-ink-muted md:col-start-auto">
+                <span className="col-start-2 whitespace-nowrap text-[13px] text-ink-muted md:col-start-auto">
                   {member.joinedAt
-                    ? t("common.joined", { date: formatLongDate(member.joinedAt, locale) })
+                    ? t("common.joined", { date: formatMediumDate(member.joinedAt, locale) })
                     : t("organization.joinedUnavailable")}
                 </span>
                 <span className="col-start-3 row-start-2 justify-self-end md:col-start-auto md:row-start-auto">
@@ -330,7 +330,7 @@ export function MembersPage() {
               {invitations.data.map((invitation) => (
                 <li
                   key={invitation.id}
-                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-line py-3.5 first:border-t-0 md:grid-cols-[auto_minmax(0,1fr)_170px_150px_auto]"
+                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-line py-3.5 first:border-t-0 md:grid-cols-[auto_minmax(0,1fr)_184px_200px_auto]"
                 >
                   <span className="inline-grid size-11 place-items-center rounded-full bg-surface-muted text-ink-muted">
                     <Mail size={18} aria-hidden="true" />
