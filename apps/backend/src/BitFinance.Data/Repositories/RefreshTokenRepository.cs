@@ -70,6 +70,31 @@ public class RefreshTokenRepository : IRefreshTokenRepository
                 .SetProperty(rt => rt.RevokedReason, reason));
     }
 
+    public async Task<bool> TryRotateAsync(Guid currentTokenId, RefreshToken successor)
+    {
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        // Insert first to satisfy the self-referencing foreign key. A failed
+        // compare-and-swap rolls this insert back with the entire transaction.
+        await _dbContext.RefreshTokens.AddAsync(successor);
+        await _dbContext.SaveChangesAsync();
+        var now = DateTime.UtcNow;
+        var updated = await _dbContext.RefreshTokens
+            .Where(token => token.Id == currentTokenId && !token.IsRevoked && token.ExpiresAt > now)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(token => token.IsRevoked, true)
+                .SetProperty(token => token.RevokedAt, now)
+                .SetProperty(token => token.RevokedReason, "Rotated")
+                .SetProperty(token => token.ReplacedByTokenId, successor.Id));
+        if (updated != 1)
+        {
+            await transaction.RollbackAsync();
+            _dbContext.Entry(successor).State = EntityState.Detached;
+            return false;
+        }
+        await transaction.CommitAsync();
+        return true;
+    }
+
     public async Task<int> CleanupExpiredTokensAsync(DateTime olderThan)
     {
         return await _dbContext.RefreshTokens

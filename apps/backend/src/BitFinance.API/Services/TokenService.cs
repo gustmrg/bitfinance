@@ -120,14 +120,17 @@ public class TokenService : ITokenService
             ipAddress,
             userAgent);
 
-        await _refreshTokenRepository.CreateAsync(newRefreshTokenEntity);
+        if (!await _refreshTokenRepository.TryRotateAsync(currentToken.Id, newRefreshTokenEntity))
+        {
+            await _refreshTokenRepository.RevokeTokenFamilyAsync(
+                currentToken.TokenFamilyId, "Concurrent refresh token reuse detected");
+            return null;
+        }
 
         currentToken.IsRevoked = true;
         currentToken.RevokedAt = DateTime.UtcNow;
         currentToken.RevokedReason = "Rotated";
         currentToken.ReplacedByTokenId = newRefreshTokenEntity.Id;
-
-        await _refreshTokenRepository.UpdateAsync(currentToken);
 
         return (accessToken, rawRefreshToken, newRefreshTokenEntity);
     }

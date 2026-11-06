@@ -119,6 +119,9 @@ export const ptBR = {
       previewLater: "Em 10 dias",
     },
     auth: {
+      sessionExpired: "Sua sessão expirou ou foi revogada. Entre novamente para continuar.",
+      sessionUnavailable:
+        "Não foi possível restaurar a sessão. Verifique a conexão e tente novamente.",
       signInTitle: "Entrar no BitFinance",
       signInBody: "Use o e-mail e a senha da sua conta.",
       signUpTitle: "Criar sua conta",

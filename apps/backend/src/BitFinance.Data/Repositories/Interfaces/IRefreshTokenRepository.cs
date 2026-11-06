@@ -14,5 +14,8 @@ public interface IRefreshTokenRepository : IRepository<RefreshToken, Guid>
 
     Task RevokeAllUserTokensAsync(string userId, string reason);
 
+    /// <summary>Atomically persists a successor and revokes the still-active predecessor.</summary>
+    Task<bool> TryRotateAsync(Guid currentTokenId, RefreshToken successor);
+
     Task<int> CleanupExpiredTokensAsync(DateTime olderThan);
 }

@@ -118,6 +118,8 @@ export const enUS = {
       previewLater: "In 10 days",
     },
     auth: {
+      sessionExpired: "Your session expired or was revoked. Sign in again to continue.",
+      sessionUnavailable: "Unable to restore your session. Check your connection and try again.",
       signInTitle: "Sign in to BitFinance",
       signInBody: "Use your account email and password.",
       signUpTitle: "Create your account",

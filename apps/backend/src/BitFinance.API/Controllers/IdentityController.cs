@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Asp.Versioning;
 using BitFinance.API.InputModels;
+using BitFinance.API.Settings;
+using Microsoft.Extensions.Options;
 using BitFinance.API.Models.Request;
 using BitFinance.API.Models.Response;
 using BitFinance.API.Services.Interfaces;
@@ -29,7 +31,7 @@ public class IdentityController : ControllerBase
     private readonly IGoogleAuthService _googleAuthService;
     private readonly ILogger<IdentityController> _logger;
 
-    private const int AccessTokenExpirationMinutes = 60;
+    private readonly JwtSettings _jwtSettings;
 
     public IdentityController(
         IUsersService usersService,
@@ -40,8 +42,10 @@ public class IdentityController : ControllerBase
         ICookieService cookieService,
         IRefreshTokenRepository refreshTokenRepository,
         IAttachmentService attachmentService,
-        IGoogleAuthService googleAuthService)
+        IGoogleAuthService googleAuthService,
+        IOptions<JwtSettings> jwtSettings)
     {
+        _jwtSettings = jwtSettings.Value;
         _usersService = usersService;
         _userManager = userManager;
         _signInManager = signInManager;
@@ -89,7 +93,7 @@ public class IdentityController : ControllerBase
 
             return Ok(new AuthenticationResponse(
                 accessToken,
-                DateTime.UtcNow.AddMinutes(AccessTokenExpirationMinutes),
+                DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes),
                 new UserInfo(user.Id, user.Email!, user.UserName!, user.FirstName, user.LastName)
             ));
         }
@@ -128,7 +132,7 @@ public class IdentityController : ControllerBase
 
             return Ok(new AuthenticationResponse(
                 accessToken,
-                DateTime.UtcNow.AddMinutes(AccessTokenExpirationMinutes),
+                DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes),
                 new UserInfo(user.Id, user.Email!, user.UserName!, user.FirstName, user.LastName)
             ));
         }
@@ -151,7 +155,7 @@ public class IdentityController : ControllerBase
 
         if (string.IsNullOrEmpty(refreshToken))
         {
-            return Unauthorized(new { message = "Refresh token not found" });
+            return Unauthorized(new { code = "no_session", message = "Refresh token not found" });
         }
 
         var storedToken = await _tokenService.ValidateRefreshTokenAsync(refreshToken);
@@ -159,7 +163,7 @@ public class IdentityController : ControllerBase
         if (storedToken == null)
         {
             _cookieService.RemoveRefreshTokenCookie(Response);
-            return Unauthorized(new { message = "Invalid or expired refresh token" });
+            return Unauthorized(new { code = "session_expired", message = "Invalid or expired refresh token" });
         }
 
         var rotationResult = await _tokenService.RotateRefreshTokenAsync(
@@ -170,8 +174,8 @@ public class IdentityController : ControllerBase
         if (rotationResult == null)
         {
             _cookieService.RemoveRefreshTokenCookie(Response);
-            _logger.LogWarning("Token reuse detected for user {UserId}", storedToken.UserId);
-            return Unauthorized(new { message = "Session compromised. Please log in again." });
+            _logger.LogWarning("Refresh token reuse detected.");
+            return Unauthorized(new { code = "session_expired", message = "Session compromised. Please log in again." });
         }
 
         var (accessToken, newRefreshToken, newRefreshTokenEntity) = rotationResult.Value;
@@ -182,7 +186,7 @@ public class IdentityController : ControllerBase
 
         return Ok(new AuthenticationResponse(
             accessToken,
-            DateTime.UtcNow.AddMinutes(AccessTokenExpirationMinutes),
+            DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes),
             new UserInfo(
                 storedToken.User.Id,
                 storedToken.User.Email!,

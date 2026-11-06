@@ -1,5 +1,5 @@
 import { env } from "../../env";
-import { authApi, publicApi } from "../shared/client";
+import { authApi, publicApi, refreshSession } from "../shared/client";
 import { normalizeApiError } from "../shared/errors";
 import type {
   AuthCredentials,
@@ -27,7 +27,7 @@ export const authService = {
   },
   async refreshAsync(): Promise<AuthSessionResponse> {
     try {
-      return (await publicApi.post<AuthSessionResponse>("/identity/refresh")).data;
+      return await refreshSession();
     } catch (error) {
       throw normalizeApiError(error, "api.auth.restoreSession");
     }

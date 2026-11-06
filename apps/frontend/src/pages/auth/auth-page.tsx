@@ -24,7 +24,11 @@ export function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   const googleEnabled = providers.data?.providers.includes("google") ?? false;
   const googleError = searchParams.get("googleError");
   const [error, setError] = useState(() =>
-    googleError ? t(`auth.googleErrors.${googleError}`, t("auth.googleErrors.failed")) : "",
+    googleError
+      ? t(`auth.googleErrors.${googleError}`, t("auth.googleErrors.failed"))
+      : searchParams.get("session") === "expired"
+        ? t("auth.sessionExpired")
+        : "",
   );
   const [pending, setPending] = useState(false);
   const isSignIn = mode === "sign-in";

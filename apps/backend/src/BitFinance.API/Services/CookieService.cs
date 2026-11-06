@@ -22,9 +22,10 @@ public class CookieService : ICookieService
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = !_environment.IsDevelopment(),
             SameSite = SameSiteMode.Lax,
             MaxAge = maxAge,
+            Expires = new DateTimeOffset(DateTime.SpecifyKind(expires, DateTimeKind.Utc)),
             Path = "/api/v1/identity",
             IsEssential = true
         };
@@ -42,7 +43,7 @@ public class CookieService : ICookieService
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = !_environment.IsDevelopment(),
             SameSite = SameSiteMode.Lax,
             Path = "/api/v1/identity"
         };
