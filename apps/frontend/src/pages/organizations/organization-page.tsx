@@ -16,7 +16,7 @@ import { Field, Input } from "@/components/base/field";
 import { PageHeader } from "@/components/base/page-header";
 import { Select } from "@/components/base/select";
 import { Page } from "@/components/layout/page";
-import { SettingsTabs } from "@/components/navigation/settings-tabs";
+import { OrganizationSettingsTabs } from "@/components/navigation/settings-tabs";
 import { useOrganizationMutations } from "@/hooks/mutations/use-organization-mutations";
 import { useBudgetQuery, useOrganizationQuery } from "@/hooks/queries/use-organization-queries";
 import { useLocale } from "@/hooks/use-locale";
@@ -52,8 +52,8 @@ export function OrganizationPage() {
 
   const header = (
     <>
-      <PageHeader title={t("nav.settings")} description={t("nav.settingsBody")} />
-      <SettingsTabs />
+      <PageHeader title={t("nav.organizationSettings")} description={t("nav.settingsBody")} />
+      <OrganizationSettingsTabs />
     </>
   );
 

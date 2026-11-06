@@ -256,7 +256,9 @@ export function AppShell() {
           {primaryNavItems.map((item) => (
             <SidebarLink key={item.to} item={item} />
           ))}
-          <p className="mx-3.5 mb-1.5 mt-6 text-xs font-bold text-ink-muted">{t("nav.settings")}</p>
+          <p className="mx-3.5 mb-1.5 mt-6 text-xs font-bold text-ink-muted">
+            {t("nav.organizationSettings")}
+          </p>
           {settingsNavItems.map((item) => (
             <SidebarLink key={item.to} item={item} />
           ))}

@@ -5,6 +5,9 @@ export const enUS = {
       description: "BitFinance — a clearer view of your money.",
     },
     nav: {
+      organizationSettings: "Organization settings",
+      personalSettings: "Personal settings",
+      personalSettingsBody: "Your profile, security and personal preferences.",
       overview: "Overview",
       bills: "Bills",
       expenses: "Expenses",

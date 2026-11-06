@@ -29,7 +29,7 @@ const groups = [
     ],
   },
   {
-    titleKey: "nav.settings",
+    titleKey: "nav.organizationSettings",
     items: [
       {
         to: "/settings/organization",
@@ -43,6 +43,11 @@ const groups = [
         labelKey: "nav.members",
         detailKey: "more.access",
       },
+    ],
+  },
+  {
+    titleKey: "nav.personalSettings",
+    items: [
       {
         to: "/settings/account",
         icon: Settings2,

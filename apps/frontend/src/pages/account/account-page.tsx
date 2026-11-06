@@ -17,7 +17,6 @@ import { SegmentedControl } from "@/components/base/segmented-control";
 import { Select } from "@/components/base/select";
 import { Switch } from "@/components/base/switch";
 import { Page } from "@/components/layout/page";
-import { SettingsTabs } from "@/components/navigation/settings-tabs";
 import { useAccountMutations } from "@/hooks/mutations/use-account-mutations";
 import { useNotificationMutations } from "@/hooks/mutations/use-notification-mutations";
 import { useExternalProvidersQuery } from "@/hooks/queries/use-auth-queries";
@@ -129,8 +128,7 @@ export function AccountPage() {
   };
   return (
     <Page>
-      <PageHeader title={t("nav.settings")} description={t("nav.settingsBody")} />
-      <SettingsTabs />
+      <PageHeader title={t("nav.account")} description={t("nav.personalSettingsBody")} />
       <div className="grid items-start gap-5 lg:grid-cols-2">
         <Card aria-labelledby="account-profile">
           <CardHeader

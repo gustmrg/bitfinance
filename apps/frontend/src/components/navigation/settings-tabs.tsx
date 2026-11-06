@@ -5,14 +5,13 @@ import { cn } from "@/lib/cn";
 const tabs = [
   { to: "/settings/organization", labelKey: "nav.organization" },
   { to: "/settings/members", labelKey: "nav.members" },
-  { to: "/settings/account", labelKey: "nav.account" },
 ];
 
-export function SettingsTabs() {
+export function OrganizationSettingsTabs() {
   const { t } = useTranslation();
   return (
     <nav
-      aria-label={t("nav.settings")}
+      aria-label={t("nav.organizationSettings")}
       className="flex max-w-full overflow-x-auto shadow-[inset_0_-1px_0_var(--color-line)]"
     >
       {tabs.map((tab) => (

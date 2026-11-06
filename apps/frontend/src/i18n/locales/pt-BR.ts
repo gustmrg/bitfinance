@@ -5,6 +5,9 @@ export const ptBR = {
       description: "BitFinance — uma visão mais clara do seu dinheiro.",
     },
     nav: {
+      organizationSettings: "Configurações da organização",
+      personalSettings: "Configurações pessoais",
+      personalSettingsBody: "Seu perfil, segurança e preferências pessoais.",
       overview: "Visão geral",
       bills: "Contas",
       expenses: "Despesas",

@@ -21,7 +21,7 @@ import { IconButton } from "@/components/base/icon-button";
 import { PageHeader } from "@/components/base/page-header";
 import { Select } from "@/components/base/select";
 import { Page } from "@/components/layout/page";
-import { SettingsTabs } from "@/components/navigation/settings-tabs";
+import { OrganizationSettingsTabs } from "@/components/navigation/settings-tabs";
 import {
   useInvitationMutations,
   useOrganizationMemberMutations,
@@ -113,7 +113,7 @@ export function MembersPage() {
   const header = (
     <>
       <PageHeader
-        title={t("nav.settings")}
+        title={t("nav.organizationSettings")}
         description={t("nav.settingsBody")}
         actions={
           canInvite ? (
@@ -128,7 +128,7 @@ export function MembersPage() {
           ) : undefined
         }
       />
-      <SettingsTabs />
+      <OrganizationSettingsTabs />
     </>
   );
 
