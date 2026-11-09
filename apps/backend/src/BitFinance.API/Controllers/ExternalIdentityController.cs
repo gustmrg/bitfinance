@@ -141,7 +141,7 @@ public class ExternalIdentityController : ControllerBase
 
         _cookieService.SetRefreshTokenCookie(Response, rawRefreshToken, refreshTokenEntity.ExpiresAt);
 
-        _logger.LogInformation("User logged in with Google: {UserId}", result.User!.Id);
+        _logger.LogInformation("User login with Google succeeded.");
 
         return Redirect(FrontendUrl(returnTo));
     }

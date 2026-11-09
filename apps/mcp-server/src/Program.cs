@@ -1,17 +1,23 @@
-﻿using System.Net.Http.Headers;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using BitFinance.MCP.Configuration;
+using BitFinance.MCP.Extensions;
+using BitFinance.MCP.Observability;
 using BitFinance.MCP.Services;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Logging.AddConsole(consoleLogOptions =>
+builder.Logging.ClearProviders();
+builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
+if (!builder.Environment.IsDevelopment())
 {
-    // Keep logs away from MCP response bodies when running behind HTTP streaming.
-    consoleLogOptions.LogToStandardErrorThreshold = LogLevel.Trace;
-});
+    builder.Logging.AddFilter("Microsoft", LogLevel.Warning);
+    builder.Logging.AddFilter("System", LogLevel.Warning);
+    builder.Logging.AddFilter("ModelContextProtocol", LogLevel.Warning);
+}
+builder.AddBitFinanceObservability();
 
 var mcpBearerToken = builder.Configuration["BITFINANCE_MCP_BEARER_TOKEN"];
 if (string.IsNullOrWhiteSpace(mcpBearerToken))
@@ -21,6 +27,7 @@ if (string.IsNullOrWhiteSpace(mcpBearerToken))
 
 var bitFinanceOptions = BitFinanceOptions.FromConfiguration(builder.Configuration);
 builder.Services.AddSingleton(bitFinanceOptions);
+builder.Services.AddMcpHealthChecks(bitFinanceOptions);
 builder.Services.AddHttpClient(BitFinanceApiClient.ClientName, client =>
 {
     client.BaseAddress = bitFinanceOptions.ApiBaseUrl;
@@ -36,11 +43,15 @@ builder.Services
     {
         options.Stateless = true;
     })
+    .WithRequestFilters(filters =>
+    {
+        filters.AddCallToolFilter(McpToolTelemetryFilter.Create());
+    })
     .WithToolsFromAssembly();
 
 var app = builder.Build();
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+app.MapMcpHealthChecks();
 
 app.UseWhen(
     context => context.Request.Path.StartsWithSegments("/mcp"),

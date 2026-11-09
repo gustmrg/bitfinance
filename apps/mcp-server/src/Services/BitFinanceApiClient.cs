@@ -397,8 +397,7 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         using var response = await client.SendAsync(httpRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new BitFinanceApiException(response.StatusCode, method.Method, path, errorBody);
+            throw new BitFinanceApiException(response.StatusCode, method.Method, path);
         }
 
         var value = await response.Content.ReadFromJsonAsync(responseJsonTypeInfo, cancellationToken);
@@ -425,8 +424,7 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         using var response = await client.SendAsync(httpRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new BitFinanceApiException(response.StatusCode, method.Method, path, errorBody);
+            throw new BitFinanceApiException(response.StatusCode, method.Method, path);
         }
 
         var value = await response.Content.ReadFromJsonAsync(responseJsonTypeInfo, cancellationToken);
@@ -450,8 +448,7 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         using var response = await client.SendAsync(httpRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new BitFinanceApiException(response.StatusCode, method.Method, path, errorBody);
+            throw new BitFinanceApiException(response.StatusCode, method.Method, path);
         }
     }
 
