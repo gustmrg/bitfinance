@@ -18,6 +18,9 @@ public class TokenService : ITokenService
     private readonly IRefreshTokenRepository _refreshTokenRepository;
 
     private const int RefreshTokenExpirationDays = 7;
+    private const string RotatedReason = "Rotated";
+
+    public static readonly TimeSpan RotationGracePeriod = TimeSpan.FromSeconds(30);
 
     public TokenService(IOptions<JwtSettings> jwtSettings, IRefreshTokenRepository refreshTokenRepository)
     {
@@ -86,7 +89,7 @@ public class TokenService : ITokenService
         if (storedToken == null)
             return null;
 
-        if (storedToken.IsRevoked)
+        if (storedToken.IsRevoked && !await IsConcurrentRotationAsync(storedToken))
         {
             await _refreshTokenRepository.RevokeTokenFamilyAsync(
                 storedToken.TokenFamilyId,
@@ -105,7 +108,9 @@ public class TokenService : ITokenService
         string? ipAddress = null,
         string? userAgent = null)
     {
-        if (!currentToken.IsActive)
+        var concurrentRotation = currentToken.IsRevoked && await IsConcurrentRotationAsync(currentToken);
+
+        if (currentToken.IsExpired || (currentToken.IsRevoked && !concurrentRotation))
         {
             await _refreshTokenRepository.RevokeTokenFamilyAsync(
                 currentToken.TokenFamilyId,
@@ -122,14 +127,33 @@ public class TokenService : ITokenService
 
         await _refreshTokenRepository.CreateAsync(newRefreshTokenEntity);
 
-        currentToken.IsRevoked = true;
-        currentToken.RevokedAt = DateTime.UtcNow;
-        currentToken.RevokedReason = "Rotated";
-        currentToken.ReplacedByTokenId = newRefreshTokenEntity.Id;
+        if (!concurrentRotation)
+        {
+            currentToken.IsRevoked = true;
+            currentToken.RevokedAt = DateTime.UtcNow;
+            currentToken.RevokedReason = RotatedReason;
+            currentToken.ReplacedByTokenId = newRefreshTokenEntity.Id;
 
-        await _refreshTokenRepository.UpdateAsync(currentToken);
+            await _refreshTokenRepository.UpdateAsync(currentToken);
+        }
 
         return (accessToken, rawRefreshToken, newRefreshTokenEntity);
+    }
+
+    /// <summary>
+    /// A token rotated moments ago is presented again when two requests (tabs, retries) refresh with the
+    /// same cookie at once. That is not theft as long as the family still holds an active token.
+    /// </summary>
+    private async Task<bool> IsConcurrentRotationAsync(RefreshToken token)
+    {
+        if (token.RevokedReason != RotatedReason || token.RevokedAt is not { } revokedAt)
+            return false;
+
+        if (DateTime.UtcNow - revokedAt > RotationGracePeriod)
+            return false;
+
+        var family = await _refreshTokenRepository.GetTokensByFamilyIdAsync(token.TokenFamilyId);
+        return family.Any(member => member.IsActive);
     }
 
     public string HashToken(string token)
