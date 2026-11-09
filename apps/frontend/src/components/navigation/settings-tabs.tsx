@@ -5,7 +5,6 @@ import { cn } from "@/lib/cn";
 const tabs = [
   { to: "/settings/organization", labelKey: "nav.organization" },
   { to: "/settings/members", labelKey: "nav.members" },
-  { to: "/settings/account", labelKey: "nav.account" },
 ];
 
 export function SettingsTabs() {

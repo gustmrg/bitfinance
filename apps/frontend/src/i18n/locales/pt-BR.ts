@@ -15,7 +15,8 @@ export const ptBR = {
       reports: "Relatórios",
       quickAdd: "Novo lançamento",
       settings: "Configurações",
-      settingsBody: "Organização, pessoas com acesso e sua conta.",
+      settingsBody: "Organização e pessoas com acesso.",
+      accountBody: "Seu perfil, preferências, notificações e acesso.",
     },
     common: {
       save: "Salvar alterações",
