@@ -15,7 +15,8 @@ export const enUS = {
       reports: "Reports",
       quickAdd: "New entry",
       settings: "Settings",
-      settingsBody: "Organization, people with access and your account.",
+      settingsBody: "Organization and people with access.",
+      accountBody: "Your profile, preferences, notifications and sign-in.",
     },
     common: {
       save: "Save changes",
