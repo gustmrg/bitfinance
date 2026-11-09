@@ -22,3 +22,29 @@ export function getAccessTokenExpiresAt() {
 export function isAccessTokenExpired() {
   return !accessTokenExpiresAt || Date.now() >= new Date(accessTokenExpiresAt).getTime() - 30_000;
 }
+
+const sessionHintKey = "bitfinance-session";
+
+export function rememberSession() {
+  try {
+    localStorage.setItem(sessionHintKey, "1");
+  } catch {
+    return;
+  }
+}
+
+export function forgetSession() {
+  try {
+    localStorage.removeItem(sessionHintKey);
+  } catch {
+    return;
+  }
+}
+
+export function hadSession() {
+  try {
+    return localStorage.getItem(sessionHintKey) === "1";
+  } catch {
+    return false;
+  }
+}
