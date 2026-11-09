@@ -4,6 +4,7 @@ using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 using BitFinance.Business.Exceptions;
 using BitFinance.Data.Repositories.Interfaces;
+using BitFinance.API.Observability;
 
 namespace BitFinance.API.Services;
 
@@ -40,6 +41,7 @@ public class ExpensesService : IExpensesService
 
         var expense = BuildExpense(organizationId, data);
         await _expensesRepository.CreateAsync(expense);
+        BusinessTelemetry.RecordDomainOperation(DomainEntities.Expense, DomainOperations.Created);
         await PopulateCreatedByUsersAsync([expense]);
 
         return expense;
@@ -52,6 +54,7 @@ public class ExpensesService : IExpensesService
 
         var expenses = items.Select(item => BuildExpense(organizationId, item)).ToList();
         await _expensesRepository.CreateRangeAsync(expenses);
+        BusinessTelemetry.RecordDomainOperation(DomainEntities.Expense, DomainOperations.Created, expenses.Count);
         await PopulateCreatedByUsersAsync(expenses);
 
         return expenses;

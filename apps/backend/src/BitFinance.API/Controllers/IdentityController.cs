@@ -11,6 +11,7 @@ using BitFinance.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using BitFinance.API.Observability;
 
 namespace BitFinance.API.Controllers;
 
@@ -74,6 +75,7 @@ public class IdentityController : ControllerBase
         if (result.Succeeded)
         {
             _logger.LogInformation("User account created.");
+            BusinessTelemetry.RecordAuthAttempt(AuthFlows.PasswordRegister, AuthOutcomes.Success);
 
             // JWT-only auth: don't issue ASP.NET Identity auth cookie.
 
@@ -94,6 +96,7 @@ public class IdentityController : ControllerBase
             ));
         }
 
+        BusinessTelemetry.RecordAuthAttempt(AuthFlows.PasswordRegister, AuthOutcomes.Rejected);
         return BadRequest(new { Errors = result.Errors });
     }
 
@@ -108,13 +111,17 @@ public class IdentityController : ControllerBase
         var user = await _userManager.FindByEmailAsync(model.Email);
 
         if (user == null)
+        {
+            BusinessTelemetry.RecordAuthAttempt(AuthFlows.PasswordLogin, AuthOutcomes.InvalidCredentials);
             return Unauthorized(new { message = "Invalid email or password" });
+        }
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
             _logger.LogInformation("User login succeeded.");
+            BusinessTelemetry.RecordAuthAttempt(AuthFlows.PasswordLogin, AuthOutcomes.Success);
 
             var accessToken = _tokenService.GenerateAccessToken(user);
             var (rawRefreshToken, refreshTokenEntity) = _tokenService.GenerateRefreshToken(
@@ -136,9 +143,11 @@ public class IdentityController : ControllerBase
         if (result.IsLockedOut)
         {
             _logger.LogWarning("User account locked out.");
+            BusinessTelemetry.RecordAuthAttempt(AuthFlows.PasswordLogin, AuthOutcomes.LockedOut);
             return StatusCode(StatusCodes.Status403Forbidden, new { message = "Account locked out" });
         }
 
+        BusinessTelemetry.RecordAuthAttempt(AuthFlows.PasswordLogin, AuthOutcomes.InvalidCredentials);
         return Unauthorized(new { message = "Invalid email or password" });
     }
 
@@ -151,6 +160,7 @@ public class IdentityController : ControllerBase
 
         if (string.IsNullOrEmpty(refreshToken))
         {
+            BusinessTelemetry.RecordAuthAttempt(AuthFlows.TokenRefresh, AuthOutcomes.InvalidToken);
             return Unauthorized(new { message = "Refresh token not found" });
         }
 
@@ -159,6 +169,7 @@ public class IdentityController : ControllerBase
         if (storedToken == null)
         {
             _cookieService.RemoveRefreshTokenCookie(Response);
+            BusinessTelemetry.RecordAuthAttempt(AuthFlows.TokenRefresh, AuthOutcomes.InvalidToken);
             return Unauthorized(new { message = "Invalid or expired refresh token" });
         }
 
@@ -171,6 +182,7 @@ public class IdentityController : ControllerBase
         {
             _cookieService.RemoveRefreshTokenCookie(Response);
             _logger.LogWarning("Refresh token reuse detected.");
+            BusinessTelemetry.RecordAuthAttempt(AuthFlows.TokenRefresh, AuthOutcomes.ReuseDetected);
             return Unauthorized(new { message = "Session compromised. Please log in again." });
         }
 
@@ -179,6 +191,7 @@ public class IdentityController : ControllerBase
         _cookieService.SetRefreshTokenCookie(Response, newRefreshToken, newRefreshTokenEntity.ExpiresAt);
 
         _logger.LogInformation("Access token refreshed.");
+        BusinessTelemetry.RecordAuthAttempt(AuthFlows.TokenRefresh, AuthOutcomes.Success);
 
         return Ok(new AuthenticationResponse(
             accessToken,

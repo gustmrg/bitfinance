@@ -152,7 +152,8 @@ public static class ObservabilityExtensions
         "error.type", "db.system.name", "state", "db.client.connection.state",
         "dotnet.gc.heap.generation", "dotnet.gc.collection.generation",
         "dotnet.gc.collection.reason", "dotnet.gc.collection.type",
-        "cpu.mode", "gc.heap.generation", "worker.name", "outcome", "stage", "mcp.tool.name"
+        "cpu.mode", "gc.heap.generation", "worker.name", "outcome", "stage", "mcp.tool.name",
+        "auth.flow", "domain.entity", "domain.operation", "attachment.kind", "storage.operation", "dependency"
     ];
 
     private static void ConfigureExporter(

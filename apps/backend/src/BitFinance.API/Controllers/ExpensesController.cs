@@ -11,6 +11,7 @@ using BitFinance.Business.Exceptions;
 using BitFinance.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using BitFinance.API.Observability;
 
 namespace BitFinance.API.Controllers;
 
@@ -288,6 +289,7 @@ public class ExpensesController : ControllerBase
             expense.UpdatedAt = DateTime.UtcNow;
 
             await _expensesRepository.UpdateAsync(expense);
+            BusinessTelemetry.RecordDomainOperation(DomainEntities.Expense, DomainOperations.Updated);
 
             return Ok(new UpdateExpenseResponse(
                 expense.Id,
@@ -328,6 +330,7 @@ public class ExpensesController : ControllerBase
             }
 
             await _expensesRepository.DeleteAsync(expense);
+            BusinessTelemetry.RecordDomainOperation(DomainEntities.Expense, DomainOperations.Deleted);
 
             return NoContent();
         }

@@ -28,6 +28,20 @@ public static class HealthCheckExtensions
                 tags: ["ready"]);
         }
 
+        healthChecks.AddCheck<ObjectStorageHealthCheck>(
+            "storage",
+            failureStatus: HealthStatus.Unhealthy,
+            tags: ["dependency"],
+            timeout: TimeSpan.FromSeconds(10));
+
+        services.Configure<HealthCheckPublisherOptions>(options =>
+        {
+            options.Delay = TimeSpan.FromSeconds(15);
+            options.Period = TimeSpan.FromMinutes(1);
+            options.Predicate = registration => registration.Tags.Contains("dependency");
+        });
+        services.AddSingleton<IHealthCheckPublisher, DependencyStatusPublisher>();
+
         return services;
     }
 

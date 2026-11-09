@@ -42,6 +42,14 @@ public sealed class HealthCheckConfigurationTests
             registration.Name == "postgresql" && registration.Tags.Contains("ready"));
         Assert.Equal(expectsCache, registrations.Any(registration =>
             registration.Name == "cache" && registration.Tags.Contains("ready")));
+        Assert.Contains(registrations, registration =>
+            registration.Name == "storage" && registration.Tags.SetEquals(["dependency"]));
+
+        var publisherOptions = provider.GetRequiredService<IOptions<HealthCheckPublisherOptions>>().Value;
+        Assert.NotNull(publisherOptions.Predicate);
+        Assert.All(registrations, registration => Assert.Equal(
+            registration.Name == "storage", publisherOptions.Predicate!(registration)));
+        Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(IHealthCheckPublisher));
     }
 
     [Fact]
