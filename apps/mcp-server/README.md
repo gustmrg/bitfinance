@@ -52,7 +52,7 @@ export ASPNETCORE_URLS="http://localhost:8090"
 dotnet run --project src/BitFinance.MCP.csproj
 ```
 
-This starts a Streamable HTTP MCP server at `http://localhost:8090/mcp`. A health check is available at `http://localhost:8090/health`.
+This starts a Streamable HTTP MCP server at `http://localhost:8090/mcp`. Health checks are available at `http://localhost:8090/health/live` (process only) and `http://localhost:8090/health/ready` (also checks that the API is ready). Telemetry export is described in `docs/observability.md`.
 
 After publishing, run the DLL directly:
 

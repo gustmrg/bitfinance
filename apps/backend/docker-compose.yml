@@ -18,7 +18,7 @@ services:
       - ConnectionStrings__Cache=${REDIS_CONNECTION_STRING:-bitfinance-cache:6379}
       - AppSettings__CacheEnabled=${CACHE_ENABLED:-false}
       - AppSettings__LoggingEnabled=true
-      - Logging__LogLevel__Default=Warning
+      - Logging__LogLevel__Default=Information
       - Logging__LogLevel__Microsoft.AspNetCore=Warning
       - Jwt__Key=${JWT_KEY:-}
       - Jwt__Issuer=${JWT_ISSUER:-bitfinance}
@@ -34,6 +34,10 @@ services:
       - Notifications__ResendWebhookSecret=${RESEND_WEBHOOK_SECRET:-}
       - Notifications__FromAddress=${NOTIFICATIONS_FROM_ADDRESS:-}
       - Notifications__FrontendBaseUrl=${NOTIFICATIONS_FRONTEND_BASE_URL:-http://localhost:5174}
+      - Observability__Enabled=${OBSERVABILITY_ENABLED:-false}
+      - Observability__TraceSamplingRatio=${OTEL_TRACE_SAMPLING_RATIO:-1.0}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://bitfinance-alloy:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
     restart: unless-stopped
     networks:
       - bitfinance-network
@@ -75,6 +79,34 @@ services:
       timeout: 5s
       retries: 5
 
+  bitfinance-alloy:
+    image: grafana/alloy:v1.21.3
+    container_name: bitfinance-alloy
+    profiles:
+      - observability
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    ports:
+      - "127.0.0.1:12345:12345"
+    expose:
+      - "4317"
+      - "4318"
+    environment:
+      - GRAFANA_CLOUD_OTLP_ENDPOINT=${GRAFANA_CLOUD_OTLP_ENDPOINT:-}
+      - GRAFANA_CLOUD_INSTANCE_ID=${GRAFANA_CLOUD_INSTANCE_ID:-}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY:-}
+      - ALLOY_ENVIRONMENT=${ALLOY_ENVIRONMENT:-development}
+      - GOMEMLIMIT=150MiB
+    volumes:
+      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy-data:/var/lib/alloy/data
+    networks:
+      - bitfinance-network
+    restart: unless-stopped
+
 networks:
   bitfinance-network:
     name: bitfinance_bitfinance-network
@@ -83,3 +115,4 @@ networks:
 volumes:
   postgres-data:
   api-logs:
+  alloy-data:

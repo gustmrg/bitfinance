@@ -197,6 +197,7 @@ jobs:
           sparse-checkout: |
             apps/backend/docker-compose.yml
             apps/backend/docker-compose.prod.yml
+            apps/backend/observability/alloy/config.alloy
           sparse-checkout-cone-mode: false
 
       - name: Connect to Tailscale
@@ -247,15 +248,18 @@ jobs:
           ssh "${SSH_OPTS[@]}" "$SSH_USERNAME@$TARGET_HOST" \
             'echo "SSH auth OK"; echo "Remote host: $(hostname)"'
 
-          echo "Uploading compose files from backend/v$IMAGE_TAG..."
-          for file in docker-compose.yml docker-compose.prod.yml; do
+          printf -v REMOTE_IMAGE_TAG '%q' "$IMAGE_TAG"
+          printf -v REMOTE_DEPLOY_PATH '%q' "$DEPLOY_PATH"
+
+          ssh "${SSH_OPTS[@]}" "$SSH_USERNAME@$TARGET_HOST" \
+            "mkdir -p $REMOTE_DEPLOY_PATH/observability/alloy"
+
+          echo "Uploading compose and collector files from backend/v$IMAGE_TAG..."
+          for file in docker-compose.yml docker-compose.prod.yml observability/alloy/config.alloy; do
             scp -i "$KEY_FILE" -P "$SSH_PORT" \
               -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
               "apps/backend/$file" "$SSH_USERNAME@$TARGET_HOST:$DEPLOY_PATH/$file.new"
           done
-
-          printf -v REMOTE_IMAGE_TAG '%q' "$IMAGE_TAG"
-          printf -v REMOTE_DEPLOY_PATH '%q' "$DEPLOY_PATH"
 
           ssh "${SSH_OPTS[@]}" "$SSH_USERNAME@$TARGET_HOST" \
             "IMAGE_TAG=$REMOTE_IMAGE_TAG DEPLOY_PATH=$REMOTE_DEPLOY_PATH bash -s" <<'REMOTE'
@@ -290,7 +294,9 @@ jobs:
           cd "$DEPLOY_PATH"
           echo "Current directory: $(pwd)"
 
-          for file in docker-compose.yml.new docker-compose.prod.yml.new .env; do
+          ALLOY_CONFIG=observability/alloy/config.alloy
+
+          for file in docker-compose.yml.new docker-compose.prod.yml.new "$ALLOY_CONFIG.new" .env; do
             if [ ! -f "$file" ]; then
               echo "::error::Required deploy file is missing: $file"
               exit 1
@@ -303,18 +309,23 @@ jobs:
           if ! CHECK_OUTPUT="$(docker compose -f docker-compose.yml.new -f docker-compose.prod.yml.new config -q 2>&1)" \
             || grep -q 'variable is not set' <<<"$CHECK_OUTPUT"; then
             printf '%s\n' "$CHECK_OUTPUT"
-            rm -f docker-compose.yml.new docker-compose.prod.yml.new
+            rm -f docker-compose.yml.new docker-compose.prod.yml.new "$ALLOY_CONFIG.new"
             echo "::error::The release's compose files do not work with the server's .env. The current compose files were left in place."
             exit 1
           fi
 
-          for file in docker-compose.yml docker-compose.prod.yml; do
+          ALLOY_CONFIG_CHANGED=false
+          if ! cmp -s "$ALLOY_CONFIG.new" "$ALLOY_CONFIG"; then
+            ALLOY_CONFIG_CHANGED=true
+          fi
+
+          for file in docker-compose.yml docker-compose.prod.yml "$ALLOY_CONFIG"; do
             if [ -f "$file" ]; then
               cp -p "$file" "$file.prev"
             fi
             mv "$file.new" "$file"
           done
-          echo "Compose files updated from the release (previous versions kept as *.prev)"
+          echo "Compose and collector files updated from the release (previous versions kept as *.prev)"
 
           echo "Compose services:"
           docker compose "${COMPOSE_FILES[@]}" config --services
@@ -348,6 +359,37 @@ jobs:
             printf '%s=%s\n' IMAGE_TAG "$IMAGE_TAG" >> .env
           fi
           echo "Recorded IMAGE_TAG=$IMAGE_TAG in .env"
+
+          if docker compose "${COMPOSE_FILES[@]}" config --services | grep -qx bitfinance-alloy; then
+            echo "Updating the Grafana Alloy collector..."
+            # The config is bind-mounted as a file and was replaced above, so the
+            # running container still sees the old one until it is recreated.
+            ALLOY_UP=(up -d --no-build --no-deps)
+            if [ "$ALLOY_CONFIG_CHANGED" = true ]; then
+              ALLOY_UP+=(--force-recreate)
+            fi
+
+            ALLOY_READY=false
+            if docker compose "${COMPOSE_FILES[@]}" pull bitfinance-alloy \
+              && docker compose "${COMPOSE_FILES[@]}" "${ALLOY_UP[@]}" bitfinance-alloy; then
+              for _ in $(seq 1 15); do
+                if curl -fsS --max-time 5 -o /dev/null http://127.0.0.1:12345/-/ready; then
+                  ALLOY_READY=true
+                  break
+                fi
+                sleep 2
+              done
+            fi
+
+            if [ "$ALLOY_READY" = true ]; then
+              echo "Grafana Alloy is ready"
+            else
+              echo "::warning::Grafana Alloy did not become ready. The backend release is unaffected; check 'docker compose logs bitfinance-alloy' on the server."
+              docker compose "${COMPOSE_FILES[@]}" logs --tail 40 bitfinance-alloy || true
+            fi
+          else
+            echo "Observability profile is not enabled on the server; skipping Grafana Alloy"
+          fi
 
           echo "Recent backend logs:"
           docker compose "${COMPOSE_FILES[@]}" logs --tail 40 bitfinance-api

@@ -50,6 +50,25 @@ jobs:
         if: inputs.app == 'backend'
         run: dotnet test apps/backend/BitFinance.sln --no-build --disable-build-servers -v:minimal
 
+      - name: Validate Grafana Alloy configuration
+        if: inputs.app == 'backend'
+        working-directory: apps/backend
+        run: |
+          ALLOY_IMAGE="$(docker compose --profile observability config --images | grep '^grafana/alloy:')"
+          CONFIG="$PWD/observability/alloy/config.alloy"
+          docker run --rm \
+            -e GRAFANA_CLOUD_OTLP_ENDPOINT=https://otlp.example.test/otlp \
+            -e GRAFANA_CLOUD_INSTANCE_ID=0 \
+            -e GRAFANA_CLOUD_API_KEY=validation \
+            -e ALLOY_ENVIRONMENT=validation \
+            -v "$CONFIG:/etc/alloy/config.alloy:ro" \
+            "$ALLOY_IMAGE" validate /etc/alloy/config.alloy
+          if ! docker run --rm -v "$CONFIG:/etc/alloy/config.alloy:ro" "$ALLOY_IMAGE" fmt /etc/alloy/config.alloy \
+            | diff -u "$CONFIG" -; then
+            echo "::error::config.alloy is not formatted. Run 'alloy fmt --write' on it."
+            exit 1
+          fi
+
       - name: Build MCP server
         if: inputs.app == 'mcp-server'
         run: dotnet build apps/mcp-server/src/BitFinance.MCP.csproj --disable-build-servers -v:minimal

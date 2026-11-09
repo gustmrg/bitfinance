@@ -74,12 +74,13 @@ All publish workflows build from the release tag (`<app>/v<version>`), first che
 ### Backend
 
 1. Builds `gustmrg/bitfinance-backend` for `linux/amd64` and `linux/arm64` and pushes it to Docker Hub as `<version>` and `latest`.
-2. Uploads `apps/backend/docker-compose.yml` and `docker-compose.prod.yml` from the release tag to `DEPLOY_PATH`, checks them with `docker compose config` against the server's `.env`, and only then puts them in place of the current files, which are kept as `*.prev`. The deploy stops before touching anything if the check fails or reports a variable that is not set.
+2. Uploads `apps/backend/docker-compose.yml`, `docker-compose.prod.yml` and `observability/alloy/config.alloy` from the release tag to `DEPLOY_PATH`, checks them with `docker compose config` against the server's `.env`, and only then puts them in place of the current files, which are kept as `*.prev`. The deploy stops before touching anything if the check fails or reports a variable that is not set.
 3. On the server, in `DEPLOY_PATH`, it uses those compose files to:
    - pull the `bitfinance-api` image with `IMAGE_TAG=<version>`;
    - apply database migrations with `docker compose run --rm --no-deps bitfinance-api --migrate`;
-   - recreate the `bitfinance-api` container from the new image.
-   - record the version as `IMAGE_TAG` in the server's `.env`.
+   - recreate the `bitfinance-api` container from the new image and wait for its health check (`/health/ready`: PostgreSQL and, when enabled, Redis);
+   - record the version as `IMAGE_TAG` in the server's `.env`;
+   - when the `observability` compose profile is enabled, update and start the `bitfinance-alloy` collector. A collector failure is reported as a warning and does not fail the deploy. See [observability.md](observability.md).
 
 The deploy prints the service status and recent logs, including when it fails.
 
@@ -89,7 +90,7 @@ The deploy prints the service status and recent logs, including when it fails.
 2. Uploads `apps/mcp-server/docker-compose.yml` from the release tag to `DEPLOY_PATH/mcp-server`, checks it with `docker compose config` against that directory's `.env`, and only then puts it in place of the current file, which is kept as `docker-compose.yml.prev`. The deploy stops before touching anything if the check fails or reports a variable that is not set.
 3. On the server, in `DEPLOY_PATH/mcp-server`, with `MCP_IMAGE_TAG=<version>`:
    - pulls the new `bitfinance-mcp-server` image;
-   - recreates the `bitfinance-mcp-server` container from it;
+   - recreates the `bitfinance-mcp-server` container from it and waits for its health check (`/health/ready`, which requires the API to be ready);
    - records the version as `MCP_IMAGE_TAG` in that directory's `.env`.
 
 ### Backend and MCP server compose projects
@@ -140,6 +141,7 @@ GitHub secrets used by the publish workflows:
 Server-side requirements:
 
 - `DEPLOY_PATH` contains `.env`, created from `apps/backend/.env.prod.example`, and `DEPLOY_PATH/mcp-server` contains `.env`, created from `apps/mcp-server/.env.prod.example`. The deploys write the compose files; the `.env` files are the only files kept by hand. Add any variable a release needs to its app's `.env` before releasing it, or the deploy stops at the compose check.
+- To send telemetry to Grafana Cloud, the server's `.env` files set the variables listed in [observability.md](observability.md). Without them, observability stays off.
 - The server's `.env` sets the S3 storage variables (`S3_BUCKET_NAME`, `S3_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`). See "File storage" in `apps/backend/README.md`.
 - The external Postgres volume (`POSTGRES_DATA_VOLUME`, default `bitfinance_postgres-data`) exists. See `apps/backend/README.md`.
 - The SSH user can run `docker compose` and can write to `/var/www/bitfinance` without `sudo`.
