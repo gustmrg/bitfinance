@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using BitFinance.API.Observability;
 
 namespace BitFinance.API.Controllers;
 
@@ -115,12 +116,16 @@ public class ExternalIdentityController : ControllerBase
         if (identity is null)
         {
             _logger.LogWarning("Google callback without a usable external login");
+            BusinessTelemetry.RecordAuthAttempt(
+                linkUserId is null ? AuthFlows.GoogleLogin : AuthFlows.GoogleLink, AuthOutcomes.Rejected);
             return Redirect(FrontendUrl(WithQuery(linkUserId is null ? SignInPath : returnTo, "googleError", "failed")));
         }
 
         if (linkUserId is not null)
         {
             var linkResult = await _googleAuthService.LinkAsync(linkUserId, identity);
+            BusinessTelemetry.RecordAuthAttempt(
+                AuthFlows.GoogleLink, linkResult.Success ? AuthOutcomes.Success : GoogleOutcome(linkResult.Error));
 
             return Redirect(FrontendUrl(linkResult.Success
                 ? WithQuery(returnTo, "google", "linked")
@@ -130,7 +135,10 @@ public class ExternalIdentityController : ControllerBase
         var result = await _googleAuthService.SignInAsync(identity);
 
         if (!result.Success)
+        {
+            BusinessTelemetry.RecordAuthAttempt(AuthFlows.GoogleLogin, GoogleOutcome(result.Error));
             return Redirect(FrontendUrl(WithQuery(SignInPath, "googleError", ErrorCode(result.Error))));
+        }
 
         var (rawRefreshToken, refreshTokenEntity) = _tokenService.GenerateRefreshToken(
             result.User!,
@@ -141,7 +149,8 @@ public class ExternalIdentityController : ControllerBase
 
         _cookieService.SetRefreshTokenCookie(Response, rawRefreshToken, refreshTokenEntity.ExpiresAt);
 
-        _logger.LogInformation("User logged in with Google: {UserId}", result.User!.Id);
+        _logger.LogInformation("User login with Google succeeded.");
+        BusinessTelemetry.RecordAuthAttempt(AuthFlows.GoogleLogin, AuthOutcomes.Success);
 
         return Redirect(FrontendUrl(returnTo));
     }
@@ -196,6 +205,9 @@ public class ExternalIdentityController : ControllerBase
         GoogleAuthError.LinkedToAnotherAccount => "linked-to-another-account",
         _ => "failed"
     };
+
+    private static string GoogleOutcome(GoogleAuthError? error) =>
+        error == GoogleAuthError.LockedOut ? AuthOutcomes.LockedOut : AuthOutcomes.Rejected;
 
     private string FrontendUrl(string path) => $"{_googleSettings.FrontendBaseUrl.TrimEnd('/')}{path}";
 }

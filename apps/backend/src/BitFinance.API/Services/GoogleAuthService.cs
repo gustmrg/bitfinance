@@ -51,12 +51,12 @@ public class GoogleAuthService : IGoogleAuthService
             var linked = await _userManager.AddLoginAsync(user, CreateLoginInfo(identity));
             if (!linked.Succeeded)
             {
-                _logger.LogWarning("Could not link Google login to new user {UserId}: {Errors}", user.Id, Describe(linked));
+                _logger.LogWarning("Could not link Google login to new user: {Errors}", Describe(linked));
                 await _userManager.DeleteAsync(user);
                 return GoogleAuthResult.Failed(GoogleAuthError.IdentityFailure);
             }
 
-            _logger.LogInformation("User created a new account with Google: {Email}", identity.Email);
+            _logger.LogInformation("User account created with Google.");
         }
 
         if (await _userManager.IsLockedOutAsync(user))
@@ -87,11 +87,11 @@ public class GoogleAuthService : IGoogleAuthService
         var linked = await _userManager.AddLoginAsync(user, CreateLoginInfo(identity));
         if (!linked.Succeeded)
         {
-            _logger.LogWarning("Could not link Google login to user {UserId}: {Errors}", user.Id, Describe(linked));
+            _logger.LogWarning("Could not link Google login to user: {Errors}", Describe(linked));
             return GoogleAuthResult.Failed(GoogleAuthError.IdentityFailure);
         }
 
-        _logger.LogInformation("User {UserId} linked a Google login", user.Id);
+        _logger.LogInformation("User linked a Google login.");
 
         return GoogleAuthResult.Succeeded(user);
     }
@@ -115,11 +115,11 @@ public class GoogleAuthService : IGoogleAuthService
         var removed = await _userManager.RemoveLoginAsync(user, login.LoginProvider, login.ProviderKey);
         if (!removed.Succeeded)
         {
-            _logger.LogWarning("Could not unlink Google login from user {UserId}: {Errors}", user.Id, Describe(removed));
+            _logger.LogWarning("Could not unlink Google login from user: {Errors}", Describe(removed));
             return GoogleAuthResult.Failed(GoogleAuthError.IdentityFailure);
         }
 
-        _logger.LogInformation("User {UserId} unlinked their Google login", user.Id);
+        _logger.LogInformation("User unlinked their Google login.");
 
         return GoogleAuthResult.Succeeded(user);
     }

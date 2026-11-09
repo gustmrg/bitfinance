@@ -91,7 +91,8 @@ When running in the Docker Compose development setup, the API is available at `h
 | Service | URL or port | Notes |
 | --- | --- | --- |
 | API | `http://localhost:8080` | Main backend API |
-| Health check | `http://localhost:8080/health` | Returns API health status |
+| Health check | `http://localhost:8080/health/ready` | Readiness (PostgreSQL and, when enabled, Redis); `/health/live` only checks the process |
+| Grafana Alloy | `http://localhost:12345` | Only with `--profile observability`; see `docs/observability.md` |
 | OpenAPI document | `http://localhost:8080/openapi/v1.json` | Generated OpenAPI document |
 | Scalar API reference | `http://localhost:8080/scalar/v1` | Interactive API documentation |
 | PostgreSQL | `localhost:5432` | Development database |

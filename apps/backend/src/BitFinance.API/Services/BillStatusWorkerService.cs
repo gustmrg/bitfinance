@@ -3,6 +3,7 @@ using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
 using BitFinance.Data.Repositories.Interfaces;
 using BitFinance.Data.Contexts;
+using BitFinance.API.Observability;
 using Microsoft.EntityFrameworkCore;
 
 namespace BitFinance.API.Services;
@@ -29,10 +30,16 @@ public class BillStatusWorkerService : BackgroundService
 
             try
             {
-                await GenerateScheduledBills();
-                await UpdateUpcomingBills();
-                await UpdateDueBills();
-                await EnqueueBillReminders();
+                await WorkerTelemetry.RunCycleAsync(
+                    WorkerTelemetry.BillStatus,
+                    async _ =>
+                    {
+                        await GenerateScheduledBills();
+                        await UpdateUpcomingBills();
+                        await UpdateDueBills();
+                        await EnqueueBillReminders();
+                    },
+                    stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -40,6 +47,7 @@ public class BillStatusWorkerService : BackgroundService
             }
             catch (Exception ex)
             {
+                WorkerTelemetry.MarkCurrentCycleFailed();
                 _logger.LogError(ex, "Unhandled error in bill status worker cycle");
             }
             
@@ -128,9 +136,8 @@ public class BillStatusWorkerService : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex,
-                        "Error while generating scheduled bills for organization {OrgId} ({OrgName}) with timezone {TimeZone}",
-                        organization.Id, organization.Name, organization.TimeZoneId);
+                    WorkerTelemetry.MarkCurrentCycleFailed();
+                    _logger.LogError(ex, "Error while generating scheduled bills for an organization.");
                 }
             }
 
@@ -142,6 +149,7 @@ public class BillStatusWorkerService : BackgroundService
         }
         catch (Exception ex)
         {
+            WorkerTelemetry.MarkCurrentCycleFailed();
             _logger.LogError(ex, "Error occurred while generating scheduled bills");
         }
     }
@@ -166,9 +174,8 @@ public class BillStatusWorkerService : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex,
-                        "Error while processing upcoming bills for organization {OrgId} ({OrgName}) with timezone {TimeZone}",
-                        organization.Id, organization.Name, organization.TimeZoneId);
+                    WorkerTelemetry.MarkCurrentCycleFailed();
+                    _logger.LogError(ex, "Error while processing upcoming bills for an organization.");
                 }
             }
             
@@ -177,6 +184,7 @@ public class BillStatusWorkerService : BackgroundService
         }
         catch (Exception ex)
         {
+            WorkerTelemetry.MarkCurrentCycleFailed();
             _logger.LogError(ex, "Error occurred while updating upcoming bills");
         }
     }
@@ -201,9 +209,8 @@ public class BillStatusWorkerService : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex,
-                        "Error while processing due bills for organization {OrgId} ({OrgName}) with timezone {TimeZone}",
-                        organization.Id, organization.Name, organization.TimeZoneId);
+                    WorkerTelemetry.MarkCurrentCycleFailed();
+                    _logger.LogError(ex, "Error while processing due bills for an organization.");
                 }
             }
             
@@ -212,6 +219,7 @@ public class BillStatusWorkerService : BackgroundService
         }
         catch (Exception ex)
         {
+            WorkerTelemetry.MarkCurrentCycleFailed();
             _logger.LogError(ex, "Error occurred while updating due bills");
         }
     }
@@ -249,8 +257,7 @@ public class BillStatusWorkerService : BackgroundService
         {
             await billsRepository.UpdateRangeAsync(billsToUpdate);
             
-            _logger.LogInformation("Updated {BillCount} bills for organization {OrgId} ({OrgName}) in timezone {TimeZone}", 
-                billsToUpdate.Count, organization.Id, organization.Name, organization.TimeZoneId);
+            _logger.LogInformation("Updated {BillCount} upcoming bills for an organization.", billsToUpdate.Count);
         }
         
         return billsToUpdate.Count;
@@ -274,8 +281,7 @@ public class BillStatusWorkerService : BackgroundService
         if (billsToUpdate.Count <= 0) return billsToUpdate.Count;
         await billsRepository.UpdateRangeAsync(billsToUpdate);
             
-        _logger.LogInformation("Updated {BillCount} bills for organization {OrgId} ({OrgName}) in timezone {TimeZone}", 
-            billsToUpdate.Count, organization.Id, organization.Name, organization.TimeZoneId);
+        _logger.LogInformation("Updated {BillCount} due bills for an organization.", billsToUpdate.Count);
 
         return billsToUpdate.Count;
     }

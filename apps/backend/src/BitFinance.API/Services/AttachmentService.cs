@@ -1,3 +1,4 @@
+using BitFinance.API.Observability;
 using BitFinance.API.Services.Interfaces;
 using BitFinance.API.Settings;
 using BitFinance.Business.Entities;
@@ -37,9 +38,16 @@ public class AttachmentService : IAttachmentService
         _organizationsRepository = organizationsRepository;
     }
 
-    public async Task<Attachment> UploadBillAttachmentAsync(
+    public Task<Attachment> UploadBillAttachmentAsync(
         Guid organizationId, Guid billId, Stream fileStream, string fileName,
-        string contentType, FileCategory fileCategory, string? userId = null)
+        string contentType, FileCategory fileCategory, string? userId = null) =>
+        BusinessTelemetry.TrackUploadAsync(AttachmentKinds.Bill,
+            () => UploadBillAttachmentCoreAsync(organizationId, billId, fileStream, fileName, contentType, fileCategory, userId),
+            attachment => attachment.FileSizeInBytes);
+
+    private async Task<Attachment> UploadBillAttachmentCoreAsync(
+        Guid organizationId, Guid billId, Stream fileStream, string fileName,
+        string contentType, FileCategory fileCategory, string? userId)
     {
         ValidateFile(fileStream, fileName, contentType, FileUploadRules.Documents());
 
@@ -74,9 +82,16 @@ public class AttachmentService : IAttachmentService
         return attachment;
     }
 
-    public async Task<Attachment> UploadExpenseAttachmentAsync(
+    public Task<Attachment> UploadExpenseAttachmentAsync(
         Guid organizationId, Guid expenseId, Stream fileStream, string fileName,
-        string contentType, FileCategory fileCategory, string? userId = null)
+        string contentType, FileCategory fileCategory, string? userId = null) =>
+        BusinessTelemetry.TrackUploadAsync(AttachmentKinds.Expense,
+            () => UploadExpenseAttachmentCoreAsync(organizationId, expenseId, fileStream, fileName, contentType, fileCategory, userId),
+            attachment => attachment.FileSizeInBytes);
+
+    private async Task<Attachment> UploadExpenseAttachmentCoreAsync(
+        Guid organizationId, Guid expenseId, Stream fileStream, string fileName,
+        string contentType, FileCategory fileCategory, string? userId)
     {
         ValidateFile(fileStream, fileName, contentType, FileUploadRules.Documents());
 
@@ -111,7 +126,13 @@ public class AttachmentService : IAttachmentService
         return attachment;
     }
 
-    public async Task<Attachment> UploadUserAvatarAsync(
+    public Task<Attachment> UploadUserAvatarAsync(
+        string userId, Stream fileStream, string fileName, string contentType) =>
+        BusinessTelemetry.TrackUploadAsync(AttachmentKinds.Avatar,
+            () => UploadUserAvatarCoreAsync(userId, fileStream, fileName, contentType),
+            attachment => attachment.FileSizeInBytes);
+
+    private async Task<Attachment> UploadUserAvatarCoreAsync(
         string userId, Stream fileStream, string fileName, string contentType)
     {
         ValidateFile(fileStream, fileName, contentType, FileUploadRules.Avatars());
@@ -143,7 +164,7 @@ public class AttachmentService : IAttachmentService
             }
 
             if (!await _storageService.DeleteFileAsync(previousStoragePath))
-                _logger.LogWarning("Unable to delete previous avatar object {StoragePath}", previousStoragePath);
+                _logger.LogWarning("Unable to delete previous avatar object.");
 
             return existingAvatar;
         }
@@ -266,7 +287,7 @@ public class AttachmentService : IAttachmentService
 
         if (!validationResult.IsValid)
         {
-            _logger.LogWarning("File validation failed for {FileName}: {Errors}", fileName, validationResult.ErrorMessage);
+            _logger.LogWarning("File validation failed.");
             throw new RequestValidationException(validationResult.ErrorMessage);
         }
     }
@@ -329,6 +350,6 @@ public class AttachmentService : IAttachmentService
     private async Task DeleteStorageFileBestEffort(string storagePath)
     {
         if (!await _storageService.DeleteFileAsync(storagePath))
-            _logger.LogWarning("Unable to clean up storage object {StoragePath}", storagePath);
+            _logger.LogWarning("Unable to clean up storage object.");
     }
 }

@@ -169,7 +169,7 @@ public class OrganizationsService : IOrganizationsService
         foreach (var storagePath in storagePaths)
         {
             if (!await _storageService.DeleteFileAsync(storagePath))
-                _logger.LogWarning("Unable to delete storage object {StoragePath} of deleted organization {OrganizationId}", storagePath, organizationId);
+                _logger.LogWarning("Unable to delete storage object of deleted organization.");
         }
 
         return OrganizationActionResult<Organization>.Succeeded(organization);

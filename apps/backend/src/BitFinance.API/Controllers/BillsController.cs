@@ -1,5 +1,3 @@
-using System.ComponentModel;
-using System.Globalization;
 using System.Security.Claims;
 using Asp.Versioning;
 using BitFinance.API.Attributes;
@@ -16,7 +14,7 @@ using BitFinance.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Serilog;
+using BitFinance.API.Observability;
 
 namespace BitFinance.API.Controllers;
 
@@ -114,6 +112,9 @@ public class BillsController : ControllerBase
                 };
 
                 await _billsRepository.CreateAsync(bill);
+                BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Created);
+                if (bill.Status == BillStatus.Paid)
+                    BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Paid);
 
                 return CreatedAtAction(nameof(GetBillById), new
                 {
@@ -138,6 +139,7 @@ public class BillsController : ControllerBase
             };
 
             await _billSeriesRepository.CreateAsync(series);
+            BusinessTelemetry.RecordDomainOperation(DomainEntities.BillSeries, DomainOperations.Created);
 
             var horizon = BillGenerationService.GetRollingHorizon(organization);
             await _billGenerationService.GenerateOccurrencesAsync(series, horizon, organization);
@@ -176,10 +178,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(CreateBillAsync),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(CreateBillAsync));
             return BadRequest();
         }
     }
@@ -231,10 +230,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(GetBillsAsync),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(GetBillsAsync));
             return BadRequest();
         }
     }
@@ -263,10 +259,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(GetBillById),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(GetBillById));
             return BadRequest();
         }
     }
@@ -300,6 +293,7 @@ public class BillsController : ControllerBase
                 return NotFound();
             }
 
+            var wasPaid = bill.Status == BillStatus.Paid;
             bill.Description = request.Description;
             if (request.Notes is not null)
                 bill.Notes = NormalizeNotes(request.Notes);
@@ -319,6 +313,10 @@ public class BillsController : ControllerBase
                 b => b.PaymentDate,
                 b => b.AmountDue,
                 b => b.AmountPaid);
+
+            BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Updated);
+            if (!wasPaid && bill.Status == BillStatus.Paid)
+                BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Paid);
 
             var response = new UpdateBillResponse
             {
@@ -342,10 +340,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(UpdateBill),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(UpdateBill));
             return BadRequest();
         }
     }
@@ -371,15 +366,13 @@ public class BillsController : ControllerBase
             }
 
             await _billsRepository.DeleteAsync(bill);
+            BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Deleted);
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(DeleteBillById),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(DeleteBillById));
             return BadRequest();
         }
     }
@@ -528,10 +521,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(DeleteDocument),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(DeleteDocument));
             return BadRequest();
         }
     }
@@ -591,6 +581,7 @@ public class BillsController : ControllerBase
                 await _billSeriesRepository.UpdateAsync(series,
                     s => s.IsActive,
                     s => s.StoppedAt);
+                BusinessTelemetry.RecordDomainOperation(DomainEntities.BillSeries, DomainOperations.Stopped);
             }
 
             // Runs for already-stopped series too, so series stopped before future occurrences were removed get cleaned up.
@@ -603,6 +594,7 @@ public class BillsController : ControllerBase
             }
 
             await _billsRepository.DeleteRangeAsync(futureBills);
+            BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Deleted, futureBills.Count);
 
             // Cached occurrences embed the series, so drop them to expose the new IsActive state.
             await _billsRepository.RemoveSeriesBillsFromCacheAsync(series.Id);
@@ -611,10 +603,7 @@ public class BillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(StopBillSeriesAsync),
-                ex.Message);
+            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(StopBillSeriesAsync));
             return BadRequest();
         }
     }

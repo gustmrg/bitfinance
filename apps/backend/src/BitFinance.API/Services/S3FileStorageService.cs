@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using Amazon.S3;
 using Amazon.S3.Model;
+using BitFinance.API.Observability;
 using BitFinance.API.Services.Interfaces;
 using BitFinance.API.Settings;
 using Microsoft.Extensions.Options;
@@ -58,7 +59,7 @@ public class S3FileStorageService : IFileStorageService
                 ContentType = contentType
             };
 
-            await _s3Client.PutObjectAsync(putRequest);
+            await StorageTelemetry.TrackAsync(StorageOperations.Put, () => _s3Client.PutObjectAsync(putRequest));
 
             return new FileStorageResult
             {
@@ -71,7 +72,7 @@ public class S3FileStorageService : IFileStorageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving file {FileName} to S3", fileName);
+            _logger.LogError(ex, "S3 file save failed.");
             return new FileStorageResult
             {
                 Success = false,
@@ -82,11 +83,11 @@ public class S3FileStorageService : IFileStorageService
 
     public async Task<Stream> GetFileAsync(string storagePath)
     {
-        var response = await _s3Client.GetObjectAsync(new GetObjectRequest
+        var response = await StorageTelemetry.TrackAsync(StorageOperations.Get, () => _s3Client.GetObjectAsync(new GetObjectRequest
         {
             BucketName = _settings.BucketName,
             Key = storagePath
-        });
+        }));
 
         return response.ResponseStream;
     }
@@ -118,17 +119,17 @@ public class S3FileStorageService : IFileStorageService
     {
         try
         {
-            var response = await _s3Client.DeleteObjectAsync(new DeleteObjectRequest
+            var response = await StorageTelemetry.TrackAsync(StorageOperations.Delete, () => _s3Client.DeleteObjectAsync(new DeleteObjectRequest
             {
                 BucketName = _settings.BucketName,
                 Key = storagePath
-            });
+            }));
 
             return response.HttpStatusCode == HttpStatusCode.NoContent;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting file {StoragePath} from S3", storagePath);
+            _logger.LogError(ex, "S3 file deletion failed.");
             return false;
         }
     }
@@ -137,11 +138,11 @@ public class S3FileStorageService : IFileStorageService
     {
         try
         {
-            await _s3Client.GetObjectMetadataAsync(new GetObjectMetadataRequest
+            await StorageTelemetry.TrackAsync(StorageOperations.Head, () => _s3Client.GetObjectMetadataAsync(new GetObjectMetadataRequest
             {
                 BucketName = _settings.BucketName,
                 Key = storagePath
-            });
+            }));
 
             return true;
         }

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Security.Claims;
 using Asp.Versioning;
 using BitFinance.API.Attributes;
@@ -12,7 +11,7 @@ using BitFinance.Business.Exceptions;
 using BitFinance.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Serilog;
+using BitFinance.API.Observability;
 
 namespace BitFinance.API.Controllers;
 
@@ -148,10 +147,7 @@ public class ExpensesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(GetExpenseById),
-                ex.Message);
+            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(GetExpenseById));
             return BadRequest();
         }
     }
@@ -194,10 +190,7 @@ public class ExpensesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(CreateExpenseAsync),
-                ex.Message);
+            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(CreateExpenseAsync));
             return BadRequest();
         }
     }
@@ -252,10 +245,7 @@ public class ExpensesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(CreateExpensesBatchAsync),
-                ex.Message);
+            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(CreateExpensesBatchAsync));
             return BadRequest();
         }
     }
@@ -299,6 +289,7 @@ public class ExpensesController : ControllerBase
             expense.UpdatedAt = DateTime.UtcNow;
 
             await _expensesRepository.UpdateAsync(expense);
+            BusinessTelemetry.RecordDomainOperation(DomainEntities.Expense, DomainOperations.Updated);
 
             return Ok(new UpdateExpenseResponse(
                 expense.Id,
@@ -313,10 +304,7 @@ public class ExpensesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(UpdateExpense),
-                ex.Message);
+            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(UpdateExpense));
             return BadRequest();
         }
     }
@@ -342,15 +330,13 @@ public class ExpensesController : ControllerBase
             }
 
             await _expensesRepository.DeleteAsync(expense);
+            BusinessTelemetry.RecordDomainOperation(DomainEntities.Expense, DomainOperations.Deleted);
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(DeleteExpenseById),
-                ex.Message);
+            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(DeleteExpenseById));
             return BadRequest();
         }
     }
@@ -491,10 +477,7 @@ public class ExpensesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Log.Error("{Timestamp} - Error on {MethodName} method request: {Message}",
-                DateTime.Now.ToString("s", CultureInfo.InvariantCulture),
-                nameof(DeleteDocument),
-                ex.Message);
+            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(DeleteDocument));
             return BadRequest();
         }
     }

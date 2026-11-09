@@ -40,6 +40,24 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  bitfinance-alloy:
+    restart: always
+    environment:
+      - ALLOY_ENVIRONMENT=production
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 192M
+        reservations:
+          cpus: '0.05'
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   bitfinance-db:
     restart: always
     ports:
