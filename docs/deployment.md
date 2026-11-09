@@ -25,6 +25,7 @@ flowchart LR
 |---|---|---|---|
 | Main Validation | `main-validation.yml` | Pull requests and pushes to `main` | Validates the apps whose files changed |
 | Validate | `validate.yml` | Called by Main Validation and Release | Build, test and lint steps for one app |
+| Observability | `observability.yml` | Pull requests and pushes to `main` that change the backend or MCP server | Dashboard and alert checks and the end-to-end telemetry smoke test. See [observability.md](observability.md) |
 | Release | `release.yml` | Manual (`workflow_dispatch`) | The only way to release a new version |
 | Backend Publish | `backend-docker-publish.yml` | Called by Release, or manual to republish | Docker image, database migrations and API deploy |
 | MCP Server Publish | `mcp-docker-publish.yml` | Called by Release, or manual to republish | Docker image and MCP server deploy |

@@ -12,7 +12,6 @@ public sealed class DependencyStatusPublisher : IHealthCheckPublisher
     private static readonly ObservableGauge<int> StatusGauge = BitFinanceTelemetry.Meter.CreateObservableGauge(
         "bitfinance.dependency.status",
         Observe,
-        unit: "1",
         description: "1 when the last periodic check of a dependency succeeded, 0 otherwise.");
 
     public Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
