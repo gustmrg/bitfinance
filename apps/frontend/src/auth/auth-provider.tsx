@@ -9,12 +9,22 @@ import {
   type ReactNode,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { toast } from "sonner";
 
 import { accountService } from "../api/account/account.service";
 import { authService } from "../api/auth/auth.service";
 import type { AuthCredentials, RegisterCredentials, User } from "../api/auth/auth.types";
+import { refreshAccessToken } from "../api/shared/client";
 import { setSessionExpiredListener } from "../api/shared/session-events";
-import { clearAccessToken, setAccessToken } from "../lib/auth-token";
+import i18n from "../i18n";
+import {
+  clearAccessToken,
+  forgetSession,
+  hadSession,
+  rememberSession,
+  setAccessToken,
+} from "../lib/auth-token";
 import { queryKeys } from "../lib/query-keys";
 import { useOrganizationStore } from "./auth-store";
 
@@ -65,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const withAvatar = { ...next, avatarUrl };
+    rememberSession();
     setUser(withAvatar);
     selectInitialOrganization(withAvatar);
     setStatus("authenticated");
@@ -73,7 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearAvatarObjectUrl, queryClient]);
 
   useEffect(() => {
-    const expire = () => {
+    const expire = (error: unknown) => {
+      if (hadSession()) {
+        const unauthorized = isAxiosError(error) && error.response?.status === 401;
+        toast.error(i18n.t(unauthorized ? "auth.sessionExpired" : "api.auth.restoreSession"));
+      }
+      forgetSession();
       clearAccessToken();
       clearAvatarObjectUrl();
       setUser(null);
@@ -81,12 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void queryClient.clear();
     };
     setSessionExpiredListener(expire);
-    void authService
-      .refreshAsync()
-      .then((session) => {
-        setAccessToken(session.accessToken, session.accessTokenExpiresAt);
-        return refreshUser();
-      })
+    void refreshAccessToken()
+      .then(() => refreshUser())
       .catch(expire);
     return () => setSessionExpiredListener(null);
   }, [clearAvatarObjectUrl, queryClient, refreshUser]);
@@ -108,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           await authService[allDevices ? "logoutAllAsync" : "logoutAsync"]();
         } finally {
+          forgetSession();
           clearAccessToken();
           clearAvatarObjectUrl();
           setUser(null);

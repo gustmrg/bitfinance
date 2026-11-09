@@ -136,6 +136,7 @@ export const ptBR = {
       accountCreated: "Conta criada",
       unableContinue: "Não foi possível continuar.",
       protectedSession: "Verificando sua sessão",
+      sessionExpired: "Sua sessão expirou. Entre novamente para continuar.",
       or: "ou",
       continueWithGoogle: "Continuar com Google",
       googleErrors: {

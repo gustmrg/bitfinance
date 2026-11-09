@@ -135,6 +135,7 @@ export const enUS = {
       accountCreated: "Account created",
       unableContinue: "Unable to continue.",
       protectedSession: "Checking your session",
+      sessionExpired: "Your session expired. Sign in again to continue.",
       or: "or",
       continueWithGoogle: "Continue with Google",
       googleErrors: {

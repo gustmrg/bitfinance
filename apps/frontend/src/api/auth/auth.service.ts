@@ -25,13 +25,6 @@ export const authService = {
       throw normalizeApiError(error, "api.auth.signIn");
     }
   },
-  async refreshAsync(): Promise<AuthSessionResponse> {
-    try {
-      return (await publicApi.post<AuthSessionResponse>("/identity/refresh")).data;
-    } catch (error) {
-      throw normalizeApiError(error, "api.auth.restoreSession");
-    }
-  },
   async logoutAsync() {
     try {
       await authApi.post("/identity/logout");
