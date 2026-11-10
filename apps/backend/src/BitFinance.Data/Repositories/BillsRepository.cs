@@ -162,6 +162,14 @@ public class BillsRepository : IBillsRepository
         return bill;
     }
 
+    public async Task<Bill?> GetByIdAsync(Guid id, Guid organizationId)
+    {
+        // The cache is keyed by bill id alone, so ownership is checked after the lookup.
+        var bill = await GetByIdAsync(id);
+
+        return bill?.OrganizationId == organizationId ? bill : null;
+    }
+
     public async Task<List<Bill>> GetUpcomingBills(Guid organizationId, DateOnly? startDate = null, DateOnly? endDate = null)
     {
         return await BuildUpcomingBillsQuery(organizationId, startDate, endDate)

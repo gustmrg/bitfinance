@@ -106,6 +106,15 @@ public class ExpensesRepository : IExpensesRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<Expense?> GetByIdAsync(Guid expenseId, Guid organizationId)
+    {
+        return await _dbContext.Set<Expense>()
+            .Include(e => e.CreatedByUser)
+            .Include(e => e.Attachments)
+            .Where(e => e.Id == expenseId && e.OrganizationId == organizationId)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<Expense> CreateAsync(Expense expense)
     {
         _dbContext.Set<Expense>().Add(expense);
