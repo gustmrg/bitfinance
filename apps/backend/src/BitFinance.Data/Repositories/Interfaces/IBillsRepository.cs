@@ -23,5 +23,4 @@ public interface IBillsRepository : IRepository<Bill, Guid>
     Task DeleteRangeAsync(List<Bill> bills);
     Task<int> GetMonthlyCountByOrganizationAsync(Guid organizationId, DateTime monthStartUtc, DateTime monthEndUtc);
     Task<int> GetOneTimeMonthlyCountByOrganizationAsync(Guid organizationId, DateTime monthStartUtc, DateTime monthEndUtc);
-    Task CreateRangeAsync(List<Bill> bills);
 }

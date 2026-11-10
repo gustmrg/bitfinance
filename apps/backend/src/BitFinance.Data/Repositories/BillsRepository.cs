@@ -266,15 +266,6 @@ public class BillsRepository : IBillsRepository
         return bill;
     }
 
-    public async Task CreateRangeAsync(List<Bill> bills)
-    {
-        if (bills.Count == 0)
-            return;
-
-        await _dbContext.Set<Bill>().AddRangeAsync(bills);
-        await _dbContext.SaveChangesAsync();
-    }
-
     public async Task UpdateAsync(Bill bill)
     {
         _dbContext.Set<Bill>().Update(bill);
