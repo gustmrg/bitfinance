@@ -179,7 +179,10 @@ def main():
                             for export in capture['traces'] for group in export.resource_spans
                             for scope in group.scope_spans for span in scope.spans if span.trace_id.hex() == identifier]
 
-            wait_for(lambda: any(span.name == 'postgresql.command' for _, span in spans_for(trace_id)), 'MCP → API → PostgreSQL trace')
+            # The MCP server exports its spans separately and after the API's, so wait for both sides of the trace.
+            wait_for(lambda: {'postgresql.command', 'mcp.tool'} <= {span.name for _, span in spans_for(trace_id)}
+                     and any(span.kind == 3 for name, span in spans_for(trace_id) if name == 'bitfinance-mcp'),
+                     'MCP → API → PostgreSQL trace')
             spans = spans_for(trace_id)
             assert {'bitfinance-api', 'bitfinance-mcp'} <= {name for name, _ in spans}
             assert any(span.name == 'mcp.tool' for _, span in spans)
