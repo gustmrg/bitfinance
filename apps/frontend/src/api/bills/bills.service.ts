@@ -5,7 +5,9 @@ import type {
   BillDocument,
   BillInput,
   BillListFilters,
+  BillPage,
   BillSeries,
+  BillSummary,
   Paged,
 } from "./bills.types";
 
@@ -43,9 +45,9 @@ const map = (wire: BillWire): Bill => ({
 });
 
 export const billsService = {
-  async listAsync(filters: BillListFilters): Promise<Paged<Bill>> {
+  async listAsync(filters: BillListFilters): Promise<BillPage> {
     try {
-      const response = await authApi.get<Paged<BillWire>>(
+      const response = await authApi.get<Paged<BillWire> & { summary?: BillSummary }>(
         `/organizations/${filters.organizationId}/bills`,
         {
           params: {
@@ -53,12 +55,17 @@ export const billsService = {
             pageSize: filters.pageSize,
             from: filters.from?.toISOString(),
             to: filters.to?.toISOString(),
-            status: filters.status,
+            status: filters.statuses?.length ? filters.statuses.join(",") : undefined,
+            type: filters.type,
             description: filters.description || undefined,
           },
         },
       );
-      return { ...response.data, data: response.data.data.map(map) };
+      return {
+        ...response.data,
+        data: response.data.data.map(map),
+        summary: response.data.summary ?? { toPay: 0, overdue: 0, nextSevenDays: 0, paid: 0 },
+      };
     } catch (error) {
       throw normalizeApiError(error, "api.bills.load");
     }

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import type { Bill, BillSeriesType, BillStatus } from "@/api/bills/bills.types";
+import type { Bill, BillStatus, BillTypeFilter } from "@/api/bills/bills.types";
 import { Amount } from "@/components/base/amount";
 import { Button } from "@/components/base/button";
 import { Card } from "@/components/base/card";
@@ -33,11 +33,13 @@ import { buildMarkPaidInput } from "@/pages/bills/mark-paid";
 type StatusFilter = "all" | "open" | "overdue" | "paid";
 type GroupKey = "overdue" | "week" | "later" | "settled";
 
-const serverStatus: Record<StatusFilter, BillStatus | undefined> = {
+type SeriesFilter = BillTypeFilter | "all";
+
+const serverStatuses: Record<StatusFilter, BillStatus[] | undefined> = {
   all: undefined,
-  open: undefined,
-  overdue: "overdue",
-  paid: "paid",
+  open: ["created", "upcoming", "due", "overdue"],
+  overdue: ["overdue"],
+  paid: ["paid"],
 };
 
 function groupOf(bill: Bill): GroupKey {
@@ -57,7 +59,7 @@ export function BillsPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search);
   const [status, setStatus] = useState<StatusFilter>("all");
-  const [series, setSeries] = useState<BillSeriesType | "one-time" | "all">("all");
+  const [series, setSeries] = useState<SeriesFilter>("all");
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -83,32 +85,19 @@ export function BillsPage() {
           pageSize: 50,
           from: month.from,
           to: month.to,
-          status: serverStatus[status],
+          statuses: serverStatuses[status],
+          type: series === "all" ? undefined : series,
           description: debouncedSearch,
         }
       : null,
   );
   const mutations = useBillMutations(organizationId);
-  const rows = (query.data?.data ?? [])
-    .filter((bill) =>
-      series === "all"
-        ? true
-        : series === "one-time"
-          ? !bill.billSeriesType
-          : bill.billSeriesType === series,
-    )
-    .filter((bill) => status !== "open" || groupOf(bill) !== "settled")
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const rows = [...(query.data?.data ?? [])].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const summary = query.data?.summary;
   const sumOf = (items: Bill[]) => items.reduce((sum, bill) => sum + bill.amountDue, 0);
   const groups = groupOrder
     .map((key) => ({ key, items: rows.filter((bill) => groupOf(bill) === key) }))
     .filter((group) => group.items.length > 0);
-  const open = rows.filter((bill) => groupOf(bill) !== "settled");
-  const overdue = rows.filter((bill) => groupOf(bill) === "overdue");
-  const week = rows.filter((bill) => groupOf(bill) === "week");
-  const paidTotal = rows
-    .filter((bill) => bill.status === "paid")
-    .reduce((sum, bill) => sum + (bill.amountPaid ?? bill.amountDue), 0);
   const filtered = Boolean(search) || status !== "all" || series !== "all";
   const clear = () => {
     setSearch("");
@@ -190,13 +179,16 @@ export function BillsPage() {
           ]}
         />
         <div className="w-44">
-          <Select<BillSeriesType | "one-time" | "all">
+          <Select<SeriesFilter>
             ariaLabel={t("bills.type")}
             value={series}
-            onValueChange={setSeries}
+            onValueChange={(value) => {
+              setSeries(value);
+              setPage(1);
+            }}
             options={[
               { value: "all", label: t("bills.allTypes") },
-              { value: "one-time", label: t("bills.oneTime") },
+              { value: "oneTime", label: t("bills.oneTime") },
               { value: "recurring", label: t("bills.recurring") },
               { value: "installment", label: t("bills.installments") },
             ]}
@@ -221,24 +213,24 @@ export function BillsPage() {
         <Stat
           className="border-b border-r border-line p-5 md:border-b-0"
           label={t("bills.toPay")}
-          value={<Amount value={sumOf(open)} />}
+          value={<Amount value={summary?.toPay ?? 0} />}
         />
         <Stat
           className="border-b border-line p-5 md:border-b-0 md:border-r"
           tone="danger"
           label={t("bills.overdueTotal")}
-          value={<Amount value={sumOf(overdue)} />}
+          value={<Amount value={summary?.overdue ?? 0} />}
         />
         <Stat
           className="border-r border-line p-5"
           label={t("bills.nextSevenDays")}
-          value={<Amount value={sumOf(week)} />}
+          value={<Amount value={summary?.nextSevenDays ?? 0} />}
         />
         <Stat
           className="p-5"
           tone="success"
           label={t("bills.paidTotal")}
-          value={<Amount value={paidTotal} />}
+          value={<Amount value={summary?.paid ?? 0} />}
         />
       </Card>
       <Card padding="none" className="px-4 pb-3 sm:px-6">

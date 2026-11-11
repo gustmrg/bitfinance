@@ -12,8 +12,9 @@ export function useBillsQuery(filters: BillListFilters | null) {
           filters.pageSize,
           filters.from,
           filters.to,
-          filters.status,
+          filters.statuses?.join(","),
           filters.description,
+          filters.type,
         )
       : ["bills", "disabled"],
     queryFn: () => billsService.listAsync(filters!),
