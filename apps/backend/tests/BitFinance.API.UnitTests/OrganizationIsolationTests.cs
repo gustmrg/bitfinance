@@ -1,6 +1,7 @@
 using BitFinance.API.Controllers;
 using BitFinance.API.Models.Request;
 using BitFinance.API.Models.Response;
+using BitFinance.API.Services;
 using BitFinance.API.Services.Interfaces;
 using BitFinance.Business.Entities;
 using BitFinance.Business.Enums;
@@ -70,13 +71,13 @@ public class OrganizationIsolationTests : IDisposable
         _dbContext.ChangeTracker.Clear();
 
         _billsController = new BillsController(
-            _dbContext,
-            Mock.Of<ILogger<BillsController>>(),
-            new BillsRepository(new ConfigurationBuilder().Build(), _dbContext, Mock.Of<ICacheService>()),
-            new BillSeriesRepository(_dbContext),
-            Mock.Of<IBillGenerationService>(),
-            _attachmentService.Object,
-            new OrganizationsRepository(_dbContext));
+            new BillsService(
+                new BillsRepository(new ConfigurationBuilder().Build(), _dbContext, Mock.Of<ICacheService>()),
+                new BillSeriesRepository(_dbContext),
+                Mock.Of<IBillGenerationService>(),
+                _attachmentService.Object,
+                new OrganizationsRepository(_dbContext)),
+            _attachmentService.Object);
         _expensesController = new ExpensesController(
             Mock.Of<ILogger<ExpensesController>>(),
             new ExpensesRepository(_dbContext),

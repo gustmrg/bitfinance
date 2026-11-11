@@ -1,9 +1,9 @@
 using BitFinance.API.Controllers;
+using BitFinance.API.Services;
 using BitFinance.API.Services.Interfaces;
 using BitFinance.Business.Entities;
 using BitFinance.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -22,17 +22,17 @@ public class BillsControllerStopSeriesTests
     public BillsControllerStopSeriesTests()
     {
         _organizationsRepository
-            .Setup(repository => repository.GetByIdAsync(OrganizationId))
+            .Setup(repository => repository.GetWithoutRelationsAsync(OrganizationId))
             .ReturnsAsync(new Organization { Id = OrganizationId, TimeZoneId = "America/Fortaleza" });
 
         _controller = new BillsController(
-            null!,
-            Mock.Of<ILogger<BillsController>>(),
-            _billsRepository.Object,
-            _billSeriesRepository.Object,
-            Mock.Of<IBillGenerationService>(),
-            _attachmentService.Object,
-            _organizationsRepository.Object);
+            new BillsService(
+                _billsRepository.Object,
+                _billSeriesRepository.Object,
+                Mock.Of<IBillGenerationService>(),
+                _attachmentService.Object,
+                _organizationsRepository.Object),
+            _attachmentService.Object);
     }
 
     [Fact]
