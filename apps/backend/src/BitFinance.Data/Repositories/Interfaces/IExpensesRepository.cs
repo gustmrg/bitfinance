@@ -18,6 +18,10 @@ public interface IExpensesRepository
     Task<List<Expense>> GetRecentExpenses(Guid organizationId, DateTime? startDate = null, DateTime? endDate = null);
     Task<decimal> GetTotalAmountAsync(Guid organizationId, DateTime? startDate = null, DateTime? endDate = null);
     Task<Expense?> GetByIdAsync(Guid expenseId);
+    /// <summary>
+    /// Returns the expense only when it belongs to the given organization.
+    /// </summary>
+    Task<Expense?> GetByIdAsync(Guid expenseId, Guid organizationId);
     Task<Expense> CreateAsync(Expense expense);
     Task<List<Expense>> CreateRangeAsync(List<Expense> expenses);
     Task<Expense> UpdateAsync(Expense expense);

@@ -246,7 +246,7 @@ public class BillsController : ControllerBase
     {
         try
         {
-            Bill? bill = await _billsRepository.GetByIdAsync(billId);
+            Bill? bill = await _billsRepository.GetByIdAsync(billId, organizationId);
 
             if (bill is null)
             {
@@ -286,7 +286,7 @@ public class BillsController : ControllerBase
             var bill = await _context.Bills
                 .Include(b => b.BillSeries)
                 .Include(b => b.Organization)
-                .FirstOrDefaultAsync(b => b.Id == billId);
+                .FirstOrDefaultAsync(b => b.Id == billId && b.OrganizationId == organizationId);
 
             if (bill is null)
             {
@@ -353,7 +353,7 @@ public class BillsController : ControllerBase
     {
         try
         {
-            Bill? bill = await _billsRepository.GetByIdAsync(billId);
+            Bill? bill = await _billsRepository.GetByIdAsync(billId, organizationId);
 
             if (bill is null)
             {
@@ -440,7 +440,7 @@ public class BillsController : ControllerBase
     [EndpointDescription("Downloads a specific document attached to a bill.")]
     public async Task<IActionResult> GetDocument([FromRoute] Guid organizationId, Guid billId, Guid documentId)
     {
-        Bill? bill = await _billsRepository.GetByIdAsync(billId);
+        Bill? bill = await _billsRepository.GetByIdAsync(billId, organizationId);
 
         if (bill is null)
         {

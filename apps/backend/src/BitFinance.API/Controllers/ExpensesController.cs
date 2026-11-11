@@ -115,7 +115,7 @@ public class ExpensesController : ControllerBase
     {
         try
         {
-            var expense = await _expensesRepository.GetByIdAsync(expenseId);
+            var expense = await _expensesRepository.GetByIdAsync(expenseId, organizationId);
 
             if (expense is null)
             {
@@ -273,7 +273,7 @@ public class ExpensesController : ControllerBase
             if (!TryParseOptionalEnum(request.PaymentMethod, out PaymentMethod? paymentMethod))
                 return UnprocessableEntity("Invalid payment method.");
 
-            var expense = await _expensesRepository.GetByIdAsync(expenseId);
+            var expense = await _expensesRepository.GetByIdAsync(expenseId, organizationId);
 
             if (expense is null) return NotFound();
 
@@ -317,7 +317,7 @@ public class ExpensesController : ControllerBase
     {
         try
         {
-            Expense? expense = await _expensesRepository.GetByIdAsync(expenseId);
+            Expense? expense = await _expensesRepository.GetByIdAsync(expenseId, organizationId);
 
             if (expense is null)
             {

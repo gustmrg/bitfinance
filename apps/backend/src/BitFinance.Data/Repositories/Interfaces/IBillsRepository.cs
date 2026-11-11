@@ -6,6 +6,10 @@ namespace BitFinance.Data.Repositories.Interfaces;
 
 public interface IBillsRepository : IRepository<Bill, Guid>
 {
+    /// <summary>
+    /// Returns the bill only when it belongs to the given organization.
+    /// </summary>
+    Task<Bill?> GetByIdAsync(Guid id, Guid organizationId);
     Task<(List<Bill> Items, int TotalCount)> GetAllByOrganizationAsync(Guid organizationId, int page, int pageSize,
         DateOnly? startDate = null, DateOnly? endDate = null,
         List<BillStatus>? statuses = null, string? description = null);
