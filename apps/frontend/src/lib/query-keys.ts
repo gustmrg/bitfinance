@@ -39,6 +39,7 @@ export const queryKeys = {
       to?: Date,
       status?: string,
       description?: string,
+      type?: string,
     ) =>
       [
         "bills",
@@ -50,6 +51,7 @@ export const queryKeys = {
         dateKey(to),
         status ?? null,
         description ?? null,
+        type ?? null,
       ] as const,
     detail: (organizationId: string, billId: string) =>
       ["bills", "detail", organizationId, billId] as const,

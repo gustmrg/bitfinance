@@ -10,9 +10,10 @@ public interface IBillsRepository : IRepository<Bill, Guid>
     /// Returns the bill only when it belongs to the given organization.
     /// </summary>
     Task<Bill?> GetByIdAsync(Guid id, Guid organizationId);
-    Task<(List<Bill> Items, int TotalCount)> GetAllByOrganizationAsync(Guid organizationId, int page, int pageSize,
+    Task<(List<Bill> Items, int TotalCount, BillListSummary Summary)> GetAllByOrganizationAsync(
+        Guid organizationId, int page, int pageSize, DateOnly today,
         DateOnly? startDate = null, DateOnly? endDate = null,
-        List<BillStatus>? statuses = null, string? description = null);
+        List<BillStatus>? statuses = null, string? description = null, BillTypeFilter? type = null);
     Task<List<Bill>> GetAllByStatusAsync(BillStatus billStatus);
     Task<List<Bill>> GetAllByOrganizationAndStatusAsync(Guid organizationId, BillStatus billStatus);
     Task<List<Bill>> GetUpcomingBills(Guid organizationId, DateOnly? startDate = null, DateOnly? endDate = null);

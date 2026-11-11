@@ -41,9 +41,10 @@ public class BillsRepository : IBillsRepository
         return list;
     }
     
-    public async Task<(List<Bill> Items, int TotalCount)> GetAllByOrganizationAsync(Guid organizationId, int page, int pageSize,
+    public async Task<(List<Bill> Items, int TotalCount, BillListSummary Summary)> GetAllByOrganizationAsync(
+        Guid organizationId, int page, int pageSize, DateOnly today,
         DateOnly? startDate = null, DateOnly? endDate = null,
-        List<BillStatus>? statuses = null, string? description = null)
+        List<BillStatus>? statuses = null, string? description = null, BillTypeFilter? type = null)
     {
         var query = _dbContext.Set<Bill>()
             .AsNoTracking()
@@ -69,7 +70,39 @@ public class BillsRepository : IBillsRepository
             query = query.Where(b => EF.Functions.ILike(b.Description, $"%{description}%"));
         }
 
-        var totalCount = await query.CountAsync();
+        query = type switch
+        {
+            BillTypeFilter.OneTime => query.Where(b => b.BillSeriesId == null),
+            BillTypeFilter.Recurring => query.Where(b => b.BillSeriesId != null && b.TotalOccurrences == null),
+            BillTypeFilter.Installment => query.Where(b => b.BillSeriesId != null && b.TotalOccurrences != null),
+            _ => query
+        };
+
+        // Count and totals cover every matching bill, so they stay correct when the list spans several pages.
+        var weekEnd = today.AddDays(7);
+        var totals = await query
+            .GroupBy(_ => 1)
+            .Select(group => new
+            {
+                Count = group.Count(),
+                ToPay = group.Sum(b =>
+                    b.Status != BillStatus.Paid && b.Status != BillStatus.Cancelled ? b.AmountDue : 0),
+                Overdue = group.Sum(b =>
+                    b.Status != BillStatus.Paid && b.Status != BillStatus.Cancelled
+                    && (b.Status == BillStatus.Overdue || b.DueDate < today)
+                        ? b.AmountDue
+                        : 0),
+                NextSevenDays = group.Sum(b =>
+                    b.Status != BillStatus.Paid && b.Status != BillStatus.Cancelled
+                    && b.Status != BillStatus.Overdue && b.DueDate >= today && b.DueDate <= weekEnd
+                        ? b.AmountDue
+                        : 0),
+                Paid = group.Sum(b => b.Status == BillStatus.Paid ? b.AmountPaid ?? b.AmountDue : 0)
+            })
+            .FirstOrDefaultAsync();
+
+        if (totals is null)
+            return ([], 0, BillListSummary.Empty);
 
         var items = await query
             .Include(b => b.Attachments)
@@ -79,7 +112,7 @@ public class BillsRepository : IBillsRepository
             .Take(pageSize)
             .ToListAsync();
 
-        return (items, totalCount);
+        return (items, totals.Count, new BillListSummary(totals.ToPay, totals.Overdue, totals.NextSevenDays, totals.Paid));
     }
     
     public async Task<List<Bill>> GetAllByStatusAsync(BillStatus billStatus)

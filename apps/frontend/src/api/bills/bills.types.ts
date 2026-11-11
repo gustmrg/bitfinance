@@ -67,13 +67,22 @@ export interface Paged<T> {
   totalRecords: number;
   totalPages: number;
 }
+export type BillTypeFilter = "oneTime" | BillSeriesType;
+export interface BillSummary {
+  toPay: number;
+  overdue: number;
+  nextSevenDays: number;
+  paid: number;
+}
+export type BillPage = Paged<Bill> & { summary: BillSummary };
 export interface BillListFilters {
   organizationId: string;
   page: number;
   pageSize: number;
   from?: Date;
   to?: Date;
-  status?: BillStatus;
+  statuses?: BillStatus[];
+  type?: BillTypeFilter;
   description?: string;
 }
 export interface BillInput {

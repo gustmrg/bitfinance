@@ -185,18 +185,29 @@ public class BillsController : ControllerBase
 
     [HttpGet]
     [EndpointSummary("List bills")]
-    [EndpointDescription("Returns a paginated list of bills for the organization. Supports optional filtering by date range, status (comma-separated), and description (case-insensitive search).")]
+    [EndpointDescription("Returns a paginated list of bills for the organization. Supports optional filtering by date range, status (comma-separated), description (case-insensitive search), and type (oneTime, recurring or installment). The summary totals cover every matching bill, not only the returned page.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResponse<GetBillResponse>>> GetBillsAsync(
+    public async Task<ActionResult<BillPageResponse>> GetBillsAsync(
         [FromRoute] Guid organizationId,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 100,
         [FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null,
-        [FromQuery] string? status = null, [FromQuery] string? description = null)
+        [FromQuery] string? status = null, [FromQuery] string? description = null,
+        [FromQuery] string? type = null)
     {
         try
         {
+            BillTypeFilter? typeFilter = null;
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                if (!Enum.TryParse<BillTypeFilter>(type.Trim(), ignoreCase: true, out var parsedType)
+                    || !Enum.IsDefined(parsedType))
+                    return BadRequest("Invalid bill type.");
+
+                typeFilter = parsedType;
+            }
+
             List<BillStatus>? statuses = null;
             if (!string.IsNullOrWhiteSpace(status))
             {
@@ -217,14 +228,17 @@ public class BillsController : ControllerBase
 
             DateOnly? fromDate = from.HasValue ? organization.GetLocalDate(from.Value) : null;
             DateOnly? toDate = to.HasValue ? organization.GetLocalDate(to.Value) : null;
-            var (bills, totalRecords) = await _billsRepository.GetAllByOrganizationAsync(
-                organizationId, page, pageSize, fromDate, toDate, statuses, description);
+            var (bills, totalRecords, summary) = await _billsRepository.GetAllByOrganizationAsync(
+                organizationId, page, pageSize, organization.GetCurrentLocalDate(),
+                fromDate, toDate, statuses, description, typeFilter);
             var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
 
             var billsDto = bills.Select(MapGetBillResponse)
                 .ToList();
 
-            var response = new PagedResponse<GetBillResponse>(billsDto, page, pageSize, totalRecords, totalPages);
+            var response = new BillPageResponse(
+                billsDto, page, pageSize, totalRecords, totalPages,
+                new BillSummaryResponse(summary.ToPay, summary.Overdue, summary.NextSevenDays, summary.Paid));
 
             return Ok(response);
         }
