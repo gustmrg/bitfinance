@@ -106,6 +106,11 @@ jobs:
         working-directory: apps/frontend
         run: pnpm run lint
 
+      - name: Test frontend
+        if: inputs.app == 'frontend'
+        working-directory: apps/frontend
+        run: pnpm run test
+
       - name: Build frontend
         if: inputs.app == 'frontend'
         working-directory: apps/frontend

@@ -85,6 +85,9 @@ jobs:
       - name: Lint app
         run: pnpm run lint
 
+      - name: Test app
+        run: pnpm run test
+
       - name: Build app
         run: pnpm run build
 
