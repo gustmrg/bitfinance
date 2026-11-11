@@ -8,6 +8,7 @@ export const maxAvatarSourceSizeBytes = 10 * 1024 * 1024;
 const maxDocumentSizeBytes = 10 * 1024 * 1024;
 
 export function isAcceptedDocument(file: File) {
-  const extension = `.${file.name.split(".").pop()?.toLowerCase() ?? ""}`;
+  const dot = file.name.lastIndexOf(".");
+  const extension = dot < 0 ? "" : file.name.slice(dot).toLowerCase();
   return acceptedDocumentTypes.split(",").includes(extension) && file.size <= maxDocumentSizeBytes;
 }
