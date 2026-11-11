@@ -58,129 +58,121 @@ public class BillsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<CreateBillResponse>> CreateBillAsync([FromRoute] Guid organizationId, [FromBody] CreateBillRequest request)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
+            return UnprocessableEntity();
+        }
+
+        var isValidCategory = Enum.TryParse(request.Category, true, out BillCategory category);
+        var isValidStatus = Enum.TryParse(request.Status, true, out BillStatus status);
+
+        if (!isValidCategory || !isValidStatus) return UnprocessableEntity();
+
+        if (request.Notes?.Length > 2000)
+            return UnprocessableEntity("Notes must be 2000 characters or fewer.");
+
+        if (request.Installments is { } installments && installments < 1)
+            return UnprocessableEntity("Installments must be a positive integer.");
+
+        if (request.Installments.HasValue && !request.Frequency.HasValue)
+            return UnprocessableEntity("Installments require a frequency.");
+
+        var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+        if (organization is null) return NotFound();
+
+        var entitlement = PlanEntitlement.For(organization.EffectivePlanTier);
+        var (monthStartUtc, monthEndUtc) = organization.GetCurrentMonthBoundariesUtc();
+        var oneTimeBillCount = await _billsRepository.GetOneTimeMonthlyCountByOrganizationAsync(
+            organizationId, monthStartUtc, monthEndUtc);
+        var seriesCount = await _billSeriesRepository.GetMonthlyCountByOrganizationAsync(
+            organizationId, monthStartUtc, monthEndUtc);
+        var currentBillCount = oneTimeBillCount + seriesCount;
+
+        if (currentBillCount >= entitlement.MaxBillsPerMonth)
+            return StatusCode(403, new { error = $"Monthly bill limit of {entitlement.MaxBillsPerMonth} reached." });
+
+        var dueDate = organization.GetLocalDate(request.DueDate);
+
+        if (request.Frequency is null)
+        {
+            Bill bill = new()
             {
-                return UnprocessableEntity();
-            }
-
-            var isValidCategory = Enum.TryParse(request.Category, true, out BillCategory category);
-            var isValidStatus = Enum.TryParse(request.Status, true, out BillStatus status);
-
-            if (!isValidCategory || !isValidStatus) return UnprocessableEntity();
-
-            if (request.Notes?.Length > 2000)
-                return UnprocessableEntity("Notes must be 2000 characters or fewer.");
-
-            if (request.Installments is { } installments && installments < 1)
-                return UnprocessableEntity("Installments must be a positive integer.");
-
-            if (request.Installments.HasValue && !request.Frequency.HasValue)
-                return UnprocessableEntity("Installments require a frequency.");
-
-            var organization = await _organizationsRepository.GetByIdAsync(organizationId);
-            if (organization is null) return NotFound();
-
-            var entitlement = PlanEntitlement.For(organization.EffectivePlanTier);
-            var (monthStartUtc, monthEndUtc) = organization.GetCurrentMonthBoundariesUtc();
-            var oneTimeBillCount = await _billsRepository.GetOneTimeMonthlyCountByOrganizationAsync(
-                organizationId, monthStartUtc, monthEndUtc);
-            var seriesCount = await _billSeriesRepository.GetMonthlyCountByOrganizationAsync(
-                organizationId, monthStartUtc, monthEndUtc);
-            var currentBillCount = oneTimeBillCount + seriesCount;
-
-            if (currentBillCount >= entitlement.MaxBillsPerMonth)
-                return StatusCode(403, new { error = $"Monthly bill limit of {entitlement.MaxBillsPerMonth} reached." });
-
-            var dueDate = organization.GetLocalDate(request.DueDate);
-
-            if (request.Frequency is null)
-            {
-                Bill bill = new()
-                {
-                    Description = request.Description,
-                    Notes = NormalizeNotes(request.Notes),
-                    Category = category,
-                    Status = status,
-                    CreatedAt = DateTime.UtcNow,
-                    DueDate = dueDate,
-                    PaymentDate = request.PaymentDate?.ToUniversalTime(),
-                    AmountDue = request.AmountDue,
-                    AmountPaid = request.AmountPaid,
-                    OrganizationId = organizationId,
-                };
-
-                await _billsRepository.CreateAsync(bill);
-                BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Created);
-                if (bill.Status == BillStatus.Paid)
-                    BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Paid);
-
-                return CreatedAtAction(nameof(GetBillById), new
-                {
-                    billId = bill.Id, organizationId = bill.OrganizationId
-                }, MapCreateBillResponse(bill));
-            }
-
-            BillSeries series = new()
-            {
-                Id = Guid.NewGuid(),
                 Description = request.Description,
                 Notes = NormalizeNotes(request.Notes),
                 Category = category,
-                Frequency = request.Frequency.Value,
-                AmountDue = request.AmountDue,
-                StartDate = dueDate,
-                TotalOccurrences = request.Installments,
-                IsActive = true,
-                NextOccurrenceNumber = 1,
+                Status = status,
                 CreatedAt = DateTime.UtcNow,
+                DueDate = dueDate,
+                PaymentDate = request.PaymentDate?.ToUniversalTime(),
+                AmountDue = request.AmountDue,
+                AmountPaid = request.AmountPaid,
                 OrganizationId = organizationId,
             };
 
-            await _billSeriesRepository.CreateAsync(series);
-            BusinessTelemetry.RecordDomainOperation(DomainEntities.BillSeries, DomainOperations.Created);
+            await _billsRepository.CreateAsync(bill);
+            BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Created);
+            if (bill.Status == BillStatus.Paid)
+                BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Paid);
 
-            var horizon = BillGenerationService.GetRollingHorizon(organization);
-            await _billGenerationService.GenerateOccurrencesAsync(series, horizon, organization);
-
-            var firstOccurrence = await _context.Bills
-                .AsNoTracking()
-                .Where(b => b.BillSeriesId == series.Id && b.OccurrenceNumber == 1)
-                .OrderBy(b => b.OccurrenceNumber)
-                .FirstOrDefaultAsync();
-
-            if (firstOccurrence is null)
-            {
-                return CreatedAtAction(nameof(GetBillById), new
-                {
-                    billId = Guid.Empty, organizationId
-                }, new CreateBillResponse
-                {
-                    Description = series.Description,
-                    Notes = series.Notes,
-                    Category = series.Category,
-                    Status = BillStatus.Upcoming,
-                    CreatedDate = series.CreatedAt,
-                    DueDate = new DateTime(series.StartDate, TimeOnly.MinValue),
-                    AmountDue = series.AmountDue,
-                    BillSeriesId = series.Id,
-                    TotalOccurrences = series.TotalOccurrences,
-                    BillSeriesType = series.Type
-                });
-            }
-
-            firstOccurrence.BillSeries = series;
             return CreatedAtAction(nameof(GetBillById), new
             {
-                billId = firstOccurrence.Id, organizationId = firstOccurrence.OrganizationId
-            }, MapCreateBillResponse(firstOccurrence));
+                billId = bill.Id, organizationId = bill.OrganizationId
+            }, MapCreateBillResponse(bill));
         }
-        catch (Exception ex)
+
+        BillSeries series = new()
         {
-            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(CreateBillAsync));
-            return BadRequest();
+            Id = Guid.NewGuid(),
+            Description = request.Description,
+            Notes = NormalizeNotes(request.Notes),
+            Category = category,
+            Frequency = request.Frequency.Value,
+            AmountDue = request.AmountDue,
+            StartDate = dueDate,
+            TotalOccurrences = request.Installments,
+            IsActive = true,
+            NextOccurrenceNumber = 1,
+            CreatedAt = DateTime.UtcNow,
+            OrganizationId = organizationId,
+        };
+
+        await _billSeriesRepository.CreateAsync(series);
+        BusinessTelemetry.RecordDomainOperation(DomainEntities.BillSeries, DomainOperations.Created);
+
+        var horizon = BillGenerationService.GetRollingHorizon(organization);
+        await _billGenerationService.GenerateOccurrencesAsync(series, horizon, organization);
+
+        var firstOccurrence = await _context.Bills
+            .AsNoTracking()
+            .Where(b => b.BillSeriesId == series.Id && b.OccurrenceNumber == 1)
+            .OrderBy(b => b.OccurrenceNumber)
+            .FirstOrDefaultAsync();
+
+        if (firstOccurrence is null)
+        {
+            return CreatedAtAction(nameof(GetBillById), new
+            {
+                billId = Guid.Empty, organizationId
+            }, new CreateBillResponse
+            {
+                Description = series.Description,
+                Notes = series.Notes,
+                Category = series.Category,
+                Status = BillStatus.Upcoming,
+                CreatedDate = series.CreatedAt,
+                DueDate = new DateTime(series.StartDate, TimeOnly.MinValue),
+                AmountDue = series.AmountDue,
+                BillSeriesId = series.Id,
+                TotalOccurrences = series.TotalOccurrences,
+                BillSeriesType = series.Type
+            });
         }
+
+        firstOccurrence.BillSeries = series;
+        return CreatedAtAction(nameof(GetBillById), new
+        {
+            billId = firstOccurrence.Id, organizationId = firstOccurrence.OrganizationId
+        }, MapCreateBillResponse(firstOccurrence));
     }
 
     [HttpGet]
@@ -196,57 +188,49 @@ public class BillsController : ControllerBase
         [FromQuery] string? status = null, [FromQuery] string? description = null,
         [FromQuery] string? type = null)
     {
-        try
+        BillTypeFilter? typeFilter = null;
+        if (!string.IsNullOrWhiteSpace(type))
         {
-            BillTypeFilter? typeFilter = null;
-            if (!string.IsNullOrWhiteSpace(type))
-            {
-                if (!Enum.TryParse<BillTypeFilter>(type.Trim(), ignoreCase: true, out var parsedType)
-                    || !Enum.IsDefined(parsedType))
-                    return BadRequest("Invalid bill type.");
+            if (!Enum.TryParse<BillTypeFilter>(type.Trim(), ignoreCase: true, out var parsedType)
+                || !Enum.IsDefined(parsedType))
+                return BadRequest("Invalid bill type.");
 
-                typeFilter = parsedType;
-            }
+            typeFilter = parsedType;
+        }
 
-            List<BillStatus>? statuses = null;
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                statuses = status.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Select(s => Enum.TryParse<BillStatus>(s, ignoreCase: true, out var parsed) ? (BillStatus?)parsed : null)
-                    .Where(s => s.HasValue)
-                    .Select(s => s!.Value)
-                    .ToList();
-
-                if (statuses.Count == 0) statuses = null;
-            }
-
-            var organization = await _organizationsRepository.GetByIdAsync(organizationId);
-            if (organization is null)
-            {
-                return NotFound();
-            }
-
-            DateOnly? fromDate = from.HasValue ? organization.GetLocalDate(from.Value) : null;
-            DateOnly? toDate = to.HasValue ? organization.GetLocalDate(to.Value) : null;
-            var (bills, totalRecords, summary) = await _billsRepository.GetAllByOrganizationAsync(
-                organizationId, page, pageSize, organization.GetCurrentLocalDate(),
-                fromDate, toDate, statuses, description, typeFilter);
-            var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
-
-            var billsDto = bills.Select(MapGetBillResponse)
+        List<BillStatus>? statuses = null;
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            statuses = status.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => Enum.TryParse<BillStatus>(s, ignoreCase: true, out var parsed) ? (BillStatus?)parsed : null)
+                .Where(s => s.HasValue)
+                .Select(s => s!.Value)
                 .ToList();
 
-            var response = new BillPageResponse(
-                billsDto, page, pageSize, totalRecords, totalPages,
-                new BillSummaryResponse(summary.ToPay, summary.Overdue, summary.NextSevenDays, summary.Paid));
+            if (statuses.Count == 0) statuses = null;
+        }
 
-            return Ok(response);
-        }
-        catch (Exception ex)
+        var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+        if (organization is null)
         {
-            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(GetBillsAsync));
-            return BadRequest();
+            return NotFound();
         }
+
+        DateOnly? fromDate = from.HasValue ? organization.GetLocalDate(from.Value) : null;
+        DateOnly? toDate = to.HasValue ? organization.GetLocalDate(to.Value) : null;
+        var (bills, totalRecords, summary) = await _billsRepository.GetAllByOrganizationAsync(
+            organizationId, page, pageSize, organization.GetCurrentLocalDate(),
+            fromDate, toDate, statuses, description, typeFilter);
+        var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+
+        var billsDto = bills.Select(MapGetBillResponse)
+            .ToList();
+
+        var response = new BillPageResponse(
+            billsDto, page, pageSize, totalRecords, totalPages,
+            new BillSummaryResponse(summary.ToPay, summary.Overdue, summary.NextSevenDays, summary.Paid));
+
+        return Ok(response);
     }
 
     [HttpGet]
@@ -258,24 +242,16 @@ public class BillsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<GetBillResponse>> GetBillById([FromRoute] Guid organizationId, [FromRoute] Guid billId)
     {
-        try
+        Bill? bill = await _billsRepository.GetByIdAsync(billId, organizationId);
+
+        if (bill is null)
         {
-            Bill? bill = await _billsRepository.GetByIdAsync(billId, organizationId);
-
-            if (bill is null)
-            {
-                return NotFound();
-            }
-
-            var response = MapGetBillResponse(bill);
-
-            return Ok(response);
+            return NotFound();
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(GetBillById));
-            return BadRequest();
-        }
+
+        var response = MapGetBillResponse(bill);
+
+        return Ok(response);
     }
 
     [HttpPatch]
@@ -287,76 +263,68 @@ public class BillsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<UpdateBillResponse>> UpdateBill([FromRoute] Guid organizationId, Guid billId, [FromBody] UpdateBillRequest request)
     {
-        try
+        bool isValidCategory = Enum.TryParse(request.Category, true, out BillCategory category);
+        bool isValidStatus = Enum.TryParse(request.Status, true, out BillStatus status);
+
+        if (!isValidCategory || !isValidStatus) return UnprocessableEntity();
+
+        if (request.Notes?.Length > 2000)
+            return UnprocessableEntity("Notes must be 2000 characters or fewer.");
+
+        var bill = await _context.Bills
+            .Include(b => b.BillSeries)
+            .Include(b => b.Organization)
+            .FirstOrDefaultAsync(b => b.Id == billId && b.OrganizationId == organizationId);
+
+        if (bill is null)
         {
-            bool isValidCategory = Enum.TryParse(request.Category, true, out BillCategory category);
-            bool isValidStatus = Enum.TryParse(request.Status, true, out BillStatus status);
-
-            if (!isValidCategory || !isValidStatus) return UnprocessableEntity();
-
-            if (request.Notes?.Length > 2000)
-                return UnprocessableEntity("Notes must be 2000 characters or fewer.");
-
-            var bill = await _context.Bills
-                .Include(b => b.BillSeries)
-                .Include(b => b.Organization)
-                .FirstOrDefaultAsync(b => b.Id == billId && b.OrganizationId == organizationId);
-
-            if (bill is null)
-            {
-                return NotFound();
-            }
-
-            var wasPaid = bill.Status == BillStatus.Paid;
-            bill.Description = request.Description;
-            if (request.Notes is not null)
-                bill.Notes = NormalizeNotes(request.Notes);
-            bill.Category = category;
-            bill.Status = status;
-            bill.DueDate = bill.Organization.GetLocalDate(request.DueDate);
-            bill.PaymentDate = request.PaymentDate?.ToUniversalTime();
-            bill.AmountDue = request.AmountDue;
-            bill.AmountPaid = request.AmountPaid;
-
-            await _billsRepository.UpdateAsync(bill,
-                b => b.Description,
-                b => b.Notes!,
-                b => b.Category,
-                b => b.Status,
-                b => b.DueDate,
-                b => b.PaymentDate,
-                b => b.AmountDue,
-                b => b.AmountPaid);
-
-            BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Updated);
-            if (!wasPaid && bill.Status == BillStatus.Paid)
-                BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Paid);
-
-            var response = new UpdateBillResponse
-            {
-                Id = bill.Id,
-                Description = bill.Description,
-                Notes = bill.Notes,
-                Category = bill.Category,
-                Status = bill.Status,
-                DueDate = new DateTime(bill.DueDate, TimeOnly.MinValue),
-                PaidDate = bill.PaymentDate,
-                AmountDue = bill.AmountDue,
-                AmountPaid = bill.AmountPaid,
-                BillSeriesId = bill.BillSeriesId,
-                OccurrenceNumber = bill.OccurrenceNumber,
-                TotalOccurrences = bill.TotalOccurrences,
-                BillSeriesType = GetBillSeriesType(bill),
-                BillSeriesIsActive = bill.BillSeries?.IsActive ?? false
-            };
-
-            return Ok(response);
+            return NotFound();
         }
-        catch (Exception ex)
+
+        var wasPaid = bill.Status == BillStatus.Paid;
+        bill.Description = request.Description;
+        if (request.Notes is not null)
+            bill.Notes = NormalizeNotes(request.Notes);
+        bill.Category = category;
+        bill.Status = status;
+        bill.DueDate = bill.Organization.GetLocalDate(request.DueDate);
+        bill.PaymentDate = request.PaymentDate?.ToUniversalTime();
+        bill.AmountDue = request.AmountDue;
+        bill.AmountPaid = request.AmountPaid;
+
+        await _billsRepository.UpdateAsync(bill,
+            b => b.Description,
+            b => b.Notes!,
+            b => b.Category,
+            b => b.Status,
+            b => b.DueDate,
+            b => b.PaymentDate,
+            b => b.AmountDue,
+            b => b.AmountPaid);
+
+        BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Updated);
+        if (!wasPaid && bill.Status == BillStatus.Paid)
+            BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Paid);
+
+        var response = new UpdateBillResponse
         {
-            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(UpdateBill));
-            return BadRequest();
-        }
+            Id = bill.Id,
+            Description = bill.Description,
+            Notes = bill.Notes,
+            Category = bill.Category,
+            Status = bill.Status,
+            DueDate = new DateTime(bill.DueDate, TimeOnly.MinValue),
+            PaidDate = bill.PaymentDate,
+            AmountDue = bill.AmountDue,
+            AmountPaid = bill.AmountPaid,
+            BillSeriesId = bill.BillSeriesId,
+            OccurrenceNumber = bill.OccurrenceNumber,
+            TotalOccurrences = bill.TotalOccurrences,
+            BillSeriesType = GetBillSeriesType(bill),
+            BillSeriesIsActive = bill.BillSeries?.IsActive ?? false
+        };
+
+        return Ok(response);
     }
 
     [HttpDelete]
@@ -365,30 +333,22 @@ public class BillsController : ControllerBase
     [EndpointDescription("Deletes a bill and its associated documents.")]
     public async Task<ActionResult> DeleteBillById([FromRoute] Guid organizationId, Guid billId)
     {
-        try
+        Bill? bill = await _billsRepository.GetByIdAsync(billId, organizationId);
+
+        if (bill is null)
         {
-            Bill? bill = await _billsRepository.GetByIdAsync(billId, organizationId);
-
-            if (bill is null)
-            {
-                return NotFound();
-            }
-
-            foreach (var attachment in bill.Attachments)
-            {
-                await _attachmentService.DeleteAttachmentAsync(attachment.Id);
-            }
-
-            await _billsRepository.DeleteAsync(bill);
-            BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Deleted);
-
-            return NoContent();
+            return NotFound();
         }
-        catch (Exception ex)
+
+        foreach (var attachment in bill.Attachments)
         {
-            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(DeleteBillById));
-            return BadRequest();
+            await _attachmentService.DeleteAttachmentAsync(attachment.Id);
         }
+
+        await _billsRepository.DeleteAsync(bill);
+        BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Deleted);
+
+        return NoContent();
     }
 
     [HttpPost]
@@ -443,7 +403,7 @@ public class BillsController : ControllerBase
         {
             return NotFound();
         }
-        catch (Exception e)
+        catch (RequestValidationException e)
         {
             return BadRequest(new { error = e.Message });
         }
@@ -533,11 +493,6 @@ public class BillsController : ControllerBase
         {
             return NotFound();
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(DeleteDocument));
-            return BadRequest();
-        }
     }
 
     [HttpGet("series")]
@@ -577,49 +532,41 @@ public class BillsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> StopBillSeriesAsync([FromRoute] Guid organizationId, [FromRoute] Guid seriesId)
     {
-        try
+        var series = await _billSeriesRepository.GetByIdAsync(seriesId);
+
+        if (series is null || series.OrganizationId != organizationId)
+            return NotFound();
+
+        var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+        if (organization is null) return NotFound();
+
+        if (series.IsActive)
         {
-            var series = await _billSeriesRepository.GetByIdAsync(seriesId);
+            series.IsActive = false;
+            series.StoppedAt = DateTime.UtcNow;
 
-            if (series is null || series.OrganizationId != organizationId)
-                return NotFound();
-
-            var organization = await _organizationsRepository.GetByIdAsync(organizationId);
-            if (organization is null) return NotFound();
-
-            if (series.IsActive)
-            {
-                series.IsActive = false;
-                series.StoppedAt = DateTime.UtcNow;
-
-                await _billSeriesRepository.UpdateAsync(series,
-                    s => s.IsActive,
-                    s => s.StoppedAt);
-                BusinessTelemetry.RecordDomainOperation(DomainEntities.BillSeries, DomainOperations.Stopped);
-            }
-
-            // Runs for already-stopped series too, so series stopped before future occurrences were removed get cleaned up.
-            var futureBills = await _billsRepository.GetUnpaidSeriesBillsDueAfterAsync(
-                series.Id, organization.GetCurrentLocalDate());
-
-            foreach (var attachment in futureBills.SelectMany(b => b.Attachments).ToList())
-            {
-                await _attachmentService.DeleteAttachmentAsync(attachment.Id);
-            }
-
-            await _billsRepository.DeleteRangeAsync(futureBills);
-            BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Deleted, futureBills.Count);
-
-            // Cached occurrences embed the series, so drop them to expose the new IsActive state.
-            await _billsRepository.RemoveSeriesBillsFromCacheAsync(series.Id);
-
-            return NoContent();
+            await _billSeriesRepository.UpdateAsync(series,
+                s => s.IsActive,
+                s => s.StoppedAt);
+            BusinessTelemetry.RecordDomainOperation(DomainEntities.BillSeries, DomainOperations.Stopped);
         }
-        catch (Exception ex)
+
+        // Runs for already-stopped series too, so series stopped before future occurrences were removed get cleaned up.
+        var futureBills = await _billsRepository.GetUnpaidSeriesBillsDueAfterAsync(
+            series.Id, organization.GetCurrentLocalDate());
+
+        foreach (var attachment in futureBills.SelectMany(b => b.Attachments).ToList())
         {
-            _logger.LogError(ex, "Bill request operation {Operation} failed.", nameof(StopBillSeriesAsync));
-            return BadRequest();
+            await _attachmentService.DeleteAttachmentAsync(attachment.Id);
         }
+
+        await _billsRepository.DeleteRangeAsync(futureBills);
+        BusinessTelemetry.RecordDomainOperation(DomainEntities.Bill, DomainOperations.Deleted, futureBills.Count);
+
+        // Cached occurrences embed the series, so drop them to expose the new IsActive state.
+        await _billsRepository.RemoveSeriesBillsFromCacheAsync(series.Id);
+
+        return NoContent();
     }
 
     private string? GetCurrentUserId()

@@ -113,43 +113,35 @@ public class ExpensesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GetExpenseResponse>> GetExpenseById([FromRoute] Guid organizationId, [FromRoute] Guid expenseId)
     {
-        try
+        var expense = await _expensesRepository.GetByIdAsync(expenseId, organizationId);
+
+        if (expense is null)
         {
-            var expense = await _expensesRepository.GetByIdAsync(expenseId, organizationId);
-
-            if (expense is null)
-            {
-                return NotFound();
-            }
-
-            var response = new GetExpenseResponse
-            {
-                Id = expense.Id,
-                Amount = expense.Amount,
-                Category = expense.Category,
-                Description = expense.Description,
-                Notes = expense.Notes,
-                PaymentMethod = expense.PaymentMethod,
-                Status = expense.Status,
-                OccurredAt = expense.OccurredAt,
-                CreatedBy = expense.CreatedByUser.FullName,
-                Attachments = expense.Attachments.Select(a => new AttachmentResponseModel
-                {
-                    Id = a.Id,
-                    FileName = a.OriginalFileName,
-                    ContentType = a.ContentType,
-                    FileCategory = a.FileCategory,
-                    AttachmentType = a.AttachmentType
-                }).ToList()
-            };
-
-            return Ok(response);
+            return NotFound();
         }
-        catch (Exception ex)
+
+        var response = new GetExpenseResponse
         {
-            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(GetExpenseById));
-            return BadRequest();
-        }
+            Id = expense.Id,
+            Amount = expense.Amount,
+            Category = expense.Category,
+            Description = expense.Description,
+            Notes = expense.Notes,
+            PaymentMethod = expense.PaymentMethod,
+            Status = expense.Status,
+            OccurredAt = expense.OccurredAt,
+            CreatedBy = expense.CreatedByUser.FullName,
+            Attachments = expense.Attachments.Select(a => new AttachmentResponseModel
+            {
+                Id = a.Id,
+                FileName = a.OriginalFileName,
+                ContentType = a.ContentType,
+                FileCategory = a.FileCategory,
+                AttachmentType = a.AttachmentType
+            }).ToList()
+        };
+
+        return Ok(response);
     }
 
     [HttpPost]
@@ -191,11 +183,6 @@ public class ExpensesController : ControllerBase
         catch (PlanLimitExceededException ex)
         {
             return StatusCode(403, new { error = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(CreateExpenseAsync));
-            return BadRequest();
         }
     }
 
@@ -251,11 +238,6 @@ public class ExpensesController : ControllerBase
         {
             return StatusCode(403, new { error = ex.Message });
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(CreateExpensesBatchAsync));
-            return BadRequest();
-        }
     }
 
     [HttpPatch]
@@ -267,54 +249,46 @@ public class ExpensesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<UpdateExpenseResponse>> UpdateExpense([FromRoute] Guid organizationId, [FromRoute] Guid expenseId, [FromBody] UpdateExpenseRequest request)
     {
-        try
-        {
-            var isValidCategory = Enum.TryParse(request.Category, true, out ExpenseCategory category);
-            if (!isValidCategory) return UnprocessableEntity();
+        var isValidCategory = Enum.TryParse(request.Category, true, out ExpenseCategory category);
+        if (!isValidCategory) return UnprocessableEntity();
 
-            var isValidStatus = Enum.TryParse(request.Status, true, out ExpenseStatus status);
-            if (!isValidStatus) return UnprocessableEntity();
+        var isValidStatus = Enum.TryParse(request.Status, true, out ExpenseStatus status);
+        if (!isValidStatus) return UnprocessableEntity();
 
-            if (request.Notes?.Length > 2000)
-                return UnprocessableEntity("Notes must be 2000 characters or fewer.");
+        if (request.Notes?.Length > 2000)
+            return UnprocessableEntity("Notes must be 2000 characters or fewer.");
 
-            if (!TryParseOptionalEnum(request.PaymentMethod, out PaymentMethod? paymentMethod))
-                return UnprocessableEntity("Invalid payment method.");
+        if (!TryParseOptionalEnum(request.PaymentMethod, out PaymentMethod? paymentMethod))
+            return UnprocessableEntity("Invalid payment method.");
 
-            var expense = await _expensesRepository.GetByIdAsync(expenseId, organizationId);
+        var expense = await _expensesRepository.GetByIdAsync(expenseId, organizationId);
 
-            if (expense is null) return NotFound();
+        if (expense is null) return NotFound();
 
-            expense.Description = request.Description;
-            expense.Category = category;
-            expense.Amount = request.Amount;
-            expense.Status = status;
-            expense.OccurredAt = request.OccurredAt ?? DateTime.UtcNow;
-            if (request.Notes is not null)
-                expense.Notes = NormalizeNotes(request.Notes);
-            if (request.PaymentMethod is not null)
-                expense.PaymentMethod = paymentMethod;
-            expense.UpdatedAt = DateTime.UtcNow;
+        expense.Description = request.Description;
+        expense.Category = category;
+        expense.Amount = request.Amount;
+        expense.Status = status;
+        expense.OccurredAt = request.OccurredAt ?? DateTime.UtcNow;
+        if (request.Notes is not null)
+            expense.Notes = NormalizeNotes(request.Notes);
+        if (request.PaymentMethod is not null)
+            expense.PaymentMethod = paymentMethod;
+        expense.UpdatedAt = DateTime.UtcNow;
 
-            await _expensesRepository.UpdateAsync(expense);
-            BusinessTelemetry.RecordDomainOperation(DomainEntities.Expense, DomainOperations.Updated);
+        await _expensesRepository.UpdateAsync(expense);
+        BusinessTelemetry.RecordDomainOperation(DomainEntities.Expense, DomainOperations.Updated);
 
-            return Ok(new UpdateExpenseResponse(
-                expense.Id,
-                expense.Description,
-                expense.Category,
-                expense.Amount,
-                expense.Status,
-                expense.OccurredAt,
-                expense.CreatedByUser.FullName,
-                expense.Notes,
-                expense.PaymentMethod));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(UpdateExpense));
-            return BadRequest();
-        }
+        return Ok(new UpdateExpenseResponse(
+            expense.Id,
+            expense.Description,
+            expense.Category,
+            expense.Amount,
+            expense.Status,
+            expense.OccurredAt,
+            expense.CreatedByUser.FullName,
+            expense.Notes,
+            expense.PaymentMethod));
     }
 
     [HttpDelete]
@@ -323,30 +297,22 @@ public class ExpensesController : ControllerBase
     [EndpointDescription("Deletes an expense and its associated documents.")]
     public async Task<ActionResult> DeleteExpenseById([FromRoute] Guid organizationId, Guid expenseId)
     {
-        try
+        Expense? expense = await _expensesRepository.GetByIdAsync(expenseId, organizationId);
+
+        if (expense is null)
         {
-            Expense? expense = await _expensesRepository.GetByIdAsync(expenseId, organizationId);
-
-            if (expense is null)
-            {
-                return NotFound();
-            }
-
-            foreach (var attachment in expense.Attachments)
-            {
-                await _attachmentService.DeleteAttachmentAsync(attachment.Id);
-            }
-
-            await _expensesRepository.DeleteAsync(expense);
-            BusinessTelemetry.RecordDomainOperation(DomainEntities.Expense, DomainOperations.Deleted);
-
-            return NoContent();
+            return NotFound();
         }
-        catch (Exception ex)
+
+        foreach (var attachment in expense.Attachments)
         {
-            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(DeleteExpenseById));
-            return BadRequest();
+            await _attachmentService.DeleteAttachmentAsync(attachment.Id);
         }
+
+        await _expensesRepository.DeleteAsync(expense);
+        BusinessTelemetry.RecordDomainOperation(DomainEntities.Expense, DomainOperations.Deleted);
+
+        return NoContent();
     }
 
     [HttpPost]
@@ -400,7 +366,7 @@ public class ExpensesController : ControllerBase
         {
             return NotFound();
         }
-        catch (Exception e)
+        catch (RequestValidationException e)
         {
             return BadRequest(new { error = e.Message });
         }
@@ -482,11 +448,6 @@ public class ExpensesController : ControllerBase
         catch (KeyNotFoundException)
         {
             return NotFound();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(DeleteDocument));
-            return BadRequest();
         }
     }
 
