@@ -39,10 +39,8 @@ export interface ExpenseInput {
   status: ExpenseStatus;
   paymentMethod: PaymentMethod | "";
   occurredAt: string;
-  createdBy?: string;
 }
 
 export interface ExpenseBatchInput {
-  createdBy: string;
-  items: Omit<ExpenseInput, "createdBy">[];
+  items: ExpenseInput[];
 }

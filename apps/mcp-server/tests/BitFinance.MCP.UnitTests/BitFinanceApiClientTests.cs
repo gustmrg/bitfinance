@@ -173,7 +173,6 @@ public class BitFinanceApiClientTests
         var client = CreateClient(handler, organizationId);
 
         var response = await client.CreateExpensesBatchAsync(new CreateExpensesBatchRequest(
-            "agent-user",
             [
                 new CreateExpenseBatchItemRequest("Rent", "Housing", 1500m, "Pending"),
                 new CreateExpenseBatchItemRequest(
@@ -182,7 +181,7 @@ public class BitFinanceApiClientTests
 
         Assert.Equal(HttpMethod.Post, handler.Method);
         Assert.Equal($"/api/v1/organizations/{organizationId}/expenses/batch", handler.RequestUri?.AbsolutePath);
-        Assert.Contains("\"createdBy\":\"agent-user\"", handler.RequestBody);
+        Assert.DoesNotContain("createdBy", handler.RequestBody);
         Assert.Contains("\"description\":\"Rent\"", handler.RequestBody);
         Assert.Contains("\"paymentMethod\":\"DebitCard\"", handler.RequestBody);
         var expense = Assert.Single(response.Data);
@@ -221,9 +220,6 @@ public class BitFinanceApiClientTests
     {
         public Task<string> GetAccessTokenAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult("test-token");
-
-        public Task<string> GetAgentUserIdAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult("agent-user");
     }
 
     private sealed class RecordingHandler(

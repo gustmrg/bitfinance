@@ -216,7 +216,6 @@ public sealed record CreateExpenseRequest(
     decimal Amount,
     string Status,
     DateTimeOffset? OccurredAt,
-    string CreatedBy,
     string? Notes = null,
     string? PaymentMethod = null);
 
@@ -230,7 +229,6 @@ public sealed record CreateExpenseBatchItemRequest(
     string? PaymentMethod = null);
 
 public sealed record CreateExpensesBatchRequest(
-    string CreatedBy,
     IReadOnlyList<CreateExpenseBatchItemRequest> Items);
 
 public sealed record CreateExpensesBatchResponse(IReadOnlyList<ExpenseResponse> Data);

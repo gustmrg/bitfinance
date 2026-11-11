@@ -180,7 +180,6 @@ export function ExpenseDetailsPage() {
         <ExpenseModal
           expense={expense}
           organizationId={organizationId}
-          userId={user.id}
           onClose={() => setEditOpen(false)}
         />
       )}

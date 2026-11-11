@@ -12,7 +12,7 @@ export function useExpenseMutations(organizationId: string | null) {
   };
   return {
     create: useMutation({
-      mutationFn: (input: ExpenseInput & { createdBy: string }) =>
+      mutationFn: (input: ExpenseInput) =>
         expensesService.createAsync(organizationId!, input),
       onSuccess: invalidate,
     }),
