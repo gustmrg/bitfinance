@@ -97,7 +97,7 @@ public class DashboardController : ControllerBase
             return BadRequest("The from date must be earlier than or equal to the to date.");
         }
 
-        var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+        var organization = await _organizationsRepository.GetWithoutRelationsAsync(organizationId);
         if (organization is null)
         {
             return NotFound();
@@ -141,7 +141,7 @@ public class DashboardController : ControllerBase
             return BadRequest("The from date must be earlier than or equal to the to date.");
         }
 
-        var organization = await _organizationsRepository.GetByIdAsync(organizationId);
+        var organization = await _organizationsRepository.GetWithoutRelationsAsync(organizationId);
         if (organization is null)
         {
             return NotFound();

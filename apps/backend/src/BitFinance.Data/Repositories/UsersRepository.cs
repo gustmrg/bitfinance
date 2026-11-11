@@ -23,6 +23,12 @@ public class UsersRepository : IUsersRepository
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 
+    public async Task<bool> IsMemberOfOrganizationAsync(string userId, Guid organizationId)
+    {
+        return await _dbContext.OrganizationMembers
+            .AnyAsync(member => member.UserId == userId && member.OrganizationId == organizationId);
+    }
+
     public async Task UpdateAsync(User entity)
     {
         _dbContext.Set<User>().Update(entity);

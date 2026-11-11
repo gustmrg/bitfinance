@@ -55,7 +55,7 @@ public class AttachmentServiceTests
             .Setup(repository => repository.GetByIdAsync(expenseId))
             .ReturnsAsync(new Expense { Id = expenseId, OrganizationId = organizationId });
         _organizations
-            .Setup(repository => repository.GetByIdAsync(organizationId))
+            .Setup(repository => repository.GetWithoutRelationsAsync(organizationId))
             .ReturnsAsync(new Organization
             {
                 Id = organizationId,
@@ -104,7 +104,7 @@ public class AttachmentServiceTests
                 FileCategory.Receipt));
 
         _organizations.Verify(
-            repository => repository.GetByIdAsync(It.IsAny<Guid>()),
+            repository => repository.GetWithoutRelationsAsync(It.IsAny<Guid>()),
             Times.Never);
         _storage.Verify(
             service => service.SaveFileAsync(
@@ -124,7 +124,7 @@ public class AttachmentServiceTests
             .Setup(repository => repository.GetByIdAsync(expenseId))
             .ReturnsAsync(new Expense { Id = expenseId, OrganizationId = organizationId });
         _organizations
-            .Setup(repository => repository.GetByIdAsync(organizationId))
+            .Setup(repository => repository.GetWithoutRelationsAsync(organizationId))
             .ReturnsAsync(new Organization
             {
                 Id = organizationId,
@@ -174,7 +174,7 @@ public class AttachmentServiceTests
             .Setup(repository => repository.GetByIdAsync(expenseId))
             .ReturnsAsync(new Expense { Id = expenseId, OrganizationId = organizationId });
         _organizations
-            .Setup(repository => repository.GetByIdAsync(organizationId))
+            .Setup(repository => repository.GetWithoutRelationsAsync(organizationId))
             .ReturnsAsync(new Organization
             {
                 Id = organizationId,

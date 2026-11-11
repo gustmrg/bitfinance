@@ -58,6 +58,9 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
             .HasForeignKey(x => x.CreatedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
         
+        builder.HasIndex(x => new { x.OrganizationId, x.OccurredAt })
+            .HasDatabaseName("ix_expenses_organization_id_occurred_at");
+
         builder.ToTable("expenses");
     }
 }

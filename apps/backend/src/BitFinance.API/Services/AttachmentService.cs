@@ -294,7 +294,7 @@ public class AttachmentService : IAttachmentService
 
     private async Task ValidateStorageEntitlement(Guid organizationId, long fileSize)
     {
-        var organization = await _organizationsRepository.GetByIdAsync(organizationId)
+        var organization = await _organizationsRepository.GetWithoutRelationsAsync(organizationId)
             ?? throw new KeyNotFoundException($"Organization {organizationId} not found.");
 
         var entitlement = PlanEntitlement.For(organization.EffectivePlanTier);

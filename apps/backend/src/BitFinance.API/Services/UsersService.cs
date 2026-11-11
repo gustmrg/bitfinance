@@ -15,11 +15,7 @@ public class UsersService : IUsersService
 
     public async Task<bool> IsUserInOrganizationAsync(string userId, Guid organizationId)
     {
-        var user = await _usersRepository.GetByIdAsync(userId);
-
-        if (user == null) return false;
-        
-        return user.OrganizationMemberships.Any(m => m.OrganizationId == organizationId);
+        return await _usersRepository.IsMemberOfOrganizationAsync(userId, organizationId);
     }
 
     public async Task<User?> GetUserByIdAsync(string userId)
