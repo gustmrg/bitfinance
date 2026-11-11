@@ -84,6 +84,9 @@ public class BillConfiguration : IEntityTypeConfiguration<Bill>
         builder.HasIndex(b => b.BillSeriesId)
             .HasDatabaseName("ix_bills_bill_series_id");
 
+        builder.HasIndex(b => new { b.OrganizationId, b.DueDate })
+            .HasDatabaseName("ix_bills_organization_id_due_date");
+
         // A series holds each occurrence once, even when two writers generate it at the same time.
         builder.HasIndex(b => new { b.BillSeriesId, b.OccurrenceNumber })
             .IsUnique()

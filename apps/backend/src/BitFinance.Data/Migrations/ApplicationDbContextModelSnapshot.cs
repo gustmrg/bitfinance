@@ -191,12 +191,12 @@ namespace BitFinance.Data.Migrations
                     b.HasIndex("BillSeriesId")
                         .HasDatabaseName("ix_bills_bill_series_id");
 
-                    b.HasIndex("OrganizationId")
-                        .HasDatabaseName("ix_bills_organization_id");
-
                     b.HasIndex("BillSeriesId", "OccurrenceNumber")
                         .IsUnique()
                         .HasDatabaseName("ux_bills_bill_series_id_occurrence_number");
+
+                    b.HasIndex("OrganizationId", "DueDate")
+                        .HasDatabaseName("ix_bills_organization_id_due_date");
 
                     b.ToTable("bills", (string)null);
                 });
@@ -383,8 +383,8 @@ namespace BitFinance.Data.Migrations
                     b.HasIndex("CreatedByUserId")
                         .HasDatabaseName("ix_expenses_created_by_user_id");
 
-                    b.HasIndex("OrganizationId")
-                        .HasDatabaseName("ix_expenses_organization_id");
+                    b.HasIndex("OrganizationId", "OccurredAt")
+                        .HasDatabaseName("ix_expenses_organization_id_occurred_at");
 
                     b.ToTable("expenses", (string)null);
                 });

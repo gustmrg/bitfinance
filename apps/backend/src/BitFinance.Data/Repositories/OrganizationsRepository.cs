@@ -39,6 +39,13 @@ public class OrganizationsRepository : IOrganizationsRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<Organization?> GetWithoutRelationsAsync(Guid id)
+    {
+        return await _dbContext.Set<Organization>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id);
+    }
+
     public async Task<Organization> CreateAsync(Organization organization)
     {
         _dbContext.Set<Organization>().Add(organization);

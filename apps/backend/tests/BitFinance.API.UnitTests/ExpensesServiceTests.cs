@@ -62,7 +62,7 @@ public class ExpensesServiceTests
     public async Task CreateExpenseAsync_WhenOrganizationMissing_ThrowsKeyNotFoundException()
     {
         _organizationsRepository
-            .Setup(repository => repository.GetByIdAsync(OrganizationId))
+            .Setup(repository => repository.GetWithoutRelationsAsync(OrganizationId))
             .ReturnsAsync((Organization?)null);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(
@@ -124,7 +124,7 @@ public class ExpensesServiceTests
     public async Task CreateExpensesAsync_WhenOrganizationMissing_ThrowsKeyNotFoundException()
     {
         _organizationsRepository
-            .Setup(repository => repository.GetByIdAsync(OrganizationId))
+            .Setup(repository => repository.GetWithoutRelationsAsync(OrganizationId))
             .ReturnsAsync((Organization?)null);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(
@@ -134,7 +134,7 @@ public class ExpensesServiceTests
     private void SetupOrganization(PlanTier planTier)
     {
         _organizationsRepository
-            .Setup(repository => repository.GetByIdAsync(OrganizationId))
+            .Setup(repository => repository.GetWithoutRelationsAsync(OrganizationId))
             .ReturnsAsync(new Organization { Id = OrganizationId, PlanTier = planTier });
     }
 

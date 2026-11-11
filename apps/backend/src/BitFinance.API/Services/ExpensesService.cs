@@ -62,7 +62,7 @@ public class ExpensesService : IExpensesService
 
     private async Task<Organization> GetOrganizationOrThrowAsync(Guid organizationId)
     {
-        return await _organizationsRepository.GetByIdAsync(organizationId)
+        return await _organizationsRepository.GetWithoutRelationsAsync(organizationId)
                ?? throw new KeyNotFoundException($"Organization {organizationId} not found.");
     }
 
