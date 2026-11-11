@@ -26,15 +26,6 @@ public class BillSeriesRepository : IBillSeriesRepository
             .ToListAsync();
     }
 
-    public async Task<List<BillSeries>> GetAllActiveAsync()
-    {
-        return await _dbContext.Set<BillSeries>()
-            .AsNoTracking()
-            .Where(s => s.IsActive)
-            .OrderBy(s => s.StartDate)
-            .ToListAsync();
-    }
-
     public async Task<List<BillSeries>> GetAllActiveByOrganizationAsync(Guid organizationId)
     {
         return await _dbContext.Set<BillSeries>()

@@ -53,7 +53,4 @@ public interface ITokenService
     /// <param name="token">The raw token to hash.</param>
     /// <returns>The Base64-encoded hash of the token.</returns>
     string HashToken(string token);
-
-    [Obsolete("Use GenerateAccessToken instead")]
-    string GenerateToken(User user);
 }
