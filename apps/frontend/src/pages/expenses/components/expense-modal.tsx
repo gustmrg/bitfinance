@@ -55,10 +55,10 @@ export function ExpenseModal({
         { onSuccess: done, onError: (error) => toast.error(error.message) },
       );
     else
-      mutations.create.mutate(
-        input,
-        { onSuccess: done, onError: (error) => toast.error(error.message) },
-      );
+      mutations.create.mutate(input, {
+        onSuccess: done,
+        onError: (error) => toast.error(error.message),
+      });
   };
   return (
     <Dialog
