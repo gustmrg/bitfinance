@@ -24,6 +24,7 @@ services:
       - Jwt__Issuer=${JWT_ISSUER:-bitfinance}
       - Jwt__Audience=${JWT_AUDIENCE:-bitfinance}
       - Jwt__ExpirationInMinutes=${JWT_EXPIRATION:-60}
+      - ForwardedHeaders__KnownNetworks__0=${TRUSTED_PROXY_NETWORK:-172.16.0.0/12}
       - GoogleAuth__ClientId=${GOOGLE_CLIENT_ID:-}
       - GoogleAuth__ClientSecret=${GOOGLE_CLIENT_SECRET:-}
       - GoogleAuth__RedirectUri=${GOOGLE_REDIRECT_URI:-}

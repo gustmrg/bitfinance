@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Asp.Versioning;
+using BitFinance.API.Extensions;
 using BitFinance.API.InputModels;
 using BitFinance.API.Models.Request;
 using BitFinance.API.Models.Response;
@@ -11,6 +12,7 @@ using BitFinance.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using BitFinance.API.Observability;
 
 namespace BitFinance.API.Controllers;
@@ -55,6 +57,7 @@ public class IdentityController : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting(RateLimitPolicies.Credentials)]
     [EndpointSummary("Register a new user")]
     [EndpointDescription("Creates a new user account with email and password. Returns an access token and sets a refresh token cookie.")]
     public async Task<IActionResult> RegisterAsync([FromBody] RegisterInputModel model)
@@ -101,6 +104,7 @@ public class IdentityController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimitPolicies.Credentials)]
     [EndpointSummary("Log in")]
     [EndpointDescription("Authenticates a user with email and password. Returns an access token and sets a refresh token cookie.")]
     public async Task<IActionResult> LogInAsync([FromBody] LoginInputModel model)
@@ -152,6 +156,7 @@ public class IdentityController : ControllerBase
     }
 
     [HttpPost("refresh")]
+    [EnableRateLimiting(RateLimitPolicies.Refresh)]
     [EndpointSummary("Refresh access token")]
     [EndpointDescription("Uses the refresh token from the HTTP-only cookie to issue a new access token and rotate the refresh token.")]
     public async Task<IActionResult> RefreshTokenAsync()
