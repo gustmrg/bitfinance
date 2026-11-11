@@ -6,6 +6,8 @@ namespace BitFinance.Data.Configurations;
 
 public class BillConfiguration : IEntityTypeConfiguration<Bill>
 {
+    public const string SeriesOccurrenceIndexName = "ux_bills_bill_series_id_occurrence_number";
+
     public void Configure(EntityTypeBuilder<Bill> builder)
     {
         builder.HasKey(b => b.Id);
@@ -81,6 +83,11 @@ public class BillConfiguration : IEntityTypeConfiguration<Bill>
 
         builder.HasIndex(b => b.BillSeriesId)
             .HasDatabaseName("ix_bills_bill_series_id");
+
+        // A series holds each occurrence once, even when two writers generate it at the same time.
+        builder.HasIndex(b => new { b.BillSeriesId, b.OccurrenceNumber })
+            .IsUnique()
+            .HasDatabaseName(SeriesOccurrenceIndexName);
 
         builder.ToTable("bills");
     }

@@ -8,12 +8,10 @@ namespace BitFinance.API.Services;
 public class BillGenerationService : IBillGenerationService
 {
     public const int RollingHorizonMonths = 12;
-    private readonly IBillsRepository _billsRepository;
     private readonly IBillSeriesRepository _billSeriesRepository;
 
-    public BillGenerationService(IBillsRepository billsRepository, IBillSeriesRepository billSeriesRepository)
+    public BillGenerationService(IBillSeriesRepository billSeriesRepository)
     {
-        _billsRepository = billsRepository;
         _billSeriesRepository = billSeriesRepository;
     }
 
@@ -55,13 +53,10 @@ public class BillGenerationService : IBillGenerationService
         if (bills.Count == 0)
             return 0;
 
-        await _billsRepository.CreateRangeAsync(bills);
+        // False means another writer (the hourly worker or a concurrent request) already generated these occurrences.
+        var saved = await _billSeriesRepository.TryAddOccurrencesAsync(series, bills, occurrenceNumber);
 
-        series.NextOccurrenceNumber = occurrenceNumber;
-        await _billSeriesRepository.UpdateAsync(series,
-            s => s.NextOccurrenceNumber);
-
-        return bills.Count;
+        return saved ? bills.Count : 0;
     }
 
     /// <summary>

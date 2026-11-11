@@ -194,6 +194,10 @@ namespace BitFinance.Data.Migrations
                     b.HasIndex("OrganizationId")
                         .HasDatabaseName("ix_bills_organization_id");
 
+                    b.HasIndex("BillSeriesId", "OccurrenceNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ux_bills_bill_series_id_occurrence_number");
+
                     b.ToTable("bills", (string)null);
                 });
 
