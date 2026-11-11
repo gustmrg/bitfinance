@@ -170,9 +170,13 @@ public class ExpensesController : ControllerBase
             if (validationError is not null)
                 return UnprocessableEntity(validationError);
 
+            var userId = GetCurrentUserId();
+            if (userId is null)
+                return Unauthorized("User is not authenticated.");
+
             var data = new CreateExpenseData(
                 request.Description, category, request.Amount, status, paymentMethod,
-                request.OccurredAt ?? DateTime.UtcNow, request.CreatedBy, request.Notes);
+                request.OccurredAt ?? DateTime.UtcNow, userId, request.Notes);
 
             var expense = await _expensesService.CreateExpenseAsync(organizationId, data);
 
@@ -215,6 +219,10 @@ public class ExpensesController : ControllerBase
             if (request.Items.Count > MaxBatchSize)
                 return UnprocessableEntity($"Batch size limit of {MaxBatchSize} expenses exceeded.");
 
+            var userId = GetCurrentUserId();
+            if (userId is null)
+                return Unauthorized("User is not authenticated.");
+
             var items = new List<CreateExpenseData>(request.Items.Count);
             for (var index = 0; index < request.Items.Count; index++)
             {
@@ -227,7 +235,7 @@ public class ExpensesController : ControllerBase
 
                 items.Add(new CreateExpenseData(
                     requestItem.Description, category, requestItem.Amount, status, paymentMethod,
-                    requestItem.OccurredAt ?? DateTime.UtcNow, request.CreatedBy, requestItem.Notes));
+                    requestItem.OccurredAt ?? DateTime.UtcNow, userId, requestItem.Notes));
             }
 
             var expenses = await _expensesService.CreateExpensesAsync(organizationId, items);
@@ -357,7 +365,7 @@ public class ExpensesController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
 
             if (userId is null)
                 return Unauthorized("User is not authenticated.");
@@ -480,6 +488,11 @@ public class ExpensesController : ControllerBase
             _logger.LogError(ex, "Expense request operation {Operation} failed.", nameof(DeleteDocument));
             return BadRequest();
         }
+    }
+
+    private string? GetCurrentUserId()
+    {
+        return User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 
     private static string? NormalizeNotes(string? notes)

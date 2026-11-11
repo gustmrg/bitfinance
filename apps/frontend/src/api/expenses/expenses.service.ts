@@ -65,7 +65,7 @@ export const expensesService = {
       throw normalizeApiError(error, "api.expenses.loadOne");
     }
   },
-  async createAsync(organizationId: string, input: ExpenseInput & { createdBy: string }) {
+  async createAsync(organizationId: string, input: ExpenseInput) {
     try {
       return map(
         (await authApi.post<ExpenseWire>(`/organizations/${organizationId}/expenses`, input)).data,

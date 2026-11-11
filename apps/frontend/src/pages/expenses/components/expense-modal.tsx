@@ -25,12 +25,10 @@ export function ExpenseModal({
   expense,
   onClose,
   organizationId,
-  userId,
 }: {
   expense?: Expense;
   onClose: () => void;
   organizationId: string;
-  userId: string;
 }) {
   const { t } = useTranslation();
   const mutations = useExpenseMutations(organizationId);
@@ -57,10 +55,10 @@ export function ExpenseModal({
         { onSuccess: done, onError: (error) => toast.error(error.message) },
       );
     else
-      mutations.create.mutate(
-        { ...input, createdBy: userId },
-        { onSuccess: done, onError: (error) => toast.error(error.message) },
-      );
+      mutations.create.mutate(input, {
+        onSuccess: done,
+        onError: (error) => toast.error(error.message),
+      });
   };
   return (
     <Dialog

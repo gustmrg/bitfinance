@@ -32,12 +32,6 @@ public sealed class BitFinanceTokenProvider : IBitFinanceTokenProvider
         return authentication.AccessToken;
     }
 
-    public async Task<string> GetAgentUserIdAsync(CancellationToken cancellationToken = default)
-    {
-        var authentication = await GetAuthenticationAsync(cancellationToken);
-        return authentication.User.Id;
-    }
-
     private async Task<AuthenticationResponse> GetAuthenticationAsync(CancellationToken cancellationToken)
     {
         if (IsCurrentAuthenticationValid())

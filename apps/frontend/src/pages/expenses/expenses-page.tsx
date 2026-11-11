@@ -269,7 +269,6 @@ export function ExpensesPage() {
             setSelected(null);
           }}
           organizationId={organizationId}
-          userId={user.id}
         />
       )}
       <ConfirmDialog

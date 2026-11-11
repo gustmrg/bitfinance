@@ -17,12 +17,10 @@ public sealed class BitFinanceTools
     private const string FileCategories = "Boleto, Receipt, Invoice, Other";
 
     private readonly IBitFinanceApiClient _apiClient;
-    private readonly IBitFinanceTokenProvider _tokenProvider;
 
-    public BitFinanceTools(IBitFinanceApiClient apiClient, IBitFinanceTokenProvider tokenProvider)
+    public BitFinanceTools(IBitFinanceApiClient apiClient)
     {
         _apiClient = apiClient;
-        _tokenProvider = tokenProvider;
     }
 
     [McpServerTool]
@@ -219,41 +217,31 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Creates an expense. Valid categories: " + ExpenseCategories + ". Valid statuses: " + ExpenseStatuses + ". Uses the authenticated agent user as createdBy when createdBy is omitted.")]
-    public async Task<ExpenseResponse> bitfinance_create_expense(
+    [Description("Creates an expense. Valid categories: " + ExpenseCategories + ". Valid statuses: " + ExpenseStatuses + ". The expense is recorded as created by the authenticated agent user.")]
+    public Task<ExpenseResponse> bitfinance_create_expense(
         [Description("Expense description.")] string description,
         [Description("Expense category.")] string category,
         [Description("Expense amount.")] decimal amount,
         [Description("Expense status.")] string status,
         [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
         [Description("Optional occurrence date/time as ISO 8601. Defaults to backend current UTC time when omitted.")] DateTimeOffset? occurredAt = null,
-        [Description("Optional BitFinance user ID to set as creator. Defaults to the authenticated agent user.")] string? createdBy = null,
         [Description("Optional notes, up to 2000 characters.")] string? notes = null,
         [Description("Optional payment method. Valid values: " + PaymentMethods + ".")] string? paymentMethod = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedCreatedBy = string.IsNullOrWhiteSpace(createdBy)
-            ? await _tokenProvider.GetAgentUserIdAsync(cancellationToken)
-            : createdBy;
-
-        var request = new CreateExpenseRequest(description, category, amount, status, occurredAt, resolvedCreatedBy, notes, paymentMethod);
-        return await _apiClient.CreateExpenseAsync(request, organizationId, cancellationToken);
+        var request = new CreateExpenseRequest(description, category, amount, status, occurredAt, notes, paymentMethod);
+        return _apiClient.CreateExpenseAsync(request, organizationId, cancellationToken);
     }
 
     [McpServerTool]
-    [Description("Creates multiple expenses in a single atomic batch: either all are created or none are. Maximum 100 items per batch. Valid categories: " + ExpenseCategories + ". Valid statuses: " + ExpenseStatuses + ". Uses the authenticated agent user as createdBy when createdBy is omitted.")]
-    public async Task<CreateExpensesBatchResponse> bitfinance_create_expenses(
+    [Description("Creates multiple expenses in a single atomic batch: either all are created or none are. Maximum 100 items per batch. Valid categories: " + ExpenseCategories + ". Valid statuses: " + ExpenseStatuses + ". The expenses are recorded as created by the authenticated agent user.")]
+    public Task<CreateExpensesBatchResponse> bitfinance_create_expenses(
         [Description("The expenses to create. Each item requires description, category, amount and status; occurredAt (ISO 8601), notes (up to 2000 characters) and paymentMethod (" + PaymentMethods + ") are optional.")] IReadOnlyList<CreateExpenseBatchItemRequest> items,
         [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
-        [Description("Optional BitFinance user ID to set as creator for all expenses in the batch. Defaults to the authenticated agent user.")] string? createdBy = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedCreatedBy = string.IsNullOrWhiteSpace(createdBy)
-            ? await _tokenProvider.GetAgentUserIdAsync(cancellationToken)
-            : createdBy;
-
-        var request = new CreateExpensesBatchRequest(resolvedCreatedBy, items);
-        return await _apiClient.CreateExpensesBatchAsync(request, organizationId, cancellationToken);
+        var request = new CreateExpensesBatchRequest(items);
+        return _apiClient.CreateExpensesBatchAsync(request, organizationId, cancellationToken);
     }
 
     [McpServerTool]

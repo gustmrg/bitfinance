@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using BitFinance.API.Controllers;
 using BitFinance.API.Models;
 using BitFinance.API.Models.Request;
@@ -17,6 +18,7 @@ namespace BitFinance.API.UnitTests;
 
 public class ExpensesControllerTests
 {
+    private const string CurrentUserId = "current-user-id";
     private static readonly Guid OrganizationId = Guid.NewGuid();
 
     private readonly Mock<IExpensesRepository> _expensesRepository = new();
@@ -29,7 +31,13 @@ public class ExpensesControllerTests
             Mock.Of<ILogger<ExpensesController>>(),
             _expensesRepository.Object,
             _expensesService.Object,
-            Mock.Of<IAttachmentService>());
+            Mock.Of<IAttachmentService>())
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = AuthenticatedUser(CurrentUserId) }
+            }
+        };
     }
 
     [Fact]
@@ -99,7 +107,6 @@ public class ExpensesControllerTests
         var request = new CreateExpenseRequest(
             "Groceries", "food", 120.50m, "paid",
             OccurredAt: new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc),
-            CreatedBy: Guid.NewGuid().ToString(),
             Notes: " weekly ", PaymentMethod: "pix");
 
         var result = await _controller.CreateExpenseAsync(OrganizationId, request);
@@ -116,6 +123,7 @@ public class ExpensesControllerTests
                     data.Category == ExpenseCategory.Food &&
                     data.Status == ExpenseStatus.Paid &&
                     data.PaymentMethod == PaymentMethod.Pix &&
+                    data.CreatedByUserId == CurrentUserId &&
                     data.Notes == " weekly ")),
             Times.Once);
     }
@@ -124,7 +132,7 @@ public class ExpensesControllerTests
     public async Task CreateExpense_InvalidCategory_ReturnsUnprocessableEntityWithoutCallingService()
     {
         var request = new CreateExpenseRequest(
-            "Groceries", "not-a-category", 10m, "paid", null, Guid.NewGuid().ToString());
+            "Groceries", "not-a-category", 10m, "paid", null);
 
         var result = await _controller.CreateExpenseAsync(OrganizationId, request);
 
@@ -139,7 +147,7 @@ public class ExpensesControllerTests
             .Setup(service => service.CreateExpenseAsync(OrganizationId, It.IsAny<CreateExpenseData>()))
             .ThrowsAsync(new KeyNotFoundException());
         var request = new CreateExpenseRequest(
-            "Groceries", "food", 10m, "paid", null, Guid.NewGuid().ToString());
+            "Groceries", "food", 10m, "paid", null);
 
         var result = await _controller.CreateExpenseAsync(OrganizationId, request);
 
@@ -153,7 +161,7 @@ public class ExpensesControllerTests
             .Setup(service => service.CreateExpenseAsync(OrganizationId, It.IsAny<CreateExpenseData>()))
             .ThrowsAsync(new PlanLimitExceededException("Monthly expense limit of 20 reached."));
         var request = new CreateExpenseRequest(
-            "Groceries", "food", 10m, "paid", null, Guid.NewGuid().ToString());
+            "Groceries", "food", 10m, "paid", null);
 
         var result = await _controller.CreateExpenseAsync(OrganizationId, request);
 
@@ -169,7 +177,6 @@ public class ExpensesControllerTests
             .Setup(service => service.CreateExpensesAsync(OrganizationId, It.IsAny<IReadOnlyList<CreateExpenseData>>()))
             .ReturnsAsync(expenses);
         var request = new CreateExpensesBatchRequest(
-            Guid.NewGuid().ToString(),
             [
                 new CreateExpenseBatchItemRequest("Rent", "housing", 1500m, "pending", null),
                 new CreateExpenseBatchItemRequest(
@@ -189,15 +196,41 @@ public class ExpensesControllerTests
                 OrganizationId,
                 It.Is<IReadOnlyList<CreateExpenseData>>(items =>
                     items.Count == 2 &&
+                    items.All(item => item.CreatedByUserId == CurrentUserId) &&
                     items[0].Category == ExpenseCategory.Housing &&
                     items[1].PaymentMethod == PaymentMethod.DebitCard)),
             Times.Once);
     }
 
     [Fact]
+    public async Task CreateExpense_WithoutUserIdentifier_ReturnsUnauthorizedWithoutCallingService()
+    {
+        _controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity());
+        var request = new CreateExpenseRequest("Groceries", "food", 10m, "paid", null);
+
+        var result = await _controller.CreateExpenseAsync(OrganizationId, request);
+
+        Assert.IsType<UnauthorizedObjectResult>(result.Result);
+        _expensesService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task CreateExpensesBatch_WithoutUserIdentifier_ReturnsUnauthorizedWithoutCallingService()
+    {
+        _controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity());
+        var request = new CreateExpensesBatchRequest(
+            [new CreateExpenseBatchItemRequest("Rent", "housing", 1500m, "pending", null)]);
+
+        var result = await _controller.CreateExpensesBatchAsync(OrganizationId, request);
+
+        Assert.IsType<UnauthorizedObjectResult>(result.Result);
+        _expensesService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task CreateExpensesBatch_EmptyItems_ReturnsUnprocessableEntityWithoutCallingService()
     {
-        var request = new CreateExpensesBatchRequest(Guid.NewGuid().ToString(), []);
+        var request = new CreateExpensesBatchRequest([]);
 
         var result = await _controller.CreateExpensesBatchAsync(OrganizationId, request);
 
@@ -211,7 +244,7 @@ public class ExpensesControllerTests
         var items = Enumerable.Range(0, 101)
             .Select(_ => new CreateExpenseBatchItemRequest("Rent", "housing", 1500m, "pending", null))
             .ToList();
-        var request = new CreateExpensesBatchRequest(Guid.NewGuid().ToString(), items);
+        var request = new CreateExpensesBatchRequest(items);
 
         var result = await _controller.CreateExpensesBatchAsync(OrganizationId, request);
 
@@ -223,7 +256,6 @@ public class ExpensesControllerTests
     public async Task CreateExpensesBatch_InvalidItem_ReturnsUnprocessableEntityWithIndex()
     {
         var request = new CreateExpensesBatchRequest(
-            Guid.NewGuid().ToString(),
             [
                 new CreateExpenseBatchItemRequest("Rent", "housing", 1500m, "pending", null),
                 new CreateExpenseBatchItemRequest("Utilities", "not-a-category", 200m, "paid", null),
@@ -243,7 +275,6 @@ public class ExpensesControllerTests
             .Setup(service => service.CreateExpensesAsync(OrganizationId, It.IsAny<IReadOnlyList<CreateExpenseData>>()))
             .ThrowsAsync(new KeyNotFoundException());
         var request = new CreateExpensesBatchRequest(
-            Guid.NewGuid().ToString(),
             [new CreateExpenseBatchItemRequest("Rent", "housing", 1500m, "pending", null)]);
 
         var result = await _controller.CreateExpensesBatchAsync(OrganizationId, request);
@@ -258,13 +289,18 @@ public class ExpensesControllerTests
             .Setup(service => service.CreateExpensesAsync(OrganizationId, It.IsAny<IReadOnlyList<CreateExpenseData>>()))
             .ThrowsAsync(new PlanLimitExceededException("Creating 5 expenses would exceed the monthly limit of 20."));
         var request = new CreateExpensesBatchRequest(
-            Guid.NewGuid().ToString(),
             [new CreateExpenseBatchItemRequest("Rent", "housing", 1500m, "pending", null)]);
 
         var result = await _controller.CreateExpensesBatchAsync(OrganizationId, request);
 
         var forbidden = Assert.IsType<ObjectResult>(result.Result);
         Assert.Equal(StatusCodes.Status403Forbidden, forbidden.StatusCode);
+    }
+
+    private static ClaimsPrincipal AuthenticatedUser(string userId)
+    {
+        return new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(ClaimTypes.NameIdentifier, userId)], "Test"));
     }
 
     private static Expense NewExpense(string description)
