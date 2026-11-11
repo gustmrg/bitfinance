@@ -6,13 +6,24 @@ namespace BitFinance.API.Extensions;
 
 public static class MiddlewareExtensions
 {
-    public static IServiceCollection AddHttpOptions(this IServiceCollection services)
+    public const string KnownProxyNetworksSection = "ForwardedHeaders:KnownNetworks";
+
+    public static IServiceCollection AddHttpOptions(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddCors();
 
         services.Configure<ForwardedHeadersOptions>(options =>
         {
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+            // Loopback proxies are trusted by default. A reverse proxy reaching the API from another
+            // address (the Docker bridge gateway, for instance) must be listed here, or every request
+            // appears to come from the proxy and per-client limits collapse into a single shared one.
+            foreach (var network in configuration.GetSection(KnownProxyNetworksSection).Get<string[]>() ?? [])
+            {
+                if (!string.IsNullOrWhiteSpace(network))
+                    options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network.Trim()));
+            }
         });
 
         return services;
@@ -31,6 +42,7 @@ public static class MiddlewareExtensions
         });
 
         app.UseForwardedHeaders();
+        app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();
 

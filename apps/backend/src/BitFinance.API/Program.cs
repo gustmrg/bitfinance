@@ -7,7 +7,8 @@ var isMigration = args.Contains("--migrate", StringComparer.OrdinalIgnoreCase);
 
 builder.AddAzureKeyVault();
 
-builder.Services.AddHttpOptions();
+builder.Services.AddHttpOptions(builder.Configuration);
+builder.Services.AddAuthRateLimiting(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddDatabaseContext(builder.Configuration);
 builder.Services.AddDependencyInjection(builder.Configuration);

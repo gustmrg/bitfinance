@@ -117,11 +117,14 @@ The local `.env.example` includes safe development defaults.
 | `JWT_AUDIENCE` | JWT audience | `bitfinance-dev` |
 | `JWT_EXPIRATION` | Access token lifetime in minutes | `2880` |
 | `CACHE_ENABLED` | Enables Redis-backed caching | `false` |
+| `TRUSTED_PROXY_NETWORK` | CIDR the reverse proxy reaches the API from; `X-Forwarded-For` is trusted only from it | `172.16.0.0/12` |
 | `NOTIFICATIONS_EMAIL_ENABLED` | Enables Resend delivery for eligible plans | `false` |
 | `RESEND_API_TOKEN` | Resend API token | Empty |
 | `RESEND_WEBHOOK_SECRET` | Resend/Svix webhook signing secret | Empty |
 | `NOTIFICATIONS_FROM_ADDRESS` | Verified sender address | Development placeholder |
 | `NOTIFICATIONS_FRONTEND_BASE_URL` | Base URL used by notification email links | `http://localhost:5174` |
+
+Login and registration are limited to 10 requests per minute per client IP, and token refresh to 60. Override them with `RateLimiting__Auth__CredentialPermitLimit`, `RateLimiting__Auth__RefreshPermitLimit` and `RateLimiting__Auth__WindowSeconds`. The limits are per client only when the reverse proxy appends the client address to `X-Forwarded-For` and reaches the API from `TRUSTED_PROXY_NETWORK`; otherwise every request shares the proxy's address and one limit.
 
 Production deployments should use `.env.prod.example` as a template and provide real values for database credentials, JWT settings, Azure Key Vault configuration, file storage, and image tags.
 
