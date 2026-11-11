@@ -7,6 +7,7 @@ using BitFinance.API.Models.Response;
 using BitFinance.API.Services.Interfaces;
 using BitFinance.API.ViewModels;
 using BitFinance.Business.Entities;
+using BitFinance.Business.Exceptions;
 using BitFinance.Business.Interfaces;
 using BitFinance.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -328,7 +329,7 @@ public class IdentityController : ControllerBase
                 attachment.ContentType
             });
         }
-        catch (Exception e)
+        catch (RequestValidationException e)
         {
             return BadRequest(new { error = e.Message });
         }
