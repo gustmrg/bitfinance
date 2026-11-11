@@ -114,18 +114,6 @@ public class BillsRepository : IBillsRepository
 
         return (items, totals.Count, new BillListSummary(totals.ToPay, totals.Overdue, totals.NextSevenDays, totals.Paid));
     }
-    
-    public async Task<List<Bill>> GetAllByStatusAsync(BillStatus billStatus)
-    {
-        List<Bill> list = await _dbContext.Set<Bill>()
-            .AsNoTracking()
-            .Where(b => b.Status == billStatus)
-            .Include(b => b.Attachments)
-            .OrderBy(b => b.DueDate)
-            .ToListAsync();
-
-        return list;
-    }
 
     public async Task<List<Bill>> GetAllByOrganizationAndStatusAsync(Guid organizationId, BillStatus billStatus)
     {
@@ -143,14 +131,6 @@ public class BillsRepository : IBillsRepository
                         && b.DueDate >= startDate
                         && b.DueDate <= endDate)
             .ToListAsync();
-    }
-
-    public async Task<int> GetMonthlyCountByOrganizationAsync(Guid organizationId, DateTime monthStartUtc, DateTime monthEndUtc)
-    {
-        return await _dbContext.Bills
-            .CountAsync(b => b.OrganizationId == organizationId
-                          && b.CreatedAt >= monthStartUtc
-                          && b.CreatedAt < monthEndUtc);
     }
 
     public async Task<int> GetOneTimeMonthlyCountByOrganizationAsync(Guid organizationId, DateTime monthStartUtc, DateTime monthEndUtc)
