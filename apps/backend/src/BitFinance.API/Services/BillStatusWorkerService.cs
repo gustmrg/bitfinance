@@ -34,10 +34,11 @@ public class BillStatusWorkerService : BackgroundService
                     WorkerTelemetry.BillStatus,
                     async _ =>
                     {
-                        await GenerateScheduledBills();
-                        await UpdateUpcomingBills();
-                        await UpdateDueBills();
-                        await EnqueueBillReminders();
+                        var organizations = await LoadOrganizations();
+                        await GenerateScheduledBills(organizations);
+                        await UpdateUpcomingBills(organizations);
+                        await UpdateDueBills(organizations);
+                        await EnqueueBillReminders(organizations);
                     },
                     stoppingToken);
             }
@@ -66,13 +67,17 @@ public class BillStatusWorkerService : BackgroundService
         }
     }
 
-    private async Task EnqueueBillReminders()
+    private async Task<List<Organization>> LoadOrganizations()
     {
         using var scope = _serviceScopeFactory.CreateScope();
-        var organizationsRepository = scope.ServiceProvider.GetRequiredService<IOrganizationsRepository>();
+        return await scope.ServiceProvider.GetRequiredService<IOrganizationsRepository>().GetAllAsync();
+    }
+
+    private async Task EnqueueBillReminders(List<Organization> organizations)
+    {
+        using var scope = _serviceScopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
-        var organizations = await organizationsRepository.GetAllAsync();
 
         foreach (var organization in organizations)
         {
@@ -106,16 +111,14 @@ public class BillStatusWorkerService : BackgroundService
         }
     }
     
-    private async Task GenerateScheduledBills()
+    private async Task GenerateScheduledBills(List<Organization> organizations)
     {
         using IServiceScope scope = _serviceScopeFactory.CreateScope();
-        var organizationsRepository = scope.ServiceProvider.GetRequiredService<IOrganizationsRepository>();
         var billSeriesRepository = scope.ServiceProvider.GetRequiredService<IBillSeriesRepository>();
         var billGenerationService = scope.ServiceProvider.GetRequiredService<IBillGenerationService>();
 
         try
         {
-            var organizations = await organizationsRepository.GetAllAsync();
             var totalGenerated = 0;
 
             foreach (var organization in organizations)
@@ -154,15 +157,13 @@ public class BillStatusWorkerService : BackgroundService
         }
     }
 
-    private async Task UpdateUpcomingBills()
+    private async Task UpdateUpcomingBills(List<Organization> organizations)
     {
         using IServiceScope scope = _serviceScopeFactory.CreateScope();
-        var organizationsRepository = scope.ServiceProvider.GetRequiredService<IOrganizationsRepository>();
         var billsRepository = scope.ServiceProvider.GetRequiredService<IBillsRepository>();
 
         try
         {
-            var organizations = await organizationsRepository.GetAllAsync();
             var totalBillsUpdated = 0;
             
             foreach (var organization in organizations)
@@ -189,15 +190,13 @@ public class BillStatusWorkerService : BackgroundService
         }
     }
     
-    private async Task UpdateDueBills()
+    private async Task UpdateDueBills(List<Organization> organizations)
     {
         using IServiceScope scope = _serviceScopeFactory.CreateScope();
-        var organizationsRepository = scope.ServiceProvider.GetRequiredService<IOrganizationsRepository>();
         var billsRepository = scope.ServiceProvider.GetRequiredService<IBillsRepository>();
 
         try
         {
-            var organizations = await organizationsRepository.GetAllAsync();
             var totalBillsUpdated = 0;
 
             foreach (var organization in organizations)
