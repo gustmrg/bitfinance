@@ -163,7 +163,4 @@ public class TokenService : ITokenService
 
         return TokenHasher.HashToken(token);
     }
-
-    [Obsolete("Use GenerateAccessToken instead")]
-    public string GenerateToken(User user) => GenerateAccessToken(user);
 }
