@@ -15,6 +15,7 @@ import { Page } from "@/components/layout/page";
 import { PeriodFilter } from "@/components/navigation/period-filter";
 import { useDashboardQueries } from "@/hooks/queries/use-dashboard-queries";
 import { useCurrentMonth } from "@/hooks/use-current-month";
+import { useCurrency } from "@/hooks/use-currency";
 import { useLocale } from "@/hooks/use-locale";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
 import { daysUntil, dueState } from "@/lib/due";
@@ -122,6 +123,7 @@ function ExpenseRow({ expense }: { expense: DashboardExpense }) {
 export function DashboardPage() {
   const { t } = useTranslation();
   const locale = useLocale();
+  const currency = useCurrency();
   const organizationId = useSelectedOrganization();
   const period = useCurrentMonth();
   const { user } = useAuth();
@@ -218,7 +220,7 @@ export function DashboardPage() {
               <span>{t("dashboard.spentInPeriod")}</span>
               {budget !== null && (
                 <span>
-                  {t("dashboard.budgetLabel", { amount: formatCurrency(budget, locale) })}
+                  {t("dashboard.budgetLabel", { amount: formatCurrency(budget, locale, currency) })}
                 </span>
               )}
             </div>
@@ -264,11 +266,13 @@ export function DashboardPage() {
                   </Link>
                 ) : overBudget > 0 ? (
                   <strong className="text-on-brand">
-                    {t("dashboard.overBudget", { amount: formatCurrency(overBudget, locale) })}
+                    {t("dashboard.overBudget", {
+                      amount: formatCurrency(overBudget, locale, currency),
+                    })}
                   </strong>
                 ) : (
                   t("dashboard.remaining", {
-                    amount: formatCurrency(summary?.remainingBudget ?? 0, locale),
+                    amount: formatCurrency(summary?.remainingBudget ?? 0, locale, currency),
                   })
                 )}
               </span>

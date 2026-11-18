@@ -1,7 +1,8 @@
-import type { OrganizationSummary, PlanTier } from "../auth/auth.types";
-export type { OrganizationSummary, PlanTier } from "../auth/auth.types";
+import type { Currency, OrganizationSummary, PlanTier } from "../auth/auth.types";
+export type { Currency, OrganizationSummary, PlanTier } from "../auth/auth.types";
 
 export interface OrganizationDetails extends OrganizationSummary {
+  currency: Currency;
   createdAt: string;
   updatedAt?: string | null;
   planTier: PlanTier;

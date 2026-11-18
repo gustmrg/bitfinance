@@ -50,7 +50,7 @@ public class OrganizationsController : ControllerBase
         var organizations = await _organizationsService.GetAllByUserIdAsync(userId);
 
         var response = organizations
-            .Select(o => new OrganizationResponseModel(o.Id, o.Name, o.EffectivePlanTier))
+            .Select(o => new OrganizationResponseModel(o.Id, o.Name, o.EffectivePlanTier, o.Currency))
             .ToList();
 
         return Ok(response);
@@ -73,6 +73,7 @@ public class OrganizationsController : ControllerBase
             CreatedAt = organization.CreatedAt,
             UpdatedAt = organization.UpdatedAt,
             PlanTier = organization.EffectivePlanTier,
+            Currency = organization.Currency,
             PlanExpiresAt = organization.PlanExpiresAt,
             Budget = organization.Budget is null
                 ? null
@@ -112,7 +113,7 @@ public class OrganizationsController : ControllerBase
 
         var organization = await _organizationsService.CreateAsync(request.Name, user.Id);
 
-        return CreatedAtAction(nameof(GetOrganizationById), new { organizationId = organization.Id }, new OrganizationResponseModel(organization.Id, organization.Name, organization.EffectivePlanTier));
+        return CreatedAtAction(nameof(GetOrganizationById), new { organizationId = organization.Id }, new OrganizationResponseModel(organization.Id, organization.Name, organization.EffectivePlanTier, organization.Currency));
     }
 
     [HttpPatch("{organizationId:guid}")]
@@ -125,12 +126,12 @@ public class OrganizationsController : ControllerBase
 
         if (string.IsNullOrEmpty(userId)) return BadRequest("Invalid user");
 
-        var result = await _organizationsService.UpdateAsync(organizationId, request.Name, userId);
+        var result = await _organizationsService.UpdateAsync(organizationId, request.Name, request.Currency, userId);
 
         if (!result.Success) return ToErrorResponse(result.Error, result.ErrorMessage);
 
         var organization = result.Value!;
-        return Ok(new OrganizationResponseModel(organization.Id, organization.Name, organization.EffectivePlanTier));
+        return Ok(new OrganizationResponseModel(organization.Id, organization.Name, organization.EffectivePlanTier, organization.Currency));
     }
 
     [HttpDelete("{organizationId:guid}")]

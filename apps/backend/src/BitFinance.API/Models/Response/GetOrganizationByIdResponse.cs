@@ -12,6 +12,8 @@ public class GetOrganizationByIdResponse
     public OrganizationBudgetResponse? Budget { get; set; }
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public PlanTier PlanTier { get; set; }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public Currency Currency { get; set; }
     public DateTime PlanExpiresAt { get; set; }
     public List<OrganizationMemberResponse> Members { get; set; } = [];
 }

@@ -1,6 +1,6 @@
 import { authApi } from "../shared/client";
 import { normalizeApiError } from "../shared/errors";
-import type { OrganizationSummary } from "../auth/auth.types";
+import type { Currency, OrganizationSummary } from "../auth/auth.types";
 import type {
   Budget,
   InvitationResult,
@@ -33,10 +33,13 @@ export const organizationsService = {
       throw normalizeApiError(error, "api.organizations.create");
     }
   },
-  async updateAsync(organizationId: string, name: string): Promise<OrganizationSummary> {
+  async updateAsync(
+    organizationId: string,
+    settings: { name: string; currency: Currency },
+  ): Promise<OrganizationSummary> {
     try {
       return (
-        await authApi.patch<OrganizationSummary>(`/organizations/${organizationId}`, { name })
+        await authApi.patch<OrganizationSummary>(`/organizations/${organizationId}`, settings)
       ).data;
     } catch (error) {
       throw normalizeApiError(error, "api.organizations.update");

@@ -1,5 +1,6 @@
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import type { Currency } from "@/api/auth/auth.types";
 
 const dateOnlyPattern = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -10,10 +11,10 @@ function parseDate(value: string) {
   return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
 }
 
-export function formatCurrency(value: number, locale = "en-US") {
+export function formatCurrency(value: number, locale: string, currency: Currency) {
   return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: locale === "pt-BR" ? "BRL" : "USD",
+    currency,
     maximumFractionDigits: 2,
   }).format(value);
 }

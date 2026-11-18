@@ -6,12 +6,12 @@ import { formatCurrency, formatDate, formatLongDate, initials, inputDate } from 
 const plainSpaces = (value: string) => value.replace(/\s/g, " ");
 
 describe("formatCurrency", () => {
-  it("formats US dollars by default", () => {
-    expect(formatCurrency(1234.5)).toBe("$1,234.50");
+  it("formats US dollars in en-US", () => {
+    expect(formatCurrency(1234.5, "en-US", "USD")).toBe("$1,234.50");
   });
 
-  it("formats Brazilian reais for pt-BR", () => {
-    expect(plainSpaces(formatCurrency(1234.5, "pt-BR"))).toBe("R$ 1.234,50");
+  it("formats Brazilian reais in pt-BR", () => {
+    expect(plainSpaces(formatCurrency(1234.5, "pt-BR", "BRL"))).toBe("R$ 1.234,50");
   });
 });
 

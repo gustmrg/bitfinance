@@ -1,3 +1,4 @@
+import { useCurrency } from "@/hooks/use-currency";
 import { useLocale } from "@/hooks/use-locale";
 import { cn } from "@/lib/cn";
 import { formatCurrency } from "@/lib/format";
@@ -12,10 +13,11 @@ export function Amount({
   className?: string;
 }) {
   const locale = useLocale();
+  const currency = useCurrency();
   return (
     <span className={cn("whitespace-nowrap tabular-nums", className)}>
       {negative ? "− " : ""}
-      {formatCurrency(Math.abs(value), locale)}
+      {formatCurrency(Math.abs(value), locale, currency)}
     </span>
   );
 }

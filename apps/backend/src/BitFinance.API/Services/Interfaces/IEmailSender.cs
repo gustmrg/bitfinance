@@ -1,3 +1,5 @@
+using BitFinance.Business.Enums;
+
 namespace BitFinance.API.Services.Interfaces;
 
 public interface IEmailSender
@@ -12,6 +14,7 @@ public sealed record BillReminderEmail(
     string OrganizationName,
     string BillDescription,
     decimal AmountDue,
+    Currency Currency,
     DateOnly DueDate,
     string ReminderType,
     string ActionUrl);

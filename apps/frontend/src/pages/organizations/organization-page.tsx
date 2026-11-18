@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { type Currency, currencies } from "@/api/auth/auth.types";
 import { useAuth } from "@/auth/auth-provider";
 import { useOrganizationStore } from "@/auth/auth-store";
 import { Amount } from "@/components/base/amount";
@@ -36,6 +37,7 @@ export function OrganizationPage() {
   const budgetQuery = useBudgetQuery(organizationId);
   const mutations = useOrganizationMutations(organizationId);
   const [name, setName] = useState("");
+  const [currency, setCurrency] = useState<Currency>("BRL");
   const [budget, setBudget] = useState("");
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
@@ -45,6 +47,7 @@ export function OrganizationPage() {
   useEffect(() => {
     if (detail.data) {
       setName(detail.data.name);
+      setCurrency(detail.data.currency);
       setBudget(String(budgetQuery.data?.amount ?? detail.data.budget?.amount ?? ""));
     }
   }, [budgetQuery.data, detail.data]);
@@ -162,10 +165,13 @@ export function OrganizationPage() {
             className="grid gap-4"
             onSubmit={(event) => {
               event.preventDefault();
-              mutations.update.mutate(name, {
-                onSuccess: () => toast.success(t("organization.settingsSaved")),
-                onError: (error) => toast.error(error.message),
-              });
+              mutations.update.mutate(
+                { name, currency },
+                {
+                  onSuccess: () => toast.success(t("organization.settingsSaved")),
+                  onError: (error) => toast.error(error.message),
+                },
+              );
             }}
           >
             <Field label={t("organization.name")}>
@@ -176,6 +182,20 @@ export function OrganizationPage() {
                   onChange={(event) => setName(event.target.value)}
                   readOnly={!canManage}
                   required
+                />
+              )}
+            </Field>
+            <Field label={t("organization.currency")} hint={t("organization.currencyHint")}>
+              {(control) => (
+                <Select<Currency>
+                  id={control.id}
+                  value={currency}
+                  onValueChange={setCurrency}
+                  disabled={!canManage}
+                  options={currencies.map((code) => ({
+                    value: code,
+                    label: t(`organization.currencies.${code}`),
+                  }))}
                 />
               )}
             </Field>

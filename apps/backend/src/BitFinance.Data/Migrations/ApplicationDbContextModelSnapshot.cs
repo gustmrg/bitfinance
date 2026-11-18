@@ -111,7 +111,7 @@ namespace BitFinance.Data.Migrations
 
                     b.ToTable("attachments", null, t =>
                         {
-                            t.HasCheckConstraint("ck_attachments_single_owner", "(CASE WHEN bill_id IS NOT NULL THEN 1 ELSE 0 END +\n                  CASE WHEN expense_id IS NOT NULL THEN 1 ELSE 0 END +\n                  CASE WHEN user_id IS NOT NULL THEN 1 ELSE 0 END) = 1");
+                            t.HasCheckConstraint("ck_attachments_single_owner", "(CASE WHEN bill_id IS NOT NULL THEN 1 ELSE 0 END +\r\n                  CASE WHEN expense_id IS NOT NULL THEN 1 ELSE 0 END +\r\n                  CASE WHEN user_id IS NOT NULL THEN 1 ELSE 0 END) = 1");
                         });
                 });
 
@@ -698,6 +698,12 @@ namespace BitFinance.Data.Migrations
                         .HasPrecision(3)
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
 
                     b.Property<string>("Name")
                         .IsRequired()

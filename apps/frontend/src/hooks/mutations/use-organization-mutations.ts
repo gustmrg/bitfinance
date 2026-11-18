@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Currency } from "@/api/auth/auth.types";
 import {
   type EditableOrganizationMemberRole,
   organizationsService,
@@ -14,7 +15,8 @@ export function useOrganizationMutations(organizationId: string | null) {
     void client.invalidateQueries({ queryKey: queryKeys.reports.all });
   };
   const update = useMutation({
-    mutationFn: (name: string) => organizationsService.updateAsync(organizationId!, name),
+    mutationFn: (settings: { name: string; currency: Currency }) =>
+      organizationsService.updateAsync(organizationId!, settings),
     onSuccess: invalidate,
   });
   const budget = useMutation({
