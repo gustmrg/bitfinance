@@ -293,6 +293,13 @@ public class BillsRepository : IBillsRepository
             .ToListAsync();
     }
 
+    public async Task<Bill?> GetSeriesOccurrenceAsync(Guid seriesId, int occurrenceNumber)
+    {
+        return await _dbContext.Bills
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.BillSeriesId == seriesId && b.OccurrenceNumber == occurrenceNumber);
+    }
+
     public async Task<Bill> CreateAsync(Bill bill)
     {
         _dbContext.Set<Bill>().Add(bill);
