@@ -159,14 +159,13 @@ def main():
             assert status == 201, ('API key creation failed', status, body)
             api_key = json.loads(body)['secret']
             mcp_env = dict(env, ASPNETCORE_URLS=f'http://0.0.0.0:{mcp_port}',
-                           BITFINANCE_API_BASE_URL=api_url, BITFINANCE_API_KEY=api_key,
-                           BITFINANCE_MCP_BEARER_TOKEN='otel-secret-bearer',
+                           BITFINANCE_API_BASE_URL=api_url,
                            OTEL_EXPORTER_OTLP_ENDPOINT=f'http://127.0.0.1:{http_port}',
                            OTEL_EXPORTER_OTLP_PROTOCOL='http/protobuf')
             start(mcp_dll, mcp_dir, mcp_env, 'mcp')
             wait_for(lambda: http(mcp_url + '/health/ready')[0] == 200, 'MCP readiness')
             headers = {'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream',
-                       'Authorization': 'Bearer otel-secret-bearer', 'MCP-Protocol-Version': '2025-03-26'}
+                       'Authorization': 'Bearer ' + api_key, 'MCP-Protocol-Version': '2025-03-26'}
 
             def tool_call():
                 trace_id = uuid.uuid4().hex

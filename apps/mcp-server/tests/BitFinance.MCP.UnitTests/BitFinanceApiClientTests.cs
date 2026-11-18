@@ -26,22 +26,21 @@ public class BitFinanceApiClientTests
               "attachmentType": "ExpenseDocument"
             }
             """));
-        var client = CreateClient(handler, organizationId);
+        var client = CreateClient(handler);
         var bytes = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
 
         var result = await client.UploadExpenseDocumentAsync(
             expenseId,
             "receipt.png",
             $"data:image/png;base64,{Convert.ToBase64String(bytes)}",
-            "Receipt");
+            "Receipt",
+            organizationId: organizationId);
 
         Assert.Equal("receipt.png", result.FileName);
         Assert.Equal(HttpMethod.Post, handler.Method);
         Assert.Equal(
             $"/api/v1/organizations/{organizationId}/expenses/{expenseId}/documents",
             handler.RequestUri?.AbsolutePath);
-        Assert.Equal("Bearer", handler.Authorization?.Scheme);
-        Assert.Equal("bf_test-key", handler.Authorization?.Parameter);
         Assert.Contains("name=File", handler.RequestBody);
         Assert.Contains("filename=receipt.png", handler.RequestBody);
         Assert.Contains("name=FileCategory", handler.RequestBody);
@@ -52,7 +51,7 @@ public class BitFinanceApiClientTests
     public async Task UploadExpenseDocument_OversizedPayload_DoesNotSendRequest()
     {
         var handler = new RecordingHandler(_ => throw new InvalidOperationException("HTTP should not run."));
-        var client = CreateClient(handler, Guid.NewGuid());
+        var client = CreateClient(handler);
         var payload = Convert.ToBase64String(new byte[10 * 1024 * 1024 + 1]);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -60,7 +59,8 @@ public class BitFinanceApiClientTests
                 Guid.NewGuid(),
                 "receipt.png",
                 payload,
-                "Receipt"));
+                "Receipt",
+                organizationId: Guid.NewGuid()));
 
         Assert.Contains("10 MB or smaller", exception.Message);
         Assert.Null(handler.Method);
@@ -75,14 +75,15 @@ public class BitFinanceApiClientTests
         string expectedMessage)
     {
         var handler = new RecordingHandler(_ => throw new InvalidOperationException("HTTP should not run."));
-        var client = CreateClient(handler, Guid.NewGuid());
+        var client = CreateClient(handler);
 
         var exception = await Assert.ThrowsAnyAsync<Exception>(() =>
             client.UploadExpenseDocumentAsync(
                 Guid.NewGuid(),
                 fileName,
                 base64Content,
-                "Receipt"));
+                "Receipt",
+                organizationId: Guid.NewGuid()));
 
         Assert.Contains(expectedMessage, exception.Message);
         Assert.Null(handler.Method);
@@ -107,16 +108,16 @@ public class BitFinanceApiClientTests
                     }
                     """)
                 : new HttpResponseMessage(HttpStatusCode.NoContent));
-        var client = CreateClient(handler, organizationId);
+        var client = CreateClient(handler);
 
-        var download = await client.GetExpenseDocumentDownloadUrlAsync(expenseId, documentId);
+        var download = await client.GetExpenseDocumentDownloadUrlAsync(expenseId, documentId, organizationId: organizationId);
 
         Assert.Equal("receipt.png", download.FileName);
         Assert.Equal(
             $"/api/v1/organizations/{organizationId}/expenses/{expenseId}/documents/{documentId}/download-url",
             handler.RequestUri?.AbsolutePath);
 
-        await client.DeleteExpenseDocumentAsync(expenseId, documentId);
+        await client.DeleteExpenseDocumentAsync(expenseId, documentId, organizationId: organizationId);
 
         Assert.Equal(HttpMethod.Delete, handler.Method);
         Assert.Equal(
@@ -131,14 +132,15 @@ public class BitFinanceApiClientTests
             JsonResponse(
                 HttpStatusCode.Forbidden,
                 """{"error":"PRIVATE_RESPONSE_BODY_SENTINEL"}"""));
-        var client = CreateClient(handler, Guid.NewGuid());
+        var client = CreateClient(handler);
 
         var exception = await Assert.ThrowsAsync<BitFinanceApiException>(() =>
             client.UploadExpenseDocumentAsync(
                 Guid.NewGuid(),
                 "receipt.png",
                 Convert.ToBase64String(new byte[] { 0x89, 0x50, 0x4E, 0x47 }),
-                "Receipt"));
+                "Receipt",
+                organizationId: Guid.NewGuid()));
 
         Assert.Equal(HttpStatusCode.Forbidden, exception.StatusCode);
         Assert.Contains("403 Forbidden", exception.Message);
@@ -170,14 +172,14 @@ public class BitFinanceApiClientTests
               ]
             }
             """));
-        var client = CreateClient(handler, organizationId);
+        var client = CreateClient(handler);
 
         var response = await client.CreateExpensesBatchAsync(new CreateExpensesBatchRequest(
             [
                 new CreateExpenseBatchItemRequest("Rent", "Housing", 1500m, "Pending"),
                 new CreateExpenseBatchItemRequest(
                     "Utilities", "Utilities", 200m, "Paid", Notes: "electricity", PaymentMethod: "DebitCard"),
-            ]));
+            ]), organizationId: organizationId);
 
         Assert.Equal(HttpMethod.Post, handler.Method);
         Assert.Equal($"/api/v1/organizations/{organizationId}/expenses/batch", handler.RequestUri?.AbsolutePath);
@@ -189,7 +191,7 @@ public class BitFinanceApiClientTests
         Assert.Equal("Test User", expense.CreatedBy);
     }
 
-    private static BitFinanceApiClient CreateClient(RecordingHandler handler, Guid organizationId)
+    private static BitFinanceApiClient CreateClient(RecordingHandler handler)
     {
         var httpClient = new HttpClient(handler)
         {
@@ -199,9 +201,7 @@ public class BitFinanceApiClientTests
             new StaticHttpClientFactory(httpClient),
             new BitFinanceOptions
             {
-                ApiBaseUrl = httpClient.BaseAddress,
-                ApiKey = "bf_test-key",
-                DefaultOrganizationId = organizationId
+                ApiBaseUrl = httpClient.BaseAddress
             });
     }
 
