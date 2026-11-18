@@ -14,16 +14,13 @@ Set these environment variables in the environment where the MCP server runs:
 
 ```bash
 export BITFINANCE_API_BASE_URL="http://bitfinance-api:8080"
-export BITFINANCE_API_KEY="bf_<your-api-key>"
-export BITFINANCE_DEFAULT_ORGANIZATION_ID="<organization-guid>"
 export BITFINANCE_API_VERSION="1"
-export BITFINANCE_MCP_BEARER_TOKEN="<long-random-token>"
 export ASPNETCORE_URLS="http://+:8090"
 ```
 
-`BITFINANCE_API_VERSION` is optional and defaults to `1`. `BITFINANCE_MCP_BEARER_TOKEN` is required and protects the `/mcp` endpoint.
+`BITFINANCE_API_VERSION` is optional and defaults to `1`.
 
-`BITFINANCE_API_KEY` is a personal API key created in BitFinance under **Account → API keys**. The server calls the API as the key's owner, only in the organizations the key lists, with the access level chosen for each (Read or ReadWrite). `bitfinance_list_organizations` returns those organizations and access levels. Revoke the key in BitFinance to cut the agent off. See `docs/api-keys.md` for the rules.
+The server holds no credentials. Each agent sends its own personal API key, created in BitFinance under **Account → API keys**, as `Authorization: Bearer bf_...` on every request to `/mcp`. The server rejects requests without one and forwards the key to the API, which validates it on every call. Tools therefore run as the key's owner, only in the organizations the key lists, with the access level chosen for each (Read or ReadWrite). Several people can use the same server with their own keys. Revoke a key in BitFinance to cut that agent off. See `docs/api-keys.md` for the rules.
 
 ## Build
 
@@ -44,9 +41,6 @@ From this directory, set the required environment variables and run the project:
 
 ```bash
 export BITFINANCE_API_BASE_URL="https://<bitfinance-api-host>:<port>"
-export BITFINANCE_API_KEY="bf_<your-api-key>"
-export BITFINANCE_DEFAULT_ORGANIZATION_ID="<organization-guid>"
-export BITFINANCE_MCP_BEARER_TOKEN="<long-random-token>"
 export ASPNETCORE_URLS="http://localhost:8090"
 
 dotnet run --project src/BitFinance.MCP.csproj
@@ -66,7 +60,7 @@ Configure Hermes to connect to the MCP endpoint over Tailscale:
 
 ```text
 URL: http://<vps-tailnet-name-or-ip>:8090/mcp
-Authorization: Bearer <long-random-token>
+Authorization: Bearer bf_<your-api-key>
 ```
 
 Example generic remote MCP configuration:
@@ -77,7 +71,7 @@ Example generic remote MCP configuration:
     "bitfinance": {
       "url": "http://<vps-tailnet-name-or-ip>:8090/mcp",
       "headers": {
-        "Authorization": "Bearer <long-random-token>"
+        "Authorization": "Bearer bf_<your-api-key>"
       }
     }
   }
@@ -361,4 +355,4 @@ Expected tool call:
 }
 ```
 
-If `BITFINANCE_DEFAULT_ORGANIZATION_ID` is configured, organization-scoped tools can omit `organizationId`. Otherwise, the agent must pass `organizationId` explicitly.
+Organization-scoped tools can omit `organizationId` when the API key has a single organization. Otherwise the agent must pass it; `bitfinance_list_organizations` lists the key's organizations.

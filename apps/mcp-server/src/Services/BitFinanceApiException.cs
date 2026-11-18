@@ -1,8 +1,10 @@
 using System.Net;
+using ModelContextProtocol;
 
 namespace BitFinance.MCP.Services;
 
-public sealed class BitFinanceApiException : Exception
+// An McpException so the SDK passes the message to the agent; it never contains the response body or query string.
+public sealed class BitFinanceApiException : McpException
 {
     public BitFinanceApiException(HttpStatusCode statusCode, string method, string path)
         : base(CreateMessage(statusCode, method, SanitizePath(path)))

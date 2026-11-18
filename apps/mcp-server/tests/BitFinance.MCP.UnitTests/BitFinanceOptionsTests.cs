@@ -23,29 +23,13 @@ public sealed class BitFinanceOptionsTests
         Assert.Contains("absolute HTTP or HTTPS URL", exception.Message);
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("eyJhbGciOiJIUzI1NiJ9.not-an-api-key")]
-    public void FromConfiguration_WhenApiKeyIsMissingOrNotAnApiKey_Throws(string apiKey)
-    {
-        var configuration = ValidConfiguration(new Dictionary<string, string?>
-        {
-            ["BITFINANCE_API_KEY"] = apiKey
-        });
-
-        var exception = Assert.Throws<InvalidOperationException>(
-            () => BitFinanceOptions.FromConfiguration(configuration));
-
-        Assert.Contains("BITFINANCE_API_KEY", exception.Message);
-    }
 
     private static IConfiguration ValidConfiguration(
         IDictionary<string, string?> overrides)
     {
         var values = new Dictionary<string, string?>
         {
-            ["BITFINANCE_API_BASE_URL"] = "https://api.example",
-            ["BITFINANCE_API_KEY"] = "bf_test-key"
+            ["BITFINANCE_API_BASE_URL"] = "https://api.example"
         };
 
         foreach (var pair in overrides)

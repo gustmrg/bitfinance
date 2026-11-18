@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using BitFinance.MCP.Configuration;
 using BitFinance.MCP.Models;
+using ModelContextProtocol;
 
 namespace BitFinance.MCP.Services;
 
@@ -34,21 +35,6 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         _options = options;
     }
 
-    public Guid GetOrganizationIdOrDefault(Guid? organizationId)
-    {
-        if (organizationId.HasValue)
-        {
-            return organizationId.Value;
-        }
-
-        if (_options.DefaultOrganizationId.HasValue)
-        {
-            return _options.DefaultOrganizationId.Value;
-        }
-
-        throw new InvalidOperationException("No organizationId was provided and BITFINANCE_DEFAULT_ORGANIZATION_ID is not configured.");
-    }
-
     public async Task<List<ApiKeyOrganizationResponse>> ListOrganizationsAsync(CancellationToken cancellationToken = default)
     {
         var apiKey = await SendAsync(
@@ -59,37 +45,37 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         return apiKey.Organizations;
     }
 
-    public Task<OrganizationDetailsResponse> GetOrganizationAsync(Guid? organizationId = null, CancellationToken cancellationToken = default)
+    public async Task<OrganizationDetailsResponse> GetOrganizationAsync(Guid? organizationId = null, CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        return await SendAsync(
             HttpMethod.Get,
             ApiPath($"organizations/{resolvedOrganizationId}"),
             BitFinanceJsonContext.Default.OrganizationDetailsResponse,
             cancellationToken);
     }
 
-    public Task<UpcomingBillsResponse> GetUpcomingBillsAsync(Guid? organizationId = null, CancellationToken cancellationToken = default)
+    public async Task<UpcomingBillsResponse> GetUpcomingBillsAsync(Guid? organizationId = null, CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        return await SendAsync(
             HttpMethod.Get,
             ApiPath($"organizations/{resolvedOrganizationId}/dashboard/upcoming-bills"),
             BitFinanceJsonContext.Default.UpcomingBillsResponse,
             cancellationToken);
     }
 
-    public Task<RecentExpensesResponse> GetRecentExpensesAsync(Guid? organizationId = null, CancellationToken cancellationToken = default)
+    public async Task<RecentExpensesResponse> GetRecentExpensesAsync(Guid? organizationId = null, CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        return await SendAsync(
             HttpMethod.Get,
             ApiPath($"organizations/{resolvedOrganizationId}/dashboard/recent-expenses"),
             BitFinanceJsonContext.Default.RecentExpensesResponse,
             cancellationToken);
     }
 
-    public Task<PagedResponse<BillResponse>> ListBillsAsync(
+    public async Task<PagedResponse<BillResponse>> ListBillsAsync(
         Guid? organizationId = null,
         int page = 1,
         int pageSize = 100,
@@ -99,7 +85,7 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         string? description = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
         var path = WithQuery(
             ApiPath($"organizations/{resolvedOrganizationId}/bills"),
             ("page", page.ToString()),
@@ -109,23 +95,23 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             ("status", status),
             ("description", description));
 
-        return SendAsync(HttpMethod.Get, path, BitFinanceJsonContext.Default.PagedResponseBillResponse, cancellationToken);
+        return await SendAsync(HttpMethod.Get, path, BitFinanceJsonContext.Default.PagedResponseBillResponse, cancellationToken);
     }
 
-    public Task<BillResponse> GetBillAsync(Guid billId, Guid? organizationId = null, CancellationToken cancellationToken = default)
+    public async Task<BillResponse> GetBillAsync(Guid billId, Guid? organizationId = null, CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        return await SendAsync(
             HttpMethod.Get,
             ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}"),
             BitFinanceJsonContext.Default.BillResponse,
             cancellationToken);
     }
 
-    public Task<BillResponse> CreateBillAsync(CreateBillRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default)
+    public async Task<BillResponse> CreateBillAsync(CreateBillRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        return await SendAsync(
             HttpMethod.Post,
             ApiPath($"organizations/{resolvedOrganizationId}/bills"),
             BitFinanceJsonContext.Default.BillResponse,
@@ -134,14 +120,14 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             BitFinanceJsonContext.Default.CreateBillRequest);
     }
 
-    public Task<UpdateBillResponse> UpdateBillAsync(
+    public async Task<UpdateBillResponse> UpdateBillAsync(
         Guid billId,
         UpdateBillRequest request,
         Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        return await SendAsync(
             HttpMethod.Patch,
             ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}"),
             BitFinanceJsonContext.Default.UpdateBillResponse,
@@ -150,22 +136,22 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             BitFinanceJsonContext.Default.UpdateBillRequest);
     }
 
-    public Task DeleteBillAsync(Guid billId, Guid? organizationId = null, CancellationToken cancellationToken = default)
+    public async Task DeleteBillAsync(Guid billId, Guid? organizationId = null, CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendNoContentAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        await SendNoContentAsync(
             HttpMethod.Delete,
             ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}"),
             cancellationToken);
     }
 
-    public Task StopBillSeriesAsync(
+    public async Task StopBillSeriesAsync(
         Guid seriesId,
         Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendNoContentAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        await SendNoContentAsync(
             HttpMethod.Post,
             ApiPath($"organizations/{resolvedOrganizationId}/bills/series/{seriesId}/stop"),
             cancellationToken);
@@ -180,7 +166,7 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         string? contentType = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
         return await UploadDocumentAsync(
             ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}/documents"),
             fileName,
@@ -190,34 +176,34 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             cancellationToken);
     }
 
-    public Task<DocumentDownloadUrlResponse> GetBillDocumentDownloadUrlAsync(
+    public async Task<DocumentDownloadUrlResponse> GetBillDocumentDownloadUrlAsync(
         Guid billId,
         Guid documentId,
         Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        return await SendAsync(
             HttpMethod.Get,
             ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}/documents/{documentId}/download-url"),
             BitFinanceJsonContext.Default.DocumentDownloadUrlResponse,
             cancellationToken);
     }
 
-    public Task DeleteBillDocumentAsync(
+    public async Task DeleteBillDocumentAsync(
         Guid billId,
         Guid documentId,
         Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendNoContentAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        await SendNoContentAsync(
             HttpMethod.Delete,
             ApiPath($"organizations/{resolvedOrganizationId}/bills/{billId}/documents/{documentId}"),
             cancellationToken);
     }
 
-    public Task<ExpensePageResponse> ListExpensesAsync(
+    public async Task<ExpensePageResponse> ListExpensesAsync(
         Guid? organizationId = null,
         int page = 1,
         int pageSize = 20,
@@ -228,7 +214,7 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         string? paymentMethod = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
         var path = WithQuery(
             ApiPath($"organizations/{resolvedOrganizationId}/expenses"),
             ("page", page.ToString()),
@@ -239,23 +225,23 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             ("description", description),
             ("paymentMethod", paymentMethod));
 
-        return SendAsync(HttpMethod.Get, path, BitFinanceJsonContext.Default.ExpensePageResponse, cancellationToken);
+        return await SendAsync(HttpMethod.Get, path, BitFinanceJsonContext.Default.ExpensePageResponse, cancellationToken);
     }
 
-    public Task<ExpenseResponse> GetExpenseAsync(Guid expenseId, Guid? organizationId = null, CancellationToken cancellationToken = default)
+    public async Task<ExpenseResponse> GetExpenseAsync(Guid expenseId, Guid? organizationId = null, CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        return await SendAsync(
             HttpMethod.Get,
             ApiPath($"organizations/{resolvedOrganizationId}/expenses/{expenseId}"),
             BitFinanceJsonContext.Default.ExpenseResponse,
             cancellationToken);
     }
 
-    public Task<ExpenseResponse> CreateExpenseAsync(CreateExpenseRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default)
+    public async Task<ExpenseResponse> CreateExpenseAsync(CreateExpenseRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        return await SendAsync(
             HttpMethod.Post,
             ApiPath($"organizations/{resolvedOrganizationId}/expenses"),
             BitFinanceJsonContext.Default.ExpenseResponse,
@@ -264,10 +250,10 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             BitFinanceJsonContext.Default.CreateExpenseRequest);
     }
 
-    public Task<CreateExpensesBatchResponse> CreateExpensesBatchAsync(CreateExpensesBatchRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default)
+    public async Task<CreateExpensesBatchResponse> CreateExpensesBatchAsync(CreateExpensesBatchRequest request, Guid? organizationId = null, CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        return await SendAsync(
             HttpMethod.Post,
             ApiPath($"organizations/{resolvedOrganizationId}/expenses/batch"),
             BitFinanceJsonContext.Default.CreateExpensesBatchResponse,
@@ -276,14 +262,14 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             BitFinanceJsonContext.Default.CreateExpensesBatchRequest);
     }
 
-    public Task<ExpenseResponse> UpdateExpenseAsync(
+    public async Task<ExpenseResponse> UpdateExpenseAsync(
         Guid expenseId,
         UpdateExpenseRequest request,
         Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        return await SendAsync(
             HttpMethod.Patch,
             ApiPath($"organizations/{resolvedOrganizationId}/expenses/{expenseId}"),
             BitFinanceJsonContext.Default.ExpenseResponse,
@@ -301,7 +287,7 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         string? contentType = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
         return await UploadDocumentAsync(
             ApiPath($"organizations/{resolvedOrganizationId}/expenses/{expenseId}/documents"),
             fileName,
@@ -311,28 +297,28 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             cancellationToken);
     }
 
-    public Task<DocumentDownloadUrlResponse> GetExpenseDocumentDownloadUrlAsync(
+    public async Task<DocumentDownloadUrlResponse> GetExpenseDocumentDownloadUrlAsync(
         Guid expenseId,
         Guid documentId,
         Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        return await SendAsync(
             HttpMethod.Get,
             ApiPath($"organizations/{resolvedOrganizationId}/expenses/{expenseId}/documents/{documentId}/download-url"),
             BitFinanceJsonContext.Default.DocumentDownloadUrlResponse,
             cancellationToken);
     }
 
-    public Task DeleteExpenseDocumentAsync(
+    public async Task DeleteExpenseDocumentAsync(
         Guid expenseId,
         Guid documentId,
         Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
-        var resolvedOrganizationId = GetOrganizationIdOrDefault(organizationId);
-        return SendNoContentAsync(
+        var resolvedOrganizationId = await ResolveOrganizationIdAsync(organizationId, cancellationToken);
+        await SendNoContentAsync(
             HttpMethod.Delete,
             ApiPath($"organizations/{resolvedOrganizationId}/expenses/{expenseId}/documents/{documentId}"),
             cancellationToken);
@@ -370,6 +356,24 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
             cancellationToken);
     }
 
+    // Without an explicit organizationId, use the key's organization when it has exactly one.
+    private async Task<Guid> ResolveOrganizationIdAsync(Guid? organizationId, CancellationToken cancellationToken)
+    {
+        if (organizationId.HasValue)
+        {
+            return organizationId.Value;
+        }
+
+        var organizations = await ListOrganizationsAsync(cancellationToken);
+        if (organizations.Count == 1)
+        {
+            return organizations[0].OrganizationId;
+        }
+
+        throw new McpException(
+            $"This API key can access {organizations.Count} organizations, so organizationId is required. Call bitfinance_list_organizations to see them.");
+    }
+
     private async Task<TResponse> SendAsync<TResponse>(
         HttpMethod method,
         string path,
@@ -380,7 +384,6 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
     {
         var client = _httpClientFactory.CreateClient(ClientName);
         using var httpRequest = new HttpRequestMessage(method, path);
-        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
 
         if (request is not null)
         {
@@ -416,7 +419,6 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
     {
         var client = _httpClientFactory.CreateClient(ClientName);
         using var httpRequest = new HttpRequestMessage(method, path);
-        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
         httpRequest.Content = content;
 
         using var response = await client.SendAsync(httpRequest, cancellationToken);
@@ -441,7 +443,6 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
     {
         var client = _httpClientFactory.CreateClient(ClientName);
         using var httpRequest = new HttpRequestMessage(method, path);
-        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
 
         using var response = await client.SendAsync(httpRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
