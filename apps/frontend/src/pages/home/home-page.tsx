@@ -19,6 +19,7 @@ const features = [
 function ProductPreview() {
   const { t } = useTranslation();
   const locale = useLocale();
+  const currency = locale === "pt-BR" ? "BRL" : "USD";
   const rows = [
     { day: "15", nameKey: "home.previewRent", amount: 1500, tone: "danger" as const },
     { day: "20", nameKey: "home.previewInternet", amount: 120, tone: "warning" as const },
@@ -29,7 +30,7 @@ function ProductPreview() {
       <Card tone="brand" className="grid gap-3">
         <span className="text-sm font-semibold text-on-brand/85">{t("home.previewSpent")}</span>
         <span className="text-4xl font-extrabold tracking-[-0.04em] tabular-nums">
-          {formatCurrency(1015, locale)}
+          {formatCurrency(1015, locale, currency)}
         </span>
         <Meter
           variant="inverse"
@@ -41,7 +42,7 @@ function ProductPreview() {
           ]}
         />
         <span className="text-[13px] text-on-brand/85">
-          {t("home.previewLeft", { amount: formatCurrency(2485, locale) })}
+          {t("home.previewLeft", { amount: formatCurrency(2485, locale, currency) })}
         </span>
       </Card>
       <Card padding="md" className="grid gap-1">
@@ -72,7 +73,7 @@ function ProductPreview() {
               </span>
             </span>
             <span className="text-sm font-extrabold tabular-nums">
-              {formatCurrency(row.amount, locale)}
+              {formatCurrency(row.amount, locale, currency)}
             </span>
           </div>
         ))}

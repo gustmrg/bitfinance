@@ -1,9 +1,13 @@
 export type PlanTier = "Free" | "Basic" | "Premium";
 
+export const currencies = ["BRL", "USD", "EUR"] as const;
+export type Currency = (typeof currencies)[number];
+
 export interface OrganizationSummary {
   id: string;
   name: string;
   planTier?: PlanTier;
+  currency?: Currency;
 }
 
 export interface User {

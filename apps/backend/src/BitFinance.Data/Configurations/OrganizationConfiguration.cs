@@ -28,6 +28,12 @@ public class OrganizationConfiguration : IEntityTypeConfiguration<Organization>
             .HasDefaultValue("America/Sao_Paulo")
             .HasMaxLength(150);
         
+        builder.Property(o => o.Currency)
+            .HasColumnName("currency")
+            .HasConversion<string>()
+            .HasMaxLength(3)
+            .IsRequired();
+
         builder.Property(o => o.PlanTier)
             .HasConversion<int>()
             .IsRequired();

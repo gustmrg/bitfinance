@@ -17,7 +17,7 @@ public sealed record UserInfo(
     string FirstName,
     string LastName);
 
-public sealed record OrganizationSummaryResponse(Guid Id, string Name, string PlanTier);
+public sealed record OrganizationSummaryResponse(Guid Id, string Name, string PlanTier, string Currency);
 
 public sealed class OrganizationDetailsResponse
 {
@@ -27,6 +27,7 @@ public sealed class OrganizationDetailsResponse
     public DateTimeOffset? UpdatedAt { get; init; }
     public OrganizationBudgetResponse? Budget { get; init; }
     public string PlanTier { get; init; } = string.Empty;
+    public string Currency { get; init; } = string.Empty;
     public DateTimeOffset PlanExpiresAt { get; init; }
     public List<OrganizationMemberResponse> Members { get; init; } = [];
 }

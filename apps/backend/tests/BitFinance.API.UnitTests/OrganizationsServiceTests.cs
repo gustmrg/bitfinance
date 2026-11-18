@@ -443,7 +443,7 @@ public class OrganizationsServiceTests
     {
         var org = CreateOrganizationWithMembers([("user1", role)]);
 
-        var result = await _sut.UpdateAsync(org.Id, "Renamed", "user1");
+        var result = await _sut.UpdateAsync(org.Id, "Renamed", null, "user1");
 
         Assert.True(result.Success);
         Assert.Equal("Renamed", org.Name);
@@ -459,7 +459,7 @@ public class OrganizationsServiceTests
             ("member1", OrgRole.Member),
         ]);
 
-        var result = await _sut.UpdateAsync(org.Id, "Renamed", "member1");
+        var result = await _sut.UpdateAsync(org.Id, "Renamed", null, "member1");
 
         Assert.False(result.Success);
         Assert.Equal(OrganizationActionError.NotAuthorized, result.Error);

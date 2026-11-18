@@ -31,7 +31,7 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Gets organization details and members. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Gets organization details and members, including the ISO 4217 currency that all of its amounts are in. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
     public Task<OrganizationDetailsResponse> bitfinance_get_organization(
         [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
