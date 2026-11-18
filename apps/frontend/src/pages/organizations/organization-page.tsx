@@ -41,14 +41,14 @@ export function OrganizationPage() {
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  /* eslint-disable react-hooks/set-state-in-effect -- The form mirrors newly selected server data. */
+  /* oxlint-disable react/set-state-in-effect -- The form mirrors newly selected server data. */
   useEffect(() => {
     if (detail.data) {
       setName(detail.data.name);
       setBudget(String(budgetQuery.data?.amount ?? detail.data.budget?.amount ?? ""));
     }
   }, [budgetQuery.data, detail.data]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  /* oxlint-enable react/set-state-in-effect */
 
   const header = (
     <>
