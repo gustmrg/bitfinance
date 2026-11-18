@@ -144,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 // This hook intentionally shares the provider's context for the app shell and routes.
-// eslint-disable-next-line react-refresh/only-export-components
+// oxlint-disable-next-line react/only-export-components
 export function useAuth() {
   const value = useContext(AuthContext);
   if (!value) throw new Error("useAuth must be used inside AuthProvider");

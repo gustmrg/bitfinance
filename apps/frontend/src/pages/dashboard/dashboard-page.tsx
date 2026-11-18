@@ -151,7 +151,7 @@ export function DashboardPage() {
   );
   const expenses = queries.recent.data ?? [];
   const firstName = user?.fullName.split(" ")[0];
-  const now = new Date();
+  const { now } = period;
   const isCurrentMonth =
     period.from.getMonth() === now.getMonth() &&
     period.from.getFullYear() === now.getFullYear() &&
