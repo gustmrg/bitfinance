@@ -41,7 +41,7 @@ public class BitFinanceApiClientTests
             $"/api/v1/organizations/{organizationId}/expenses/{expenseId}/documents",
             handler.RequestUri?.AbsolutePath);
         Assert.Equal("Bearer", handler.Authorization?.Scheme);
-        Assert.Equal("test-token", handler.Authorization?.Parameter);
+        Assert.Equal("bf_test-key", handler.Authorization?.Parameter);
         Assert.Contains("name=File", handler.RequestBody);
         Assert.Contains("filename=receipt.png", handler.RequestBody);
         Assert.Contains("name=FileCategory", handler.RequestBody);
@@ -197,10 +197,10 @@ public class BitFinanceApiClientTests
         };
         return new BitFinanceApiClient(
             new StaticHttpClientFactory(httpClient),
-            new StaticTokenProvider(),
             new BitFinanceOptions
             {
                 ApiBaseUrl = httpClient.BaseAddress,
+                ApiKey = "bf_test-key",
                 DefaultOrganizationId = organizationId
             });
     }
@@ -214,12 +214,6 @@ public class BitFinanceApiClientTests
     private sealed class StaticHttpClientFactory(HttpClient client) : IHttpClientFactory
     {
         public HttpClient CreateClient(string name) => client;
-    }
-
-    private sealed class StaticTokenProvider : IBitFinanceTokenProvider
-    {
-        public Task<string> GetAccessTokenAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult("test-token");
     }
 
     private sealed class RecordingHandler(

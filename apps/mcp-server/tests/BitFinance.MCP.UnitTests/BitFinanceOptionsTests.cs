@@ -24,19 +24,19 @@ public sealed class BitFinanceOptionsTests
     }
 
     [Theory]
-    [InlineData("BITFINANCE_AGENT_EMAIL")]
-    [InlineData("BITFINANCE_AGENT_PASSWORD")]
-    public void FromConfiguration_WhenCredentialIsMissing_Throws(string missingKey)
+    [InlineData("")]
+    [InlineData("eyJhbGciOiJIUzI1NiJ9.not-an-api-key")]
+    public void FromConfiguration_WhenApiKeyIsMissingOrNotAnApiKey_Throws(string apiKey)
     {
         var configuration = ValidConfiguration(new Dictionary<string, string?>
         {
-            [missingKey] = ""
+            ["BITFINANCE_API_KEY"] = apiKey
         });
 
         var exception = Assert.Throws<InvalidOperationException>(
             () => BitFinanceOptions.FromConfiguration(configuration));
 
-        Assert.Contains(missingKey, exception.Message);
+        Assert.Contains("BITFINANCE_API_KEY", exception.Message);
     }
 
     private static IConfiguration ValidConfiguration(
@@ -45,8 +45,7 @@ public sealed class BitFinanceOptionsTests
         var values = new Dictionary<string, string?>
         {
             ["BITFINANCE_API_BASE_URL"] = "https://api.example",
-            ["BITFINANCE_AGENT_EMAIL"] = "agent@example.test",
-            ["BITFINANCE_AGENT_PASSWORD"] = "test-password"
+            ["BITFINANCE_API_KEY"] = "bf_test-key"
         };
 
         foreach (var pair in overrides)

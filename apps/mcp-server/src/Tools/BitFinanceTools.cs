@@ -24,8 +24,8 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Lists organizations the authenticated BitFinance agent user can access.")]
-    public Task<List<OrganizationSummaryResponse>> bitfinance_list_organizations(CancellationToken cancellationToken = default)
+    [Description("Lists the organizations this agent's API key can access, with the access level in each: Read (read only) or ReadWrite (can also create, update and delete). Writes to a Read organization fail with 403.")]
+    public Task<List<ApiKeyOrganizationResponse>> bitfinance_list_organizations(CancellationToken cancellationToken = default)
     {
         return _apiClient.ListOrganizationsAsync(cancellationToken);
     }

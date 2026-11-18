@@ -5,16 +5,14 @@ namespace BitFinance.MCP.Configuration;
 public sealed class BitFinanceOptions
 {
     public Uri ApiBaseUrl { get; init; } = null!;
-    public string AgentEmail { get; init; } = string.Empty;
-    public string AgentPassword { get; init; } = string.Empty;
+    public string ApiKey { get; init; } = string.Empty;
     public Guid? DefaultOrganizationId { get; init; }
     public string ApiVersion { get; init; } = "1";
 
     public static BitFinanceOptions FromConfiguration(IConfiguration configuration)
     {
         var apiBaseUrl = configuration["BITFINANCE_API_BASE_URL"];
-        var agentEmail = configuration["BITFINANCE_AGENT_EMAIL"];
-        var agentPassword = configuration["BITFINANCE_AGENT_PASSWORD"];
+        var apiKey = configuration["BITFINANCE_API_KEY"];
         var apiVersion = configuration["BITFINANCE_API_VERSION"];
         var defaultOrganizationIdValue = configuration["BITFINANCE_DEFAULT_ORGANIZATION_ID"];
 
@@ -30,14 +28,9 @@ public sealed class BitFinanceOptions
             throw new InvalidOperationException("BITFINANCE_API_BASE_URL must be an absolute HTTP or HTTPS URL.");
         }
 
-        if (string.IsNullOrWhiteSpace(agentEmail))
+        if (string.IsNullOrWhiteSpace(apiKey) || !apiKey.StartsWith("bf_", StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("BITFINANCE_AGENT_EMAIL is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(agentPassword))
-        {
-            throw new InvalidOperationException("BITFINANCE_AGENT_PASSWORD is required.");
+            throw new InvalidOperationException("BITFINANCE_API_KEY is required and must be a BitFinance API key (bf_...).");
         }
 
         Guid? defaultOrganizationId = null;
@@ -54,8 +47,7 @@ public sealed class BitFinanceOptions
         return new BitFinanceOptions
         {
             ApiBaseUrl = parsedApiBaseUrl,
-            AgentEmail = agentEmail,
-            AgentPassword = agentPassword,
+            ApiKey = apiKey,
             DefaultOrganizationId = defaultOrganizationId,
             ApiVersion = string.IsNullOrWhiteSpace(apiVersion) ? "1" : apiVersion
         };
