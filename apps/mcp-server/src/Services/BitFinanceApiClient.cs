@@ -24,16 +24,13 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         };
 
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IBitFinanceTokenProvider _tokenProvider;
     private readonly BitFinanceOptions _options;
 
     public BitFinanceApiClient(
         IHttpClientFactory httpClientFactory,
-        IBitFinanceTokenProvider tokenProvider,
         BitFinanceOptions options)
     {
         _httpClientFactory = httpClientFactory;
-        _tokenProvider = tokenProvider;
         _options = options;
     }
 
@@ -52,13 +49,14 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
         throw new InvalidOperationException("No organizationId was provided and BITFINANCE_DEFAULT_ORGANIZATION_ID is not configured.");
     }
 
-    public Task<List<OrganizationSummaryResponse>> ListOrganizationsAsync(CancellationToken cancellationToken = default)
+    public async Task<List<ApiKeyOrganizationResponse>> ListOrganizationsAsync(CancellationToken cancellationToken = default)
     {
-        return SendAsync(
+        var apiKey = await SendAsync(
             HttpMethod.Get,
-            ApiPath("organizations"),
-            BitFinanceJsonContext.Default.ListOrganizationSummaryResponse,
+            ApiPath("api-keys/current"),
+            BitFinanceJsonContext.Default.CurrentApiKeyResponse,
             cancellationToken);
+        return apiKey.Organizations;
     }
 
     public Task<OrganizationDetailsResponse> GetOrganizationAsync(Guid? organizationId = null, CancellationToken cancellationToken = default)
@@ -382,7 +380,7 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
     {
         var client = _httpClientFactory.CreateClient(ClientName);
         using var httpRequest = new HttpRequestMessage(method, path);
-        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _tokenProvider.GetAccessTokenAsync(cancellationToken));
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
 
         if (request is not null)
         {
@@ -418,7 +416,7 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
     {
         var client = _httpClientFactory.CreateClient(ClientName);
         using var httpRequest = new HttpRequestMessage(method, path);
-        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _tokenProvider.GetAccessTokenAsync(cancellationToken));
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
         httpRequest.Content = content;
 
         using var response = await client.SendAsync(httpRequest, cancellationToken);
@@ -443,7 +441,7 @@ public sealed class BitFinanceApiClient : IBitFinanceApiClient
     {
         var client = _httpClientFactory.CreateClient(ClientName);
         using var httpRequest = new HttpRequestMessage(method, path);
-        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _tokenProvider.GetAccessTokenAsync(cancellationToken));
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
 
         using var response = await client.SendAsync(httpRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)

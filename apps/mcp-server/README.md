@@ -14,8 +14,7 @@ Set these environment variables in the environment where the MCP server runs:
 
 ```bash
 export BITFINANCE_API_BASE_URL="http://bitfinance-api:8080"
-export BITFINANCE_AGENT_EMAIL="agent@example.com"
-export BITFINANCE_AGENT_PASSWORD="<agent-password>"
+export BITFINANCE_API_KEY="bf_<your-api-key>"
 export BITFINANCE_DEFAULT_ORGANIZATION_ID="<organization-guid>"
 export BITFINANCE_API_VERSION="1"
 export BITFINANCE_MCP_BEARER_TOKEN="<long-random-token>"
@@ -23,6 +22,8 @@ export ASPNETCORE_URLS="http://+:8090"
 ```
 
 `BITFINANCE_API_VERSION` is optional and defaults to `1`. `BITFINANCE_MCP_BEARER_TOKEN` is required and protects the `/mcp` endpoint.
+
+`BITFINANCE_API_KEY` is a personal API key created in BitFinance under **Account → API keys**. The server calls the API as the key's owner, only in the organizations the key lists, with the access level chosen for each (Read or ReadWrite). `bitfinance_list_organizations` returns those organizations and access levels. Revoke the key in BitFinance to cut the agent off. See `docs/api-keys.md` for the rules.
 
 ## Build
 
@@ -43,8 +44,7 @@ From this directory, set the required environment variables and run the project:
 
 ```bash
 export BITFINANCE_API_BASE_URL="https://<bitfinance-api-host>:<port>"
-export BITFINANCE_AGENT_EMAIL="agent@example.com"
-export BITFINANCE_AGENT_PASSWORD="<agent-password>"
+export BITFINANCE_API_KEY="bf_<your-api-key>"
 export BITFINANCE_DEFAULT_ORGANIZATION_ID="<organization-guid>"
 export BITFINANCE_MCP_BEARER_TOKEN="<long-random-token>"
 export ASPNETCORE_URLS="http://localhost:8090"

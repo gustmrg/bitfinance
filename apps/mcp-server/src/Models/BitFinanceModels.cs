@@ -3,21 +3,9 @@ using System.Text.Json.Serialization;
 
 namespace BitFinance.MCP.Models;
 
-public sealed record LoginRequest(string Email, string Password);
+public sealed record CurrentApiKeyResponse(Guid Id, string Name, DateTimeOffset? ExpiresAt, List<ApiKeyOrganizationResponse> Organizations);
 
-public sealed record AuthenticationResponse(
-    string AccessToken,
-    DateTimeOffset AccessTokenExpiresAt,
-    UserInfo User);
-
-public sealed record UserInfo(
-    string Id,
-    string Email,
-    string UserName,
-    string FirstName,
-    string LastName);
-
-public sealed record OrganizationSummaryResponse(Guid Id, string Name, string PlanTier);
+public sealed record ApiKeyOrganizationResponse(Guid OrganizationId, string Name, string Access);
 
 public sealed class OrganizationDetailsResponse
 {
@@ -243,9 +231,8 @@ public sealed record UpdateExpenseRequest(
     string? PaymentMethod = null);
 
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web, Converters = [typeof(UtcDateTimeOffsetJsonConverter)])]
-[JsonSerializable(typeof(LoginRequest))]
-[JsonSerializable(typeof(AuthenticationResponse))]
-[JsonSerializable(typeof(List<OrganizationSummaryResponse>))]
+[JsonSerializable(typeof(CurrentApiKeyResponse))]
+[JsonSerializable(typeof(List<ApiKeyOrganizationResponse>))]
 [JsonSerializable(typeof(OrganizationDetailsResponse))]
 [JsonSerializable(typeof(PagedResponse<BillResponse>))]
 [JsonSerializable(typeof(PagedResponse<ExpenseResponse>))]

@@ -34,7 +34,6 @@ builder.Services.AddHttpClient(BitFinanceApiClient.ClientName, client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
-builder.Services.AddSingleton<IBitFinanceTokenProvider, BitFinanceTokenProvider>();
 builder.Services.AddSingleton<IBitFinanceApiClient, BitFinanceApiClient>();
 
 builder.Services
