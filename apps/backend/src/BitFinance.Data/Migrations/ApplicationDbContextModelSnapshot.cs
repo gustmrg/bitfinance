@@ -22,6 +22,92 @@ namespace BitFinance.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("BitFinance.Business.Entities.ApiKey", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("key_hash");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_used_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Prefix")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("prefix");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_api_keys");
+
+                    b.HasIndex("KeyHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_api_keys_user_id");
+
+                    b.ToTable("api_keys", (string)null);
+                });
+
+            modelBuilder.Entity("BitFinance.Business.Entities.ApiKeyOrganization", b =>
+                {
+                    b.Property<Guid>("ApiKeyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("api_key_id");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Access")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("access");
+
+                    b.HasKey("ApiKeyId", "OrganizationId");
+
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("ix_api_key_organization_organization_id");
+
+                    b.ToTable("api_key_organizations", (string)null);
+                });
+
             modelBuilder.Entity("BitFinance.Business.Entities.Attachment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -111,7 +197,7 @@ namespace BitFinance.Data.Migrations
 
                     b.ToTable("attachments", null, t =>
                         {
-                            t.HasCheckConstraint("ck_attachments_single_owner", "(CASE WHEN bill_id IS NOT NULL THEN 1 ELSE 0 END +\n                  CASE WHEN expense_id IS NOT NULL THEN 1 ELSE 0 END +\n                  CASE WHEN user_id IS NOT NULL THEN 1 ELSE 0 END) = 1");
+                            t.HasCheckConstraint("ck_attachments_single_owner", "(CASE WHEN bill_id IS NOT NULL THEN 1 ELSE 0 END +\r\n                  CASE WHEN expense_id IS NOT NULL THEN 1 ELSE 0 END +\r\n                  CASE WHEN user_id IS NOT NULL THEN 1 ELSE 0 END) = 1");
                         });
                 });
 
@@ -1134,6 +1220,37 @@ namespace BitFinance.Data.Migrations
                     b.ToTable("asp_net_user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("BitFinance.Business.Entities.ApiKey", b =>
+                {
+                    b.HasOne("BitFinance.Business.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_api_keys_asp_net_users_user_id");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BitFinance.Business.Entities.ApiKeyOrganization", b =>
+                {
+                    b.HasOne("BitFinance.Business.Entities.ApiKey", null)
+                        .WithMany("Organizations")
+                        .HasForeignKey("ApiKeyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_api_key_organization_api_keys_api_key_id");
+
+                    b.HasOne("BitFinance.Business.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_api_key_organization_organizations_organization_id");
+
+                    b.Navigation("Organization");
+                });
+
             modelBuilder.Entity("BitFinance.Business.Entities.Attachment", b =>
                 {
                     b.HasOne("BitFinance.Business.Entities.Bill", "Bill")
@@ -1417,6 +1534,11 @@ namespace BitFinance.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_asp_net_user_tokens_asp_net_users_user_id");
+                });
+
+            modelBuilder.Entity("BitFinance.Business.Entities.ApiKey", b =>
+                {
+                    b.Navigation("Organizations");
                 });
 
             modelBuilder.Entity("BitFinance.Business.Entities.Bill", b =>

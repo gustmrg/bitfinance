@@ -31,6 +31,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInvitationsRepository, InvitationsRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IAttachmentsRepository, AttachmentsRepository>();
+        services.AddScoped<IApiKeysRepository, ApiKeysRepository>();
 
         services.AddScoped<IUsersService, UsersService>();
         services.AddScoped<IBillsService, BillsService>();
@@ -44,6 +45,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrganizationsService, OrganizationsService>();
         services.AddScoped<IInvitationsService, InvitationsService>();
         services.AddScoped<IReportsService, ReportsService>();
+        services.AddScoped<IApiKeysService, ApiKeysService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<NotificationDispatcher>();
         services.AddSingleton<OutboxTelemetry>();

@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using BitFinance.API.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi;
 
@@ -8,7 +9,7 @@ public static class DocumentationExtensions
 {
     public static IServiceCollection AddApiDocumentation(this IServiceCollection services)
     {
-        services.AddControllers();
+        services.AddControllers(options => options.Filters.Add<ApiKeyScopeFilter>());
         services.AddEndpointsApiExplorer();
 
         services.AddOpenApi(options =>

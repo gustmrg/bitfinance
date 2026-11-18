@@ -5,7 +5,8 @@ namespace BitFinance.Business.Results;
 public enum ErrorType
 {
     NotFound,
-    PlanLimitExceeded
+    PlanLimitExceeded,
+    Invalid
 }
 
 /// <summary>
@@ -16,6 +17,8 @@ public sealed record Error(ErrorType Type, string Message)
     public static Error NotFound(string message) => new(ErrorType.NotFound, message);
 
     public static Error PlanLimitExceeded(string message) => new(ErrorType.PlanLimitExceeded, message);
+
+    public static Error Invalid(string message) => new(ErrorType.Invalid, message);
 }
 
 /// <summary>
