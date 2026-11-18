@@ -9,6 +9,8 @@ health requests use same-origin `/api/v1` and `/health` routes.
 
 ## Run locally
 
+Use Node.js 26 and pnpm 11.0.9.
+
 ```bash
 cd apps/frontend
 pnpm install --frozen-lockfile
