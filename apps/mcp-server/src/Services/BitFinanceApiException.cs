@@ -1,8 +1,10 @@
 using System.Net;
+using ModelContextProtocol;
 
 namespace BitFinance.MCP.Services;
 
-public sealed class BitFinanceApiException : Exception
+// An McpException so the SDK passes the message to the agent; it never contains the response body or query string.
+public sealed class BitFinanceApiException : McpException
 {
     public BitFinanceApiException(HttpStatusCode statusCode, string method, string path)
         : base(CreateMessage(statusCode, method, SanitizePath(path)))
@@ -17,7 +19,14 @@ public sealed class BitFinanceApiException : Exception
     public string Path { get; }
     private static string CreateMessage(HttpStatusCode statusCode, string method, string path)
     {
-        return $"BitFinance API request failed: {method} {path} returned {(int)statusCode} {statusCode}.";
+        // The response body is never included, so give the agent a fixed hint for the two auth failures.
+        var hint = statusCode switch
+        {
+            HttpStatusCode.Unauthorized => " The API key is invalid, revoked or expired.",
+            HttpStatusCode.Forbidden => " The API key may not reach this organization or endpoint, or may be read-only there. Call bitfinance_list_organizations to see its organizations and access levels.",
+            _ => string.Empty,
+        };
+        return $"BitFinance API request failed: {method} {path} returned {(int)statusCode} {statusCode}.{hint}";
     }
 
     private static string SanitizePath(string path)

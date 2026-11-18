@@ -1,6 +1,4 @@
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
 using BitFinance.MCP.Configuration;
 using BitFinance.MCP.Extensions;
 using BitFinance.MCP.Observability;
@@ -19,22 +17,18 @@ if (!builder.Environment.IsDevelopment())
 }
 builder.AddBitFinanceObservability();
 
-var mcpBearerToken = builder.Configuration["BITFINANCE_MCP_BEARER_TOKEN"];
-if (string.IsNullOrWhiteSpace(mcpBearerToken))
-{
-    throw new InvalidOperationException("BITFINANCE_MCP_BEARER_TOKEN must be configured.");
-}
-
 var bitFinanceOptions = BitFinanceOptions.FromConfiguration(builder.Configuration);
 builder.Services.AddSingleton(bitFinanceOptions);
 builder.Services.AddMcpHealthChecks(bitFinanceOptions);
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<ForwardApiKeyHandler>();
 builder.Services.AddHttpClient(BitFinanceApiClient.ClientName, client =>
-{
-    client.BaseAddress = bitFinanceOptions.ApiBaseUrl;
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+    {
+        client.BaseAddress = bitFinanceOptions.ApiBaseUrl;
+        client.Timeout = TimeSpan.FromSeconds(30);
+    })
+    .AddHttpMessageHandler<ForwardApiKeyHandler>();
 
-builder.Services.AddSingleton<IBitFinanceTokenProvider, BitFinanceTokenProvider>();
 builder.Services.AddSingleton<IBitFinanceApiClient, BitFinanceApiClient>();
 
 builder.Services
@@ -53,6 +47,8 @@ var app = builder.Build();
 
 app.MapMcpHealthChecks();
 
+// Each agent authenticates with its own BitFinance API key, which the API validates on every call.
+// Requests without one are turned away here, before reaching the MCP handler.
 app.UseWhen(
     context => context.Request.Path.StartsWithSegments("/mcp"),
     branch =>
@@ -61,10 +57,10 @@ app.UseWhen(
         {
             if (!AuthenticationHeaderValue.TryParse(context.Request.Headers.Authorization, out var authorization) ||
                 !string.Equals(authorization.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase) ||
-                string.IsNullOrEmpty(authorization.Parameter) ||
-                !TokenMatches(mcpBearerToken, authorization.Parameter))
+                authorization.Parameter?.StartsWith("bf_", StringComparison.Ordinal) != true)
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.Headers.WWWAuthenticate = "Bearer";
                 return;
             }
 
@@ -75,12 +71,3 @@ app.UseWhen(
 app.MapMcp("/mcp");
 
 await app.RunAsync();
-
-static bool TokenMatches(string expectedToken, string actualToken)
-{
-    var expectedBytes = Encoding.UTF8.GetBytes(expectedToken);
-    var actualBytes = Encoding.UTF8.GetBytes(actualToken);
-
-    return expectedBytes.Length == actualBytes.Length &&
-        CryptographicOperations.FixedTimeEquals(expectedBytes, actualBytes);
-}

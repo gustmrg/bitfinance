@@ -149,16 +149,23 @@ def main():
                 'firstName': 'otel-secret-first', 'lastName': 'otel-secret-last',
                 'email': 'otel-secret-email@example.invalid', 'password': 'Test-otel-secret-password-123!'})
             assert status == 200, ('Registration failed', status, body)
+            user_headers = {'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + json.loads(body)['accessToken']}
+            status, body = http(api_url + '/api/v1/organizations', {'name': 'otel-secret-organization'}, user_headers)
+            assert status == 201, ('Organization creation failed', status, body)
+            status, body = http(api_url + '/api/v1/api-keys', {
+                'name': 'otel-secret-key', 'expiresAt': None,
+                'organizations': [{'organizationId': json.loads(body)['id'], 'access': 'Read'}]}, user_headers)
+            assert status == 201, ('API key creation failed', status, body)
+            api_key = json.loads(body)['secret']
             mcp_env = dict(env, ASPNETCORE_URLS=f'http://0.0.0.0:{mcp_port}',
-                           BITFINANCE_API_BASE_URL=api_url, BITFINANCE_AGENT_EMAIL='otel-secret-email@example.invalid',
-                           BITFINANCE_AGENT_PASSWORD='Test-otel-secret-password-123!',
-                           BITFINANCE_MCP_BEARER_TOKEN='otel-secret-bearer',
+                           BITFINANCE_API_BASE_URL=api_url,
                            OTEL_EXPORTER_OTLP_ENDPOINT=f'http://127.0.0.1:{http_port}',
                            OTEL_EXPORTER_OTLP_PROTOCOL='http/protobuf')
             start(mcp_dll, mcp_dir, mcp_env, 'mcp')
             wait_for(lambda: http(mcp_url + '/health/ready')[0] == 200, 'MCP readiness')
             headers = {'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream',
-                       'Authorization': 'Bearer otel-secret-bearer', 'MCP-Protocol-Version': '2025-03-26'}
+                       'Authorization': 'Bearer ' + api_key, 'MCP-Protocol-Version': '2025-03-26'}
 
             def tool_call():
                 trace_id = uuid.uuid4().hex
@@ -222,9 +229,12 @@ def main():
                 exported = json.dumps({signal: [MessageToDict(item) for item in messages]
                                        for signal, messages in capture.items()})
             assert 'otel-secret' not in exported, 'Privacy sentinel was exported'
+            assert api_key not in exported, 'API key was exported'
             for log in logs:
                 log.flush(); log.seek(0)
-                assert 'otel-secret' not in log.read(), 'Privacy sentinel was logged to console'
+                console = log.read()
+                assert 'otel-secret' not in console, 'Privacy sentinel was logged to console'
+                assert api_key not in console, 'API key was logged to console'
             print(json.dumps({'result': 'passed', 'signals': {k: len(v) for k, v in capture.items()},
                               'correlated_spans': len(spans), 'metric_names': sorted(metric_names()),
                               'collector_outage': 'healthy applications and recovered export',
