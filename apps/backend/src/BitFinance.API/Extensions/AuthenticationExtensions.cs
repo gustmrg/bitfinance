@@ -1,7 +1,9 @@
 using System.Text;
+using BitFinance.API.Authentication;
 using BitFinance.API.Controllers;
 using BitFinance.API.Services;
 using BitFinance.API.Settings;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -11,6 +13,9 @@ namespace BitFinance.API.Extensions;
 
 public static class AuthenticationExtensions
 {
+    // Both token kinds travel as "Authorization: Bearer"; API keys are recognized by their "bf_" prefix.
+    private const string BearerOrApiKeyScheme = "BearerOrApiKey";
+
     public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         var jwtSettings = new JwtSettings();
@@ -18,9 +23,16 @@ public static class AuthenticationExtensions
 
         var authentication = services.AddAuthentication(options =>
             {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultAuthenticateScheme = BearerOrApiKeyScheme;
+                options.DefaultChallengeScheme = BearerOrApiKeyScheme;
             })
+            .AddPolicyScheme(BearerOrApiKeyScheme, BearerOrApiKeyScheme, options =>
+            {
+                options.ForwardDefaultSelector = context => ApiKeyAuthenticationHandler.HasApiKey(context.Request)
+                    ? ApiKeyAuthenticationHandler.SchemeName
+                    : JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, null)
             .AddJwtBearer(options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters

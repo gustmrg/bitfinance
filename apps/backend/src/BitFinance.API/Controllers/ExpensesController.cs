@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Asp.Versioning;
 using BitFinance.API.Attributes;
+using BitFinance.API.Authentication;
 using BitFinance.API.Models;
 using BitFinance.API.Models.Request;
 using BitFinance.API.Models.Response;
@@ -18,6 +19,7 @@ namespace BitFinance.API.Controllers;
 [ApiController]
 [Authorize]
 [OrganizationAuthorization]
+[AllowApiKey]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/organizations/{organizationId:guid}/expenses")]
 public class ExpensesController : ControllerBase

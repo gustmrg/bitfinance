@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Asp.Versioning;
 using BitFinance.API.Attributes;
+using BitFinance.API.Authentication;
 using BitFinance.API.Models;
 using BitFinance.API.Models.Request;
 using BitFinance.API.Models.Response;
@@ -58,6 +59,7 @@ public class OrganizationsController : ControllerBase
 
     [HttpGet("{organizationId:guid}")]
     [OrganizationAuthorization]
+    [AllowApiKey]
     [EndpointSummary("Get organization details")]
     [EndpointDescription("Returns the details and member list of a specific organization.")]
     public async Task<IActionResult> GetOrganizationById(Guid organizationId)

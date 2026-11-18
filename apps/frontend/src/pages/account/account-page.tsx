@@ -24,6 +24,7 @@ import { useNotificationPreferencesQuery } from "@/hooks/queries/use-notificatio
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
 import { type Theme, useTheme } from "@/hooks/use-theme";
 import { acceptedAvatarTypes, maxAvatarSourceSizeBytes } from "@/lib/file-validation";
+import { ApiKeysCard } from "./components/api-keys-card";
 import { AvatarCropModal } from "./components/avatar-crop-modal";
 
 function PreferenceRow({
@@ -320,6 +321,7 @@ export function AccountPage() {
           </Card>
         </div>
       </div>
+      <ApiKeysCard />
       {cropSource && (
         <AvatarCropModal
           src={cropSource}

@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using BitFinance.API.Attributes;
+using BitFinance.API.Authentication;
 using BitFinance.API.Models.Response;
 using BitFinance.API.Services.Interfaces;
 using BitFinance.Business.Entities;
@@ -12,6 +13,7 @@ namespace BitFinance.API.Controllers;
 [ApiController]
 [Authorize]
 [OrganizationAuthorization]
+[AllowApiKey]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/organizations/{organizationId:guid}/dashboard")]
 public class DashboardController : ControllerBase
