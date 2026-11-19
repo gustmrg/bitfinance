@@ -77,6 +77,7 @@ export function BillsPage() {
   };
   const [selected, setSelected] = useState<Bill | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<Bill | null>(null);
+  const [pendingStop, setPendingStop] = useState<Bill | null>(null);
   const query = useBillsQuery(
     organizationId
       ? {
@@ -111,6 +112,16 @@ export function BillsPage() {
       onSuccess: () => {
         setPendingRemoval(null);
         toast.success(t("bills.removed"));
+      },
+      onError: (error) => toast.error(error.message),
+    });
+  };
+  const confirmStop = () => {
+    if (!pendingStop?.billSeriesId) return;
+    mutations.stopSeries.mutate(pendingStop.billSeriesId, {
+      onSuccess: () => {
+        setPendingStop(null);
+        toast.success(t("bills.futureStopped"));
       },
       onError: (error) => toast.error(error.message),
     });
@@ -280,6 +291,7 @@ export function BillsPage() {
                     onDelete={() => setPendingRemoval(bill)}
                     onPaid={() => markPaid(bill)}
                     onUpload={(files) => void upload(bill, files)}
+                    onStopSeries={() => setPendingStop(bill)}
                   />
                 ))}
               </section>
@@ -328,6 +340,15 @@ export function BillsPage() {
         confirmLabel={t("common.delete")}
         pending={mutations.remove.isPending}
         onConfirm={confirmRemoval}
+      />
+      <ConfirmDialog
+        open={Boolean(pendingStop)}
+        onOpenChange={(next) => !next && setPendingStop(null)}
+        title={t("common.stopFutureBillsConfirm")}
+        description={pendingStop?.description}
+        confirmLabel={t("bills.stopFuture")}
+        pending={mutations.stopSeries.isPending}
+        onConfirm={confirmStop}
       />
     </Page>
   );

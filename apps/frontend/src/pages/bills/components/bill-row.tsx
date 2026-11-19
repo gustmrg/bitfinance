@@ -1,4 +1,4 @@
-import { ArrowUpRight, FilePlus2, Pencil, Trash2 } from "lucide-react";
+import { ArrowUpRight, CircleStop, FilePlus2, Pencil, Trash2 } from "lucide-react";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -27,6 +27,7 @@ export function BillRow({
   onDelete,
   onPaid,
   onUpload,
+  onStopSeries,
   paying,
 }: {
   bill: Bill;
@@ -34,6 +35,7 @@ export function BillRow({
   onDelete: () => void;
   onPaid: () => void;
   onUpload: (files: File[]) => void;
+  onStopSeries: () => void;
   paying: boolean;
 }) {
   const { t } = useTranslation();
@@ -140,6 +142,15 @@ export function BillRow({
               icon: <FilePlus2 size={16} aria-hidden="true" />,
               onSelect: () => inputRef.current?.click(),
             },
+            ...(bill.billSeriesId && bill.billSeriesIsActive
+              ? [
+                  {
+                    label: t("bills.stopFuture"),
+                    icon: <CircleStop size={16} aria-hidden="true" />,
+                    onSelect: onStopSeries,
+                  },
+                ]
+              : []),
             {
               label: t("common.delete"),
               icon: <Trash2 size={16} aria-hidden="true" />,
