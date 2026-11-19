@@ -8,6 +8,7 @@ import { Card } from "@/components/base/card";
 import { Meter } from "@/components/base/meter";
 import { PublicLayout } from "@/components/layout/public-layout";
 import { useLocale } from "@/hooks/use-locale";
+import { cn } from "@/lib/cn";
 import { formatCurrency } from "@/lib/format";
 
 const features = [
@@ -94,7 +95,7 @@ export function HomePage() {
               {t("home.title")}
             </h1>
             <p className="m-0 max-w-xl text-lg text-ink-muted">{t("home.body")}</p>
-            <div className="flex flex-wrap gap-3">
+            <div className={cn("flex flex-wrap gap-3", status === "initializing" && "invisible")}>
               <Link
                 to={authenticated ? "/dashboard" : "/auth/sign-up"}
                 className={buttonClasses({ size: "lg" })}
