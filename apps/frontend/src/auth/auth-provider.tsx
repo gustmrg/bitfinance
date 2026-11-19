@@ -57,31 +57,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     avatarObjectUrlRef.current = null;
   }, []);
 
+  const loadAvatar = useCallback(async () => {
+    let avatarUrl: string;
+    try {
+      avatarUrl = URL.createObjectURL(await accountService.getAvatarAsync());
+    } catch {
+      return;
+    }
+
+    // The user may have signed out while the avatar was downloading.
+    if (!hadSession()) {
+      URL.revokeObjectURL(avatarUrl);
+      return;
+    }
+
+    clearAvatarObjectUrl();
+    avatarObjectUrlRef.current = avatarUrl;
+    setUser((current) => (current ? { ...current, avatarUrl } : current));
+    queryClient.setQueryData<User>(queryKeys.auth.me(), (current) =>
+      current ? { ...current, avatarUrl } : current,
+    );
+  }, [clearAvatarObjectUrl, queryClient]);
+
+  // The avatar loads in the background so a slow download doesn't hold the session in "initializing".
   const refreshUser = useCallback(async () => {
     const next = await authService.getMeAsync();
-    let avatarUrl: string | null = null;
+    if (!next.hasAvatar) clearAvatarObjectUrl();
 
-    if (next.hasAvatar) {
-      try {
-        avatarUrl = URL.createObjectURL(await accountService.getAvatarAsync());
-      } catch {
-        avatarUrl = avatarObjectUrlRef.current;
-      }
-    }
-
-    if (avatarUrl !== avatarObjectUrlRef.current) {
-      clearAvatarObjectUrl();
-      avatarObjectUrlRef.current = avatarUrl;
-    }
-
-    const withAvatar = { ...next, avatarUrl };
+    const withAvatar = { ...next, avatarUrl: avatarObjectUrlRef.current };
     rememberSession();
     setUser(withAvatar);
     selectInitialOrganization(withAvatar);
     setStatus("authenticated");
     queryClient.setQueryData(queryKeys.auth.me(), withAvatar);
+    if (next.hasAvatar) void loadAvatar();
     return withAvatar;
-  }, [clearAvatarObjectUrl, queryClient]);
+  }, [clearAvatarObjectUrl, loadAvatar, queryClient]);
 
   useEffect(() => {
     const expire = (error: unknown) => {

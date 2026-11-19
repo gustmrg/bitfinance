@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/auth-provider";
 import { AppIcon } from "@/components/base/app-icon";
 import { buttonClasses } from "@/components/base/button-styles";
+import { cn } from "@/lib/cn";
 
 export function PublicLayout({ children }: { children: ReactNode }) {
   const { t, i18n } = useTranslation();
@@ -35,20 +36,30 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           >
             <Globe2 size={17} aria-hidden="true" /> {i18n.language === "en-US" ? "EN" : "PT"}
           </button>
-          {authenticated ? (
-            <Link to="/dashboard" className={buttonClasses({ size: "sm" })}>
-              {t("home.openApp")}
-            </Link>
-          ) : (
-            <>
-              <Link to="/auth/sign-in" className={buttonClasses({ variant: "ghost", size: "sm" })}>
-                {t("common.signIn")}
+          <span
+            className={cn(
+              "flex items-center gap-1 sm:gap-2",
+              status === "initializing" && "invisible",
+            )}
+          >
+            {authenticated ? (
+              <Link to="/dashboard" className={buttonClasses({ size: "sm" })}>
+                {t("home.openApp")}
               </Link>
-              <Link to="/auth/sign-up" className={buttonClasses({ size: "sm" })}>
-                {t("common.signUp")}
-              </Link>
-            </>
-          )}
+            ) : (
+              <>
+                <Link
+                  to="/auth/sign-in"
+                  className={buttonClasses({ variant: "ghost", size: "sm" })}
+                >
+                  {t("common.signIn")}
+                </Link>
+                <Link to="/auth/sign-up" className={buttonClasses({ size: "sm" })}>
+                  {t("common.signUp")}
+                </Link>
+              </>
+            )}
+          </span>
         </nav>
       </header>
       <div className="flex flex-1 flex-col">{children}</div>
