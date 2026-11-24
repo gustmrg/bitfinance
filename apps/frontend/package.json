@@ -36,7 +36,7 @@
     "@types/react-dom": "19.2.3",
     "@vite-pwa/assets-generator": "1.0.2",
     "@vitejs/plugin-react": "6.0.3",
-    "oxlint": "1.94.0",
+    "oxlint": "1.95.0",
     "prettier": "^3.9.6",
     "tailwindcss": "4.3.2",
     "typescript": "7.0.2",
