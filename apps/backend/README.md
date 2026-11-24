@@ -24,7 +24,7 @@ BitFinance is a finance platform for tracking bills, expenses, organizations, an
 - Durable in-app notifications and paid-plan bill reminder emails through Resend
 - PostgreSQL persistence through Entity Framework Core
 - Optional Redis caching
-- Local object storage with MinIO and production storage on Amazon S3
+- Attachment storage on Amazon S3
 - OpenAPI and Scalar API documentation
 
 ## Tech Stack
@@ -34,7 +34,6 @@ BitFinance is a finance platform for tracking bills, expenses, organizations, an
 - **Entity Framework Core 10**
 - **PostgreSQL 17**
 - **Redis 7**
-- **MinIO** for local S3-compatible storage
 - **AWS S3 SDK** for object storage integration
 - **Scalar** and **OpenAPI** for API documentation
 - **Serilog** for structured logging
@@ -69,7 +68,7 @@ dotnet tool install --global dotnet-ef
    docker compose --project-directory apps/backend up -d --build
    ```
 
-   This starts the API, PostgreSQL, Redis, MinIO, and a MinIO bucket initialization container.
+   This starts the API and PostgreSQL. Enable the Redis service with the cache profile.
    The Compose project is named `bitfinance`, the same as in production, so local volumes are prefixed `bitfinance_` (for example `bitfinance_postgres-data`). Compose creates and reuses them automatically.
 
 3. Apply migrations manually if you are running the API outside Docker or need to update the database directly.
@@ -97,10 +96,6 @@ When running in the Docker Compose development setup, the API is available at `h
 | Scalar API reference | `http://localhost:8080/scalar/v1` | Interactive API documentation |
 | PostgreSQL | `localhost:5432` | Development database |
 | Redis | `localhost:6379` | Development cache |
-| MinIO API | `http://localhost:9000` | Local S3-compatible storage |
-| MinIO console | `http://localhost:9001` | Local storage admin UI |
-
-Default MinIO credentials in development are `minioadmin` / `minioadmin`.
 
 ## Environment Variables
 
@@ -130,12 +125,9 @@ Production deployments should use `.env.prod.example` as a template and provide 
 
 ### File storage
 
-Attachments are stored through the S3 API. `Storage:ServiceUrl` selects the backend:
+Attachments use Amazon S3. To exercise file uploads locally, configure an existing development bucket with `S3_BUCKET_NAME` and `S3_REGION` in the backend `.env`. Provide `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, plus `AWS_SESSION_TOKEN` when using temporary credentials.
 
-- **Set** (development): an S3-compatible server such as the local MinIO container, with path-style addressing and the `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` it is given.
-- **Empty** (production): Amazon S3 in `Storage:Region`, with credentials from the default AWS chain (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` in the container).
-
-In production, set `S3_BUCKET_NAME`, `S3_REGION`, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. The IAM user needs `s3:GetObject`, `s3:PutObject` and `s3:DeleteObject` on the bucket's objects. The database stores each object's key in `attachments.storage_path`, so moving files between buckets only requires copying them with the same keys.
+The IAM user needs `s3:GetObject`, `s3:PutObject` and `s3:DeleteObject` on the bucket's objects. The database stores each object's key in `attachments.storage_path`, so moving files between buckets only requires copying them with the same keys.
 
 ## API Overview
 
