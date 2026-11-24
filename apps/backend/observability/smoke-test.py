@@ -145,9 +145,13 @@ def main():
             start(api_dll, api_dir, env, 'api')
             api_url, mcp_url = f'http://127.0.0.1:{api_port}', f'http://127.0.0.1:{mcp_port}'
             wait_for(lambda: http(api_url + '/health/ready')[0] == 200, 'API readiness')
+            # Tool calls authenticated by an API key log nothing, so log/trace correlation is checked on
+            # registration, which logs "User account created." inside its trace.
+            registration_trace_id = uuid.uuid4().hex
             status, body = http(api_url + '/api/v1/identity/register', {
                 'firstName': 'otel-secret-first', 'lastName': 'otel-secret-last',
-                'email': 'otel-secret-email@example.invalid', 'password': 'Test-otel-secret-password-123!'})
+                'email': 'otel-secret-email@example.invalid', 'password': 'Test-otel-secret-password-123!'},
+                {'Content-Type': 'application/json', 'traceparent': f'00-{registration_trace_id}-0123456789abcdef-01'})
             assert status == 200, ('Registration failed', status, body)
             user_headers = {'Content-Type': 'application/json',
                             'Authorization': 'Bearer ' + json.loads(body)['accessToken']}
@@ -208,7 +212,7 @@ def main():
             wait_for(lambda: http(api_url + '/health/ready')[0] == http(mcp_url + '/health/ready')[0] == 200, 'Dependency recovery')
             wait_for(lambda: all(capture.values()), 'All three OTLP signals')
             with capture_lock:
-                assert any(record.trace_id.hex() == trace_id for export in capture['logs']
+                assert any(record.trace_id.hex() == registration_trace_id for export in capture['logs']
                            for group in export.resource_logs for scope in group.scope_logs
                            for record in scope.log_records), 'Missing log/trace correlation'
                 metric_services = {attribute.value.string_value for export in capture['metrics']
