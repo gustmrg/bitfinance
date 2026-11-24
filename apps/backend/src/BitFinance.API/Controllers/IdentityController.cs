@@ -381,7 +381,7 @@ public class IdentityController : ControllerBase
     private async Task<UserViewModel> BuildUserViewModelAsync(User user)
     {
         List<OrganizationViewModel> organizations = [];
-        organizations.AddRange(user.OrganizationMemberships.Select(m => new OrganizationViewModel(m.Organization.Id, m.Organization.Name)));
+        organizations.AddRange(user.OrganizationMemberships.Select(m => new OrganizationViewModel(m.Organization.Id, m.Organization.Name, m.Organization.Currency)));
 
         return new UserViewModel(
             user.Id,

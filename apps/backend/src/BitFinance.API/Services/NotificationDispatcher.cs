@@ -244,6 +244,7 @@ public sealed class NotificationDispatcher(
                 organization.Name,
                 payload.BillDescription ?? "Conta",
                 payload.AmountDue ?? 0,
+                organization.Currency,
                 payload.DueDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
                 notification.Type.ToString(),
                 actionUrl), delivery.Id, cancellationToken);

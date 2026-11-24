@@ -33,6 +33,12 @@ public class Organization
     /// The IANA time zone identifier used for date/time calculations (e.g., "America/Sao_Paulo").
     /// </summary>
     public string TimeZoneId { get; set; } = "America/Sao_Paulo";
+
+    /// <summary>
+    /// The currency of every amount in this organization. Changing it relabels amounts; nothing is converted.
+    /// </summary>
+    public Currency Currency { get; set; } = Currency.BRL;
+
     /// <summary>
     /// The subscription plan tier for this organization. Determines feature access and resource limits.
     /// </summary>

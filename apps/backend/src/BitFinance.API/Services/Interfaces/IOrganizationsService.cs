@@ -44,7 +44,7 @@ public interface IOrganizationsService
     /// <param name="organizationId">The organization's ID.</param>
     /// <param name="name">The new name for the organization.</param>
     /// <param name="actingUserId">The ID of the user performing the update.</param>
-    Task<OrganizationActionResult<Organization>> UpdateAsync(Guid organizationId, string name, string actingUserId);
+    Task<OrganizationActionResult<Organization>> UpdateAsync(Guid organizationId, string name, Currency? currency, string actingUserId);
 
     /// <summary>
     /// Creates or updates the configured budget for an organization. Only owners and admins can update it.

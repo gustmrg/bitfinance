@@ -1,12 +1,26 @@
 using System.Globalization;
 using System.Net;
 using BitFinance.API.Services.Interfaces;
+using BitFinance.Business.Enums;
 
 namespace BitFinance.API.Services;
 
 public static class PortugueseBillEmailRenderer
 {
     private static readonly CultureInfo Culture = CultureInfo.GetCultureInfo("pt-BR");
+
+    // pt-BR always formats "C" as R$; keep its separators and swap in the organization's symbol.
+    private static NumberFormatInfo CurrencyFormat(Currency currency)
+    {
+        var format = (NumberFormatInfo)Culture.NumberFormat.Clone();
+        format.CurrencySymbol = currency switch
+        {
+            Currency.USD => "US$",
+            Currency.EUR => "€",
+            _ => "R$",
+        };
+        return format;
+    }
 
     public static RenderedEmail Render(BillReminderEmail message)
     {
@@ -18,7 +32,7 @@ public static class PortugueseBillEmailRenderer
             _ => "precisa da sua atenção",
         };
         var subject = $"{message.BillDescription} {reminder}";
-        var amount = message.AmountDue.ToString("C", Culture);
+        var amount = message.AmountDue.ToString("C", CurrencyFormat(message.Currency));
         var dueDate = message.DueDate.ToString("dd 'de' MMMM 'de' yyyy", Culture);
 
         var safeName = WebUtility.HtmlEncode(message.RecipientName);

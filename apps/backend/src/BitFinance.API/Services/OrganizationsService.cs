@@ -72,7 +72,7 @@ public class OrganizationsService : IOrganizationsService
     }
 
     public async Task<OrganizationActionResult<Organization>> UpdateAsync(
-        Guid organizationId, string name, string actingUserId)
+        Guid organizationId, string name, Currency? currency, string actingUserId)
     {
         var organization = await _organizationsRepository.GetByIdAsync(organizationId);
 
@@ -83,6 +83,7 @@ public class OrganizationsService : IOrganizationsService
             return OrganizationActionResult<Organization>.Failed(OrganizationActionError.NotAuthorized, "Only owners and admins can update the organization");
 
         organization.Name = name;
+        organization.Currency = currency ?? organization.Currency;
         organization.UpdatedAt = DateTime.UtcNow;
 
         await _organizationsRepository.UpdateAsync(organization);

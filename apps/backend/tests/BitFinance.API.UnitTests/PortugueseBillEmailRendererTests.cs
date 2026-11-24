@@ -1,5 +1,6 @@
 using BitFinance.API.Services;
 using BitFinance.API.Services.Interfaces;
+using BitFinance.Business.Enums;
 using Xunit;
 
 namespace BitFinance.API.UnitTests;
@@ -15,6 +16,7 @@ public class PortugueseBillEmailRendererTests
             "Casa & Família",
             "Luz <julho>",
             123.45m,
+            Currency.BRL,
             new DateOnly(2026, 7, 18),
             "BillDueSoon",
             "https://example.com/dashboard/bills/123");

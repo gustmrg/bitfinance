@@ -10,6 +10,7 @@ import { SegmentedControl } from "@/components/base/segmented-control";
 import { Stat } from "@/components/base/stat";
 import { Page } from "@/components/layout/page";
 import { useReportQuery } from "@/hooks/queries/use-report-queries";
+import { useCurrency } from "@/hooks/use-currency";
 import { useLocale } from "@/hooks/use-locale";
 import { useSelectedOrganization } from "@/hooks/use-selected-organization";
 import { cn } from "@/lib/cn";
@@ -42,6 +43,7 @@ function MonthlyChart({
   locale: string;
 }) {
   const { t } = useTranslation();
+  const currency = useCurrency();
   const [active, setActive] = useState<number | null>(null);
   const max = Math.max(
     ...months.flatMap((item) => [item.expensesTotal, item.billsTotal]),
@@ -76,7 +78,7 @@ function MonthlyChart({
             style={{ bottom: `calc(24px + (100% - 48px) * ${budget / max})` }}
           >
             <span className="absolute -top-5 right-0 text-[11px] font-semibold tabular-nums text-ink-muted">
-              {formatCurrency(budget, locale)}
+              {formatCurrency(budget, locale, currency)}
             </span>
           </div>
         )}
@@ -84,7 +86,7 @@ function MonthlyChart({
           <button
             type="button"
             key={`${item.year}-${item.month}`}
-            aria-label={`${monthLabel(item, locale, "long")}: ${t("reports.expenses")} ${formatCurrency(item.expensesTotal, locale)}, ${t("reports.bills")} ${formatCurrency(item.billsTotal, locale)}`}
+            aria-label={`${monthLabel(item, locale, "long")}: ${t("reports.expenses")} ${formatCurrency(item.expensesTotal, locale, currency)}, ${t("reports.bills")} ${formatCurrency(item.billsTotal, locale, currency)}`}
             onMouseEnter={() => setActive(index)}
             onFocus={() => setActive(index)}
             onBlur={() => setActive(null)}
@@ -183,6 +185,7 @@ function CategoryBreakdown({
 export function ReportsPage() {
   const { t } = useTranslation();
   const locale = useLocale();
+  const currency = useCurrency();
   const organizationId = useSelectedOrganization();
   const [period, setPeriod] = useState<Period>("6");
   const query = useReportQuery(organizationId, Number(period));
@@ -236,7 +239,7 @@ export function ReportsPage() {
                 report.monthlyBudget === null
                   ? t("reports.perMonth")
                   : t("reports.againstBudget", {
-                      amount: formatCurrency(report.monthlyBudget, locale),
+                      amount: formatCurrency(report.monthlyBudget, locale, currency),
                     })
               }
             />
