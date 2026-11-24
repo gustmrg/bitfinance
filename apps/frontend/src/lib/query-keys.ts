@@ -7,6 +7,7 @@ export const queryKeys = {
     providers: () => ["auth", "providers"] as const,
   },
   health: { all: ["health"] as const },
+  apiKeys: { all: ["apiKeys"] as const },
   organizations: {
     all: ["organizations"] as const,
     list: () => ["organizations", "list"] as const,
