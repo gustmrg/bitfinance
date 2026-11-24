@@ -145,20 +145,31 @@ def main():
             start(api_dll, api_dir, env, 'api')
             api_url, mcp_url = f'http://127.0.0.1:{api_port}', f'http://127.0.0.1:{mcp_port}'
             wait_for(lambda: http(api_url + '/health/ready')[0] == 200, 'API readiness')
+            # Tool calls authenticated by an API key log nothing, so log/trace correlation is checked on
+            # registration, which logs "User account created." inside its trace.
+            registration_trace_id = uuid.uuid4().hex
             status, body = http(api_url + '/api/v1/identity/register', {
                 'firstName': 'otel-secret-first', 'lastName': 'otel-secret-last',
-                'email': 'otel-secret-email@example.invalid', 'password': 'Test-otel-secret-password-123!'})
+                'email': 'otel-secret-email@example.invalid', 'password': 'Test-otel-secret-password-123!'},
+                {'Content-Type': 'application/json', 'traceparent': f'00-{registration_trace_id}-0123456789abcdef-01'})
             assert status == 200, ('Registration failed', status, body)
+            user_headers = {'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + json.loads(body)['accessToken']}
+            status, body = http(api_url + '/api/v1/organizations', {'name': 'otel-secret-organization'}, user_headers)
+            assert status == 201, ('Organization creation failed', status, body)
+            status, body = http(api_url + '/api/v1/api-keys', {
+                'name': 'otel-secret-key', 'expiresAt': None,
+                'organizations': [{'organizationId': json.loads(body)['id'], 'access': 'Read'}]}, user_headers)
+            assert status == 201, ('API key creation failed', status, body)
+            api_key = json.loads(body)['secret']
             mcp_env = dict(env, ASPNETCORE_URLS=f'http://0.0.0.0:{mcp_port}',
-                           BITFINANCE_API_BASE_URL=api_url, BITFINANCE_AGENT_EMAIL='otel-secret-email@example.invalid',
-                           BITFINANCE_AGENT_PASSWORD='Test-otel-secret-password-123!',
-                           BITFINANCE_MCP_BEARER_TOKEN='otel-secret-bearer',
+                           BITFINANCE_API_BASE_URL=api_url,
                            OTEL_EXPORTER_OTLP_ENDPOINT=f'http://127.0.0.1:{http_port}',
                            OTEL_EXPORTER_OTLP_PROTOCOL='http/protobuf')
             start(mcp_dll, mcp_dir, mcp_env, 'mcp')
             wait_for(lambda: http(mcp_url + '/health/ready')[0] == 200, 'MCP readiness')
             headers = {'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream',
-                       'Authorization': 'Bearer otel-secret-bearer', 'MCP-Protocol-Version': '2025-03-26'}
+                       'Authorization': 'Bearer ' + api_key, 'MCP-Protocol-Version': '2025-03-26'}
 
             def tool_call():
                 trace_id = uuid.uuid4().hex
@@ -201,7 +212,7 @@ def main():
             wait_for(lambda: http(api_url + '/health/ready')[0] == http(mcp_url + '/health/ready')[0] == 200, 'Dependency recovery')
             wait_for(lambda: all(capture.values()), 'All three OTLP signals')
             with capture_lock:
-                assert any(record.trace_id.hex() == trace_id for export in capture['logs']
+                assert any(record.trace_id.hex() == registration_trace_id for export in capture['logs']
                            for group in export.resource_logs for scope in group.scope_logs
                            for record in scope.log_records), 'Missing log/trace correlation'
                 metric_services = {attribute.value.string_value for export in capture['metrics']
@@ -222,9 +233,12 @@ def main():
                 exported = json.dumps({signal: [MessageToDict(item) for item in messages]
                                        for signal, messages in capture.items()})
             assert 'otel-secret' not in exported, 'Privacy sentinel was exported'
+            assert api_key not in exported, 'API key was exported'
             for log in logs:
                 log.flush(); log.seek(0)
-                assert 'otel-secret' not in log.read(), 'Privacy sentinel was logged to console'
+                console = log.read()
+                assert 'otel-secret' not in console, 'Privacy sentinel was logged to console'
+                assert api_key not in console, 'API key was logged to console'
             print(json.dumps({'result': 'passed', 'signals': {k: len(v) for k, v in capture.items()},
                               'correlated_spans': len(spans), 'metric_names': sorted(metric_names()),
                               'collector_outage': 'healthy applications and recovered export',

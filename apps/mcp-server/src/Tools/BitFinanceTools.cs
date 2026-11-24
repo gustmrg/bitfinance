@@ -24,43 +24,43 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Lists organizations the authenticated BitFinance agent user can access.")]
-    public Task<List<OrganizationSummaryResponse>> bitfinance_list_organizations(CancellationToken cancellationToken = default)
+    [Description("Lists the organizations this agent's API key can access, with the access level in each: Read (read only) or ReadWrite (can also create, update and delete). Writes to a Read organization fail with 403.")]
+    public Task<List<ApiKeyOrganizationResponse>> bitfinance_list_organizations(CancellationToken cancellationToken = default)
     {
         return _apiClient.ListOrganizationsAsync(cancellationToken);
     }
 
     [McpServerTool]
-    [Description("Gets organization details and members. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Gets organization details and members. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public Task<OrganizationDetailsResponse> bitfinance_get_organization(
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
         return _apiClient.GetOrganizationAsync(organizationId, cancellationToken);
     }
 
     [McpServerTool]
-    [Description("Gets upcoming bills for the organization dashboard. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Gets upcoming bills for the organization dashboard. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public Task<UpcomingBillsResponse> bitfinance_get_upcoming_bills(
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
         return _apiClient.GetUpcomingBillsAsync(organizationId, cancellationToken);
     }
 
     [McpServerTool]
-    [Description("Gets recent expenses for the organization dashboard. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Gets recent expenses for the organization dashboard. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public Task<RecentExpensesResponse> bitfinance_get_recent_expenses(
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
         return _apiClient.GetRecentExpensesAsync(organizationId, cancellationToken);
     }
 
     [McpServerTool]
-    [Description("Lists bills for an organization with optional paging, date, status, and description filtering. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Lists bills for an organization with optional paging, date, status, and description filtering. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public Task<PagedResponse<BillResponse>> bitfinance_list_bills(
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         [Description("Page number, starting at 1.")] int page = 1,
         [Description("Page size. Default is 100.")] int pageSize = 100,
         [Description("Optional start date/time filter as ISO 8601.")] DateTimeOffset? from = null,
@@ -73,10 +73,10 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Gets a bill by ID. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Gets a bill by ID. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public Task<BillResponse> bitfinance_get_bill(
         [Description("Bill ID.")] Guid billId,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
         return _apiClient.GetBillAsync(billId, organizationId, cancellationToken);
@@ -90,7 +90,7 @@ public sealed class BitFinanceTools
         [Description("Bill status.")] string status,
         [Description("Bill due date as an ISO 8601 calendar date, e.g. 2026-08-05. Any time or offset component is ignored; the date is kept as written.")] DateTimeOffset dueDate,
         [Description("Amount due.")] decimal amountDue,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         [Description("Optional payment date/time as ISO 8601. Applies only to one-time bills.")] DateTimeOffset? paymentDate = null,
         [Description("Optional amount already paid. Applies only to one-time bills.")] decimal? amountPaid = null,
         [Description("Optional recurrence frequency. Omit for a one-time bill. Valid values: " + BillFrequencies + ".")] BillFrequency? frequency = null,
@@ -121,7 +121,7 @@ public sealed class BitFinanceTools
         [Description("Bill status.")] string status,
         [Description("Bill due date as an ISO 8601 calendar date, e.g. 2026-08-05. Any time or offset component is ignored; the date is kept as written.")] DateTimeOffset dueDate,
         [Description("Amount due.")] decimal amountDue,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         [Description("Optional payment date/time as ISO 8601.")] DateTimeOffset? paymentDate = null,
         [Description("Optional amount already paid.")] decimal? amountPaid = null,
         [Description("Optional notes, up to 2000 characters. Omit to preserve the current value; pass an empty string to clear.")] string? notes = null,
@@ -132,10 +132,10 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Deletes one bill occurrence and its associated documents. Deleting a generated occurrence does not stop its bill series; use bitfinance_stop_bill_series to stop future generation. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Deletes one bill occurrence and its associated documents. Deleting a generated occurrence does not stop its bill series; use bitfinance_stop_bill_series to stop future generation. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public async Task<DeleteBillResponse> bitfinance_delete_bill(
         [Description("Bill ID.")] Guid billId,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
         await _apiClient.DeleteBillAsync(billId, organizationId, cancellationToken);
@@ -143,10 +143,10 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Stops a recurring or installment bill series from generating future occurrences and deletes its unpaid occurrences due after today, along with their documents. Past, current, and paid occurrences are preserved. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Stops a recurring or installment bill series from generating future occurrences and deletes its unpaid occurrences due after today, along with their documents. Past, current, and paid occurrences are preserved. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public async Task<StopBillSeriesResponse> bitfinance_stop_bill_series(
         [Description("Bill series ID, available as billSeriesId on a generated bill.")] Guid seriesId,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
         await _apiClient.StopBillSeriesAsync(seriesId, organizationId, cancellationToken);
@@ -160,7 +160,7 @@ public sealed class BitFinanceTools
         [Description("Original file name, including extension.")] string fileName,
         [Description("Base64-encoded file content. Data URLs are accepted.")] string base64Content,
         [Description("File category.")] string fileCategory,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         [Description("Optional MIME content type. Inferred from file extension or data URL when omitted.")] string? contentType = null,
         CancellationToken cancellationToken = default)
     {
@@ -168,22 +168,22 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Gets a temporary signed URL for downloading a bill document. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Gets a temporary signed URL for downloading a bill document. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public Task<DocumentDownloadUrlResponse> bitfinance_get_bill_document_download_url(
         [Description("Bill ID.")] Guid billId,
         [Description("Document/attachment ID.")] Guid documentId,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
         return _apiClient.GetBillDocumentDownloadUrlAsync(billId, documentId, organizationId, cancellationToken);
     }
 
     [McpServerTool]
-    [Description("Deletes a document attached to a bill. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Deletes a document attached to a bill. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public async Task<DeleteBillDocumentResponse> bitfinance_delete_bill_document(
         [Description("Bill ID.")] Guid billId,
         [Description("Document/attachment ID.")] Guid documentId,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
         await _apiClient.DeleteBillDocumentAsync(billId, documentId, organizationId, cancellationToken);
@@ -191,9 +191,9 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Lists expenses for an organization with optional paging, date, status, description, and payment-method filtering. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Lists expenses for an organization with optional paging, date, status, description, and payment-method filtering. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public Task<ExpensePageResponse> bitfinance_list_expenses(
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         [Description("Page number, starting at 1.")] int page = 1,
         [Description("Page size. Default is 20.")] int pageSize = 20,
         [Description("Optional start date/time filter as ISO 8601.")] DateTimeOffset? from = null,
@@ -207,10 +207,10 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Gets an expense by ID. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Gets an expense by ID. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public Task<ExpenseResponse> bitfinance_get_expense(
         [Description("Expense ID.")] Guid expenseId,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
         return _apiClient.GetExpenseAsync(expenseId, organizationId, cancellationToken);
@@ -223,7 +223,7 @@ public sealed class BitFinanceTools
         [Description("Expense category.")] string category,
         [Description("Expense amount.")] decimal amount,
         [Description("Expense status.")] string status,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         [Description("Optional occurrence date/time as ISO 8601. Defaults to backend current UTC time when omitted.")] DateTimeOffset? occurredAt = null,
         [Description("Optional notes, up to 2000 characters.")] string? notes = null,
         [Description("Optional payment method. Valid values: " + PaymentMethods + ".")] string? paymentMethod = null,
@@ -237,7 +237,7 @@ public sealed class BitFinanceTools
     [Description("Creates multiple expenses in a single atomic batch: either all are created or none are. Maximum 100 items per batch. Valid categories: " + ExpenseCategories + ". Valid statuses: " + ExpenseStatuses + ". The expenses are recorded as created by the authenticated agent user.")]
     public Task<CreateExpensesBatchResponse> bitfinance_create_expenses(
         [Description("The expenses to create. Each item requires description, category, amount and status; occurredAt (ISO 8601), notes (up to 2000 characters) and paymentMethod (" + PaymentMethods + ") are optional.")] IReadOnlyList<CreateExpenseBatchItemRequest> items,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
         var request = new CreateExpensesBatchRequest(items);
@@ -253,7 +253,7 @@ public sealed class BitFinanceTools
         [Description("Expense amount.")] decimal amount,
         [Description("Expense status.")] string status,
         [Description("Expense occurrence date/time as ISO 8601.")] DateTimeOffset occurredAt,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         [Description("Optional notes, up to 2000 characters.")] string? notes = null,
         [Description("Optional payment method. Valid values: " + PaymentMethods + ".")] string? paymentMethod = null,
         CancellationToken cancellationToken = default)
@@ -276,7 +276,7 @@ public sealed class BitFinanceTools
         [Description("Original file name, including extension.")] string fileName,
         [Description("Base64-encoded file content. Data URLs are accepted.")] string base64Content,
         [Description("File category.")] string fileCategory,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         [Description("Optional MIME content type. Inferred from file extension or data URL when omitted.")] string? contentType = null,
         CancellationToken cancellationToken = default)
     {
@@ -291,11 +291,11 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Gets a temporary signed URL for downloading an expense document. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Gets a temporary signed URL for downloading an expense document. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public Task<DocumentDownloadUrlResponse> bitfinance_get_expense_document_download_url(
         [Description("Expense ID.")] Guid expenseId,
         [Description("Document/attachment ID.")] Guid documentId,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
         return _apiClient.GetExpenseDocumentDownloadUrlAsync(
@@ -306,11 +306,11 @@ public sealed class BitFinanceTools
     }
 
     [McpServerTool]
-    [Description("Deletes a document attached to an expense. Uses BITFINANCE_DEFAULT_ORGANIZATION_ID when organizationId is omitted.")]
+    [Description("Deletes a document attached to an expense. When organizationId is omitted, uses the API key's organization if it has only one.")]
     public async Task<DeleteExpenseDocumentResponse> bitfinance_delete_expense_document(
         [Description("Expense ID.")] Guid expenseId,
         [Description("Document/attachment ID.")] Guid documentId,
-        [Description("Optional organization ID. Defaults to BITFINANCE_DEFAULT_ORGANIZATION_ID.")] Guid? organizationId = null,
+        [Description("Optional organization ID. Can be omitted when the API key has a single organization.")] Guid? organizationId = null,
         CancellationToken cancellationToken = default)
     {
         await _apiClient.DeleteExpenseDocumentAsync(

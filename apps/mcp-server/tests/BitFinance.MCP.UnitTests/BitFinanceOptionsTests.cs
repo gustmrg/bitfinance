@@ -23,30 +23,13 @@ public sealed class BitFinanceOptionsTests
         Assert.Contains("absolute HTTP or HTTPS URL", exception.Message);
     }
 
-    [Theory]
-    [InlineData("BITFINANCE_AGENT_EMAIL")]
-    [InlineData("BITFINANCE_AGENT_PASSWORD")]
-    public void FromConfiguration_WhenCredentialIsMissing_Throws(string missingKey)
-    {
-        var configuration = ValidConfiguration(new Dictionary<string, string?>
-        {
-            [missingKey] = ""
-        });
-
-        var exception = Assert.Throws<InvalidOperationException>(
-            () => BitFinanceOptions.FromConfiguration(configuration));
-
-        Assert.Contains(missingKey, exception.Message);
-    }
 
     private static IConfiguration ValidConfiguration(
         IDictionary<string, string?> overrides)
     {
         var values = new Dictionary<string, string?>
         {
-            ["BITFINANCE_API_BASE_URL"] = "https://api.example",
-            ["BITFINANCE_AGENT_EMAIL"] = "agent@example.test",
-            ["BITFINANCE_AGENT_PASSWORD"] = "test-password"
+            ["BITFINANCE_API_BASE_URL"] = "https://api.example"
         };
 
         foreach (var pair in overrides)

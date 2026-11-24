@@ -4,8 +4,7 @@ namespace BitFinance.MCP.Services;
 
 public interface IBitFinanceApiClient
 {
-    Guid GetOrganizationIdOrDefault(Guid? organizationId);
-    Task<List<OrganizationSummaryResponse>> ListOrganizationsAsync(CancellationToken cancellationToken = default);
+    Task<List<ApiKeyOrganizationResponse>> ListOrganizationsAsync(CancellationToken cancellationToken = default);
     Task<OrganizationDetailsResponse> GetOrganizationAsync(Guid? organizationId = null, CancellationToken cancellationToken = default);
     Task<UpcomingBillsResponse> GetUpcomingBillsAsync(Guid? organizationId = null, CancellationToken cancellationToken = default);
     Task<RecentExpensesResponse> GetRecentExpensesAsync(Guid? organizationId = null, CancellationToken cancellationToken = default);
